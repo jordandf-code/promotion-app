@@ -1,78 +1,100 @@
-# Claude Code Guidelines
+# Promotion Tracker
 
-## Code Structure
+Multi-user web app for IBM Canada Associate Partners tracking their path to Partner promotion. React frontend, Node.js/Express backend, PostgreSQL (Supabase). Deployed on Vercel (frontend) + Render (backend).
 
-### Single Responsibility
-- Every function and module does one thing only
-- If you cannot describe a file's purpose without using "and", split it
-- Keep files under 200 lines — if a file is growing beyond this, it's a signal to decompose it
+## Tech stack
 
-### File & Folder Organization
-- Organize by **feature or domain**, not by type
-  - ✅ `auth/login.js`, `auth/logout.js`, `auth/session.js`
-  - ❌ `utils.js`, `helpers.js`, `misc.js`
-- Each folder should represent a coherent domain — if you can't name the folder clearly, the grouping is wrong
+- **Frontend**: React 19, Vite 8, deployed to Vercel
+- **Backend**: Node.js + Express, deployed to Render
+- **Database**: PostgreSQL on Supabase (JSONB `user_data` table for all domains)
+- **AI**: Anthropic API (claude-sonnet-4-6) — key stored per-user in DB, never in env vars
+- **Auth**: JWT (email + password)
 
-### Naming
-- Use descriptive names for functions, variables, and files
-- A function's name should make its purpose clear without reading its body
-- Prefer `getUserByEmail(email)` over `getUser(param)` or `fetch(x)`
-- Avoid abbreviations unless they are universally understood in this codebase
+## Project structure
 
-### Explicit Interfaces
-- Keep the surface area between modules small and deliberate
-- Modules should communicate through clearly defined functions, not by reaching into each other's internals
-- If module A depends on module B, that dependency should be obvious and minimal — one or two entry points, not scattered references
-- Before adding a cross-module dependency, ask: should this live in a shared module, or does it belong to one owner?
+```
+frontend/
+  src/
+    pages/           — one file per tab (Dashboard, Scorecard, Goals, People, Wins, etc.)
+    components/      — shared UI components
+    hooks/           — data hooks (useScorecardData, useWinsData, useGoalsData, etc.)
+    contexts/        — React contexts (SettingsContext, AdminDataContext)
+    utils/           — helpers (aiErrors.js, formatting)
+backend/
+  routes/            — Express route files (auth.js, data.js, ai.js, share.js, feedback.js)
+  ai/                — AI pipeline (buildContext.js, prompts.js, callAnthropic.js)
+  migration*.sql     — DB migrations (run in Supabase SQL editor, never modify existing ones)
+docs/                — phase specs, data model, completed phase archive
+```
 
-### Before Building
-- Propose a file and folder structure before writing code, and get confirmation before proceeding
-- Do not modify files unrelated to the current change
-- If a change touches more than 2–3 files, flag it and confirm the approach first
+## Commands
 
----
+```bash
+# Run locally (two terminals)
+cd backend && npm run dev    # port 3001
+cd frontend && npm run dev   # port 5173
 
-## Testing
+# Git workflow
+git checkout dev             # all work on dev branch
+git add -A && git commit -m "description"
+git push origin dev          # then PR to main for auto-deploy
+```
 
-### When to Write Tests
-- Write tests **alongside** the feature, not after
-- Every new function or module gets tests before the session ends — do not defer this
-- After building something, always check: have the edge cases and error conditions been tested?
+## Key conventions
 
-### What to Test
-- Always test **unhappy paths**, not just the happy path. This includes:
-  - Empty or null inputs
-  - Out-of-range or unexpected values
-  - Network failures and timeouts
-  - Unexpected data types
-- Assert on **specific outputs and side effects** — not just that no exception was thrown
-- Focus test coverage on critical paths and complex logic, not on chasing 100% line coverage
+### Data persistence pattern
+All user data stored in PostgreSQL `user_data` table as JSONB, keyed by `(user_id, domain)`. Domains: `scorecard`, `wins`, `actions`, `goals`, `people`, `admin`, `story`, `settings`. Each domain has a React hook (`useXxxData`) that follows the same optimistic-update pattern: state updates instantly in React, then fires a background PUT to `/api/data/:domain`.
 
-### Test Quality
-- Use **descriptive test names** that explain what is being tested and what the expected outcome is
-  - ✅ `test_user_login_fails_with_expired_token`
-  - ❌ `test2`, `loginTest`, `it works`
-- Each test must be **fully independent** — no shared mutable state between tests
-- A failing test must not cause other tests to fail for the wrong reasons
-- Treat flaky tests as bugs — fix or delete them, never ignore them
+### Currency
+ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `SettingsContext` provides `toInputValue()`, `fromInputValue()`, and `currencySymbol` — use these in all currency inputs and displays.
 
-### Test Isolation
-- **Mock all external dependencies**: databases, APIs, file systems, clocks, randomness
-- Tests must be runnable without a live environment
-- Tests must be deterministic — the same inputs always produce the same result
+### API patterns
+- All data endpoints: `GET /api/data/:domain` and `PUT /api/data/:domain`, scoped to `req.userId` via JWT
+- AI endpoints: `POST /api/ai/narrative`, `POST /api/ai/suggest-goals`, `POST /api/ai/suggest-impact`
+- AI calls use `buildContext(userId)` to assemble all user data server-side — frontend never sends data payloads to AI endpoints
+- Error envelope: `{ ok: false, error, code }` with codes: NO_KEY, NO_CRITERIA, INVALID_KEY, RATE_LIMITED, OVERLOADED, BILLING, PARSE_ERROR
 
-### Test Levels
-- **Unit tests**: small, fast, one function or component at a time — write these liberally
-- **Integration tests**: verify that modules work correctly together — write these for critical flows
-- **End-to-end tests**: simulate real user journeys — use sparingly, they are slow and fragile
+### AI architecture
+`buildContext.js` loads all domains → `prompts.js` selects system prompt → `callAnthropic.js` sends to API with retry on 529. API key loaded from user's `adminData` in DB. Results cached in `storyData_v1` under `gap_analysis` and `polished_narrative` keys. Full prompt specs in `backend/ai/AIprompt.md`.
 
-### Performance
-- The full test suite should run in under 2 minutes locally
-- If it grows beyond this, split slow tests into a separate suite that runs in CI only
+### Form UX
+Required fields: red `*` via `<span className="form-required">*</span>`. Optional fields: no marker at all — never write "(optional)". Units: `<span className="form-unit">%</span>` inline after label. Full spec in `docs/FORM_UX.md`.
 
----
+### Adding a new data domain
+Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (copy any existing one), add domain to `GET/PUT /api/data/:domain` whitelist in backend, add to `buildContext.js` if AI needs it. No migration needed — `user_data` table handles arbitrary domain strings.
 
-## General Principles
-- Prefer early returns to reduce nesting
-- Avoid clever code — clear and boring is better than impressive and opaque
-- Leave the code easier to understand than you found it
+## Current status
+
+Phases 1–16 complete. Phase 7c (people relationship status) is a small backlog item. Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
+
+## What to build next
+
+Priority order: Phase 21 (readiness score) → Phase 18 (roles/access) → Phase 17 (learning tab). See dependency map in `docs/PLAN.md`.
+
+## Important gotchas
+
+- Modal backdrop clicks do NOT close modals (prevents data loss) — do not change this
+- Anthropic API key is NEVER an env var — always per-user from DB
+- Never modify existing `migration*.sql` files — always create new ones
+- `adminData` sync has a `serverLoaded` guard to prevent race conditions — do not remove
+- Phase 7 header says "relationship status added in Phase 7c" but 7c is NOT built yet
+- Scorecard metric labels: "Signings" (not Sales), "Chargeable utilization" (not Utilization), "Gross profit" (not Gross Profit)
+
+## Session workflow
+
+Start each session by telling Claude which docs to read for the task at hand. Examples:
+- New phase: "Read docs/PHASE_21.md and docs/DATA_MODEL.md. Build Phase 21."
+- UI work: "Read docs/PHASE_17.md and docs/FORM_UX.md. Build the certification modal."
+- AI pipeline: "Read backend/ai/AIprompt.md. Fix the gap analysis JSON parsing."
+- Planning: "Read docs/PLAN.md. What should I build next?"
+
+When compacting, preserve: the current phase being worked on, which files have been modified, what checklist items are done vs remaining, and any failing tests.
+
+## Reference docs
+
+- Data model schemas: `docs/DATA_MODEL.md`
+- Form UX standards: `docs/FORM_UX.md`
+- AI prompt specs: `backend/ai/AIprompt.md`
+- Deployment workflow: `DEPLOY.md`
+- Completed phase archive: `docs/PHASES_COMPLETE.md`
+- Individual phase specs: `docs/PHASE_17.md` through `docs/PHASE_26.md`

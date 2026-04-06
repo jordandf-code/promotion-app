@@ -1,0 +1,182 @@
+# Completed Phases (1–16) — Archive
+
+This file is the historical record of all completed phases. Consult it only when you need
+to understand what was built and how. For current data model schemas, see `DATA_MODEL.md`.
+
+---
+
+## Phase 1 — Project setup ✅
+
+- [x] Create React app with Vite
+- [x] Set up Node.js + Express backend
+- [x] Connect PostgreSQL on Supabase (completed in Phase 11)
+- [x] Deploy frontend to Vercel, backend to Render (completed in Phase 15)
+- [x] Basic folder structure and routing in place
+
+## Phase 2 — Auth ✅
+
+- [x] Register and login (email + password)
+- [x] JWT tokens for session management
+- [x] Protected routes (redirect to login if not authenticated)
+- [x] Basic user profile (name, role, company)
+
+## Phase 3 — Static UI shell ✅
+
+- [x] Tab navigation (Dashboard, Scorecard, Pursuits, Goals, People, Wins, Action items, Narrative + Gaps, Calendar, Sharing, Admin)
+- [x] Card and layout components
+- [x] Hardcoded sample data so it looks real
+- [x] Consistent color scheme and typography (IBM blue `#0040a0`, qualifying year amber accent)
+
+## Phase 4 — Scorecard tab ✅
+
+- [x] 7-year scorecard grid anchored to user-selected partner promotion year (Year −4 to +2)
+- [x] Qualifying year (Year −1) and partner year (Year 0) visually highlighted
+- [x] Current calendar year distinctly marked
+- [x] Overview tab: stacked realized/forecast progress bars per metric per year
+- [x] ~~Inline target editing~~ (moved to dedicated Targets sub-tab)
+- [x] Opportunities sub-tab: full table with add/edit/delete modal, status pills, year+status filters, summary strip
+- [x] Projects sub-tab: quarterly revenue and GP inputs, optional opportunity link, GP margin %, summary strip
+- [x] Utilization sub-tab: annual target + monthly actual/forecast grid, live stats panel
+- [x] Targets are flat IBM-given numbers per year/metric — not tied to any deal or project
+- [x] All scorecard data persisted to `scorecardData_v2`
+
+## Phase 5 — Dashboard tab ✅
+
+- [x] Qualifying year scorecard snapshot — live data from `useScorecardData`
+- [x] Countdown to December 31 of the qualifying year
+- [x] Count of overdue action items (interactive — click to mark done)
+- [x] Count of people not contacted in 30+ days
+- [x] Quick-add button opens modal to add a Win or Action item
+- [x] Wins and action items backed by `useWinsData` / `useActionsData` hooks
+
+## Phase 6 — Goals tab ✅
+
+- [x] Add, edit, delete goals (title, target date, status, notes)
+- [x] Status: Not started / In progress / Done — click badge to cycle
+- [x] IBM milestones: any goal flagged as gate; shown in dedicated section
+- [x] Milestones section title references qualifying year from settings
+- [x] Three IBM milestone goals pre-seeded; fully editable/deletable
+- [x] Overdue non-done goals highlighted in red; done goals faded with strikethrough
+- [x] "✦ Suggest goals" placeholder button
+- [x] Goals ↔ action items many-to-many linking
+
+## Phase 7 — People tab ✅ (core complete; relationship status deferred to Phase 7c)
+
+- [x] Add, edit, delete people (name, job title, org, email, phone, relationship type, what you need)
+- [x] Relationship types configurable via Admin tab
+- [x] Touchpoint log per person: date + note, newest first
+- [x] Planned contacts with optional action item link
+- [x] "Log as done" converts planned contact to touchpoint and marks action done
+- [x] Last contact derived from most recent touchpoint
+- [x] 30+ day stale contacts flagged with "Follow up needed"
+- [x] People sorted stalest first; type filter in toolbar
+- [x] Dashboard stale contacts count wired to live hook
+
+**Not built** (deferred to Phase 7c):
+- `relationshipStatus` field (`established | in-progress`)
+- Status filter in People tab toolbar
+- LinkedIn import default status (Phase 25)
+
+## Phase 7b — Admin tab ✅
+
+- [x] `/admin` route with sub-tab layout: GenAI, Categories, User settings
+- [x] Editable relationship types, win tags with configurable colours
+- [x] Deal types, logo types, relationship origins as configurable value/label lists
+- [x] All category lists support drag-and-drop reordering
+- [x] Colour picker: palette swatches + native color wheel
+
+## Phase 8 — Wins tab ✅
+
+- [x] Full CRUD for wins with card list view
+- [x] Filter by tag
+- [x] Source badges for data-driven wins (from opportunities and goals)
+- [x] Win prompt on opportunity won / goal done (pre-filled, skip-able, fires once per source)
+- [x] `winsData_v2` with source tracking and strategic context fields
+
+## Phase 9 — Action items tab ✅
+
+- [x] Full CRUD with modal; overdue sorted first and highlighted
+- [x] Goal linking via checkbox list in modal (many-to-many)
+
+## Phase 10 — Narrative + Gaps tab (AI-powered) ✅
+
+- [x] IBM criteria + career history + API key in Admin > GenAI
+- [x] Two AI modes: polished narrative (plain text) and gap analysis (JSON)
+- [x] Independent Generate/Regenerate buttons; "Generate all" fires both in parallel
+- [x] Shows setup prompt if criteria or API key not configured
+- [x] Token usage displayed; export to plain text
+- [x] ✦ Suggest goals (scorecard-aware) and ✦ Suggest impact (deal-context-aware)
+- [x] Cached in `storyData_v1`
+
+## Phase 11 — Persistence ✅
+
+- [x] All data saved to PostgreSQL via `GET/PUT /api/data/:domain`
+- [x] Optimistic UI updates — state updates instantly, background sync
+- [x] Auto-migration from localStorage to DB on first load
+- [x] Auth migrated to PostgreSQL `users` table
+- [x] Settings migrated to `settings` domain
+
+## Phase 12 — Sharing + feedback ✅
+
+- [x] Public share link (`/share/:token`) with visibility controls
+- [x] Feedback link (`/feedback/:token`) — reviewer name, star rating, comments
+- [x] Feedback inbox in Sharing tab
+- [x] Reset links button to rotate tokens
+
+## Out-of-phase additions ✅
+
+- [x] Calendar tab — aggregated dates from all tabs, colour-coded, click-to-navigate
+- [x] Account wipe + restore in Admin
+- [x] New accounts start empty (no seed data)
+- [x] Tab ordering in Admin (drag-and-drop + arrows, via AdminDataContext)
+- [x] Dashboard stat card navigation (days → Calendar, overdue → filtered Actions, stale → filtered People)
+- [x] Filtered views on Actions and People pages (?filter= URL params)
+- [x] Dashboard item click navigation (?id= with scroll + highlight animation)
+- [x] Dashboard multi-year ScorecardTable with status badges
+- [x] Currency-aware inputs throughout (toInputValue/fromInputValue/currencySymbol)
+- [x] Scorecard windowed view (3-year default, expand to 7)
+- [x] Targets sub-tab (dedicated target entry)
+- [x] Metric label updates: Sales→Signings, Utilization→Chargeable utilization, Gross Profit→Gross profit
+- [x] Quick-add expanded to 5 types with fixed-height modal
+- [x] Pursuits page — CRM pipeline, stage funnel, weighted pipeline
+- [x] Admin split into sub-tabs; configurable category lists
+
+## Phase 13 — Multi-user ✅
+
+- [x] Independent user registration; all data fully isolated per user
+
+## Phase 14 — Polish ✅
+
+- [x] Mobile-friendly layout (hamburger menu, sidebar overlay, responsive)
+- [x] Export wins to plain text
+- [x] Print-friendly scorecard and story views
+- [ ] Email notification on feedback (deferred → Phase 23)
+
+## Phase 15 — Source control and deployment ✅
+
+- [x] Git repo on GitHub with `main` and `dev` branches
+- [x] Frontend on Vercel, backend on Render (auto-deploy on merge to `main`)
+- [x] Two Supabase projects: dev and prod
+- [x] CORS configured; `API_BASE` from env var
+- [x] Promotion workflow: dev → PR → merge → auto-deploy
+
+## Phase 16 — AI prompt engineering ✅
+
+- [x] `buildContext.js` centralises data assembly for all AI calls
+- [x] Two independent Narrative + Gaps modes with per-section Generate/Regenerate
+- [x] Suggest goals: scorecard-aware, returns targetDate + isGate
+- [x] Suggest impact: deal/goal context injected
+- [x] Error handling: consistent envelope, retry on 529, frontend error mapping
+- [x] Token efficiency: compact JSON, null stripping, caps on wins/people
+- [x] Bug fixes: modal backdrop click prevention, admin data race condition guard
+- [ ] AI usage log in Admin (deferred — unassigned)
+
+---
+
+## Progress log
+
+| Date | What was done |
+|---|---|
+| 2026-04-05 | Phases 1–15 completed in a single build session |
+| 2026-04-05 | All out-of-phase additions (calendar, pursuits, currency, tab ordering, etc.) |
+| 2026-04-06 | Phase 16 complete — AI prompt engineering, buildContext.js, Narrative + Gaps redesign |
