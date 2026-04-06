@@ -11,8 +11,10 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
-    role: '',
     company: '',
+    inviteCode: '',
+    securityQuestion: '',
+    securityAnswer: '',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -83,17 +85,6 @@ export default function Register() {
           </label>
 
           <label>
-            Current role <span className="auth-hint">(optional)</span>
-            <input
-              type="text"
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              placeholder="e.g. Associate Partner"
-            />
-          </label>
-
-          <label>
             Company <span className="auth-hint">(optional)</span>
             <input
               type="text"
@@ -101,6 +92,43 @@ export default function Register() {
               value={form.company}
               onChange={handleChange}
               placeholder="e.g. IBM Canada"
+            />
+          </label>
+
+          <label>
+            Invite code
+            <input
+              type="text"
+              name="inviteCode"
+              value={form.inviteCode}
+              onChange={handleChange}
+              placeholder="Provided by your admin"
+              autoComplete="off"
+            />
+          </label>
+
+          <label>
+            Security question
+            <input
+              type="text"
+              name="securityQuestion"
+              value={form.securityQuestion}
+              onChange={handleChange}
+              required
+              placeholder="e.g. What city were you born in?"
+              autoComplete="off"
+            />
+          </label>
+
+          <label>
+            Security answer
+            <input
+              type="text"
+              name="securityAnswer"
+              value={form.securityAnswer}
+              onChange={handleChange}
+              required
+              autoComplete="off"
             />
           </label>
 

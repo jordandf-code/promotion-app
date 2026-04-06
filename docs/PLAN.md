@@ -46,7 +46,7 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 ## Completion status
 
-**Phases 1–16**: Complete. Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
+**Phases 1–16, 21, 18**: Complete. Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
 
 **Uncompleted items in "done" phases**:
 - Phase 7c — People `relationshipStatus` field: not built (separate backlog item)

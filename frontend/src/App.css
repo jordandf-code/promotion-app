@@ -4086,3 +4086,67 @@ tr:last-child .sc-td { border-bottom: none; }
     justify-content: center;
   }
 }
+
+/* ── Phase 18: Super Admin, Peer views, btn-danger ─────────────────────────── */
+
+.super-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.super-admin-table th,
+.super-admin-table td {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.super-admin-table th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.btn-danger {
+  background: #e24b4a;
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover { background: #c73a39; }
+
+.peer-viewing-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  font-size: 0.95rem;
+}
+
+.peer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.peer-card {
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.15s;
+}
+.peer-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.peer-card-name { font-weight: 600; font-size: 1rem; }
+.peer-card-company { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+.peer-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.peer-scorecard-metric { text-align: center; }
+
+.peer-win-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.peer-win-item:last-child { border-bottom: none; }

@@ -34,6 +34,8 @@ router.get('/:domain', authMiddleware, async (req, res) => {
 // Body: { data: <any json value> }
 // Upserts the row; returns { ok: true }.
 router.put('/:domain', authMiddleware, async (req, res) => {
+  if (req.userRole === 'viewer') return res.status(403).json({ error: 'Viewers cannot modify data' });
+
   const { domain } = req.params;
   if (!ALLOWED_DOMAINS.has(domain)) return res.status(400).json({ error: 'Unknown domain' });
 

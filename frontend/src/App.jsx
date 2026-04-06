@@ -3,9 +3,11 @@ import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { AdminDataProvider } from './hooks/useAdminData.js';
 import PrivateRoute from './components/PrivateRoute';
+import RoleGuard from './components/RoleGuard';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Scorecard from './pages/Scorecard';
 import Goals from './pages/Goals';
@@ -17,6 +19,8 @@ import Admin from './pages/Admin';
 import Sharing from './pages/Sharing';
 import Calendar from './pages/Calendar';
 import Pursuits from './pages/Pursuits';
+import SuperAdmin from './pages/SuperAdmin';
+import ViewOthers from './pages/ViewOthers';
 import PublicSummary from './pages/PublicSummary';
 import FeedbackForm from './pages/FeedbackForm';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -34,8 +38,9 @@ export default function App() {
           <Route path="/share/:token"    element={<PublicSummary />} />
           <Route path="/feedback/:token" element={<FeedbackForm />} />
 
-          <Route path="/login"    element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login"           element={<Login />} />
+          <Route path="/register"        element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Authenticated shell — all tab pages live here */}
           <Route
@@ -46,17 +51,19 @@ export default function App() {
               </PrivateRoute>
             }
           >
-            <Route index             element={<Dashboard />} />
-            <Route path="scorecard"  element={<Scorecard />} />
-            <Route path="goals"      element={<Goals />} />
-            <Route path="people"     element={<People />} />
-            <Route path="wins"       element={<Wins />} />
-            <Route path="actions"    element={<ActionItems />} />
-            <Route path="story"      element={<MyStory />} />
-            <Route path="sharing"    element={<Sharing />} />
-            <Route path="calendar"   element={<Calendar />} />
-            <Route path="pursuits"   element={<Pursuits />} />
+            <Route index             element={<RoleGuard allowed={['superuser','user']}><Dashboard /></RoleGuard>} />
+            <Route path="scorecard"  element={<RoleGuard allowed={['superuser','user']}><Scorecard /></RoleGuard>} />
+            <Route path="goals"      element={<RoleGuard allowed={['superuser','user']}><Goals /></RoleGuard>} />
+            <Route path="people"     element={<RoleGuard allowed={['superuser','user']}><People /></RoleGuard>} />
+            <Route path="wins"       element={<RoleGuard allowed={['superuser','user']}><Wins /></RoleGuard>} />
+            <Route path="actions"    element={<RoleGuard allowed={['superuser','user']}><ActionItems /></RoleGuard>} />
+            <Route path="story"      element={<RoleGuard allowed={['superuser','user']}><MyStory /></RoleGuard>} />
+            <Route path="sharing"    element={<RoleGuard allowed={['superuser','user']}><Sharing /></RoleGuard>} />
+            <Route path="calendar"   element={<RoleGuard allowed={['superuser','user']}><Calendar /></RoleGuard>} />
+            <Route path="pursuits"   element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />
+            <Route path="view-others" element={<ViewOthers />} />
+            <Route path="super-admin" element={<RoleGuard allowed={['superuser']}><SuperAdmin /></RoleGuard>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
