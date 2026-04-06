@@ -13,6 +13,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://promotion-app-lovat.vercel.app',
+    'https://partner.jordandf.com',
   ],
   credentials: true,
 }));
