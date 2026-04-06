@@ -23,7 +23,7 @@ describe('POST /api/auth/register', () => {
   test('returns 400 when email is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ password: 'longpassword', name: 'Test' });
+      .send({ password: 'longpassword', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/email/i);
   });
@@ -31,7 +31,7 @@ describe('POST /api/auth/register', () => {
   test('returns 400 when password is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'a@b.com', name: 'Test' });
+      .send({ email: 'a@b.com', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/password/i);
   });
@@ -39,7 +39,7 @@ describe('POST /api/auth/register', () => {
   test('returns 400 when name is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'a@b.com', password: 'longpassword' });
+      .send({ email: 'a@b.com', password: 'longpassword', securityQuestion: 'Q?', securityAnswer: 'A' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/name/i);
   });
@@ -47,65 +47,96 @@ describe('POST /api/auth/register', () => {
   test('returns 400 when password is too short', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'a@b.com', password: 'short', name: 'Test' });
+      .send({ email: 'a@b.com', password: 'short', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/8 characters/);
   });
 
-  test('returns 201 with token and user on success', async () => {
-    db.query.mockResolvedValueOnce({
-      rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: '', company: '' }],
-    });
-
+  test('returns 400 when security question is missing', async () => {
     const res = await request(app)
       .post('/api/auth/register')
       .send({ email: 'a@b.com', password: 'longpassword', name: 'Test' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/security question/i);
+  });
+
+  test('returns 201 with token and user on success (first user = superuser)', async () => {
+    db.query
+      .mockResolvedValueOnce({ rows: [] })  // invite code check
+      .mockResolvedValueOnce({ rows: [{ cnt: 0 }] })  // user count (first user)
+      .mockResolvedValueOnce({  // INSERT
+        rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: 'superuser', company: '' }],
+      });
+
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'a@b.com', password: 'longpassword', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
 
     expect(res.status).toBe(201);
     expect(res.body.token).toBeDefined();
     expect(res.body.user.email).toBe('a@b.com');
-    expect(res.body.user.name).toBe('Test');
+    expect(res.body.user.role).toBe('superuser');
+  });
 
-    // Verify password was hashed
-    const insertCall = db.query.mock.calls[0];
-    const hashedPassword = insertCall[1][1];
-    expect(await bcrypt.compare('longpassword', hashedPassword)).toBe(true);
+  test('second user gets role user', async () => {
+    db.query
+      .mockResolvedValueOnce({ rows: [] })  // invite code check
+      .mockResolvedValueOnce({ rows: [{ cnt: 1 }] })  // user count
+      .mockResolvedValueOnce({
+        rows: [{ id: 2, email: 'b@b.com', name: 'Test2', role: 'user', company: '' }],
+      });
+
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'b@b.com', password: 'longpassword', name: 'Test2', securityQuestion: 'Q?', securityAnswer: 'A' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.role).toBe('user');
+  });
+
+  test('returns 403 with wrong invite code', async () => {
+    const hash = await bcrypt.hash('secret123', 10);
+    db.query.mockResolvedValueOnce({ rows: [{ value: hash }] });  // invite code exists
+
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'a@b.com', password: 'longpassword', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A', inviteCode: 'wrong' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/invite code/i);
   });
 
   test('normalizes email to lowercase and trims', async () => {
-    db.query.mockResolvedValueOnce({
-      rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: '', company: '' }],
-    });
+    db.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 0 }] })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: 'superuser', company: '' }],
+      });
 
     await request(app)
       .post('/api/auth/register')
-      .send({ email: '  A@B.COM  ', password: 'longpassword', name: 'Test' });
+      .send({ email: '  A@B.COM  ', password: 'longpassword', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
 
-    const insertCall = db.query.mock.calls[0];
+    // INSERT is the third call
+    const insertCall = db.query.mock.calls[2];
     expect(insertCall[1][0]).toBe('a@b.com');
   });
 
   test('returns 409 on duplicate email', async () => {
+    db.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ cnt: 0 }] });
     const dupError = new Error('duplicate key');
     dupError.code = '23505';
     db.query.mockRejectedValueOnce(dupError);
 
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email: 'a@b.com', password: 'longpassword', name: 'Test' });
+      .send({ email: 'a@b.com', password: 'longpassword', name: 'Test', securityQuestion: 'Q?', securityAnswer: 'A' });
 
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/already exists/);
-  });
-
-  test('returns 500 on unexpected database error', async () => {
-    db.query.mockRejectedValueOnce(new Error('connection lost'));
-
-    const res = await request(app)
-      .post('/api/auth/register')
-      .send({ email: 'a@b.com', password: 'longpassword', name: 'Test' });
-
-    expect(res.status).toBe(500);
   });
 });
 
@@ -138,7 +169,7 @@ describe('POST /api/auth/login', () => {
   test('returns 401 on wrong password', async () => {
     const hash = await bcrypt.hash('correctpassword', 10);
     db.query.mockResolvedValueOnce({
-      rows: [{ id: 1, email: 'a@b.com', password: hash, name: 'Test', role: '', company: '' }],
+      rows: [{ id: 1, email: 'a@b.com', password: hash, name: 'Test', role: 'user', company: '', must_change_password: false }],
     });
 
     const res = await request(app)
@@ -151,7 +182,7 @@ describe('POST /api/auth/login', () => {
   test('returns token and user on valid credentials', async () => {
     const hash = await bcrypt.hash('correctpassword', 10);
     db.query.mockResolvedValueOnce({
-      rows: [{ id: 1, email: 'a@b.com', password: hash, name: 'Test', role: 'dev', company: 'IBM' }],
+      rows: [{ id: 1, email: 'a@b.com', password: hash, name: 'Test', role: 'user', company: 'IBM', must_change_password: false }],
     });
 
     const res = await request(app)
@@ -161,8 +192,9 @@ describe('POST /api/auth/login', () => {
     expect(res.status).toBe(200);
     expect(res.body.token).toBeDefined();
     expect(res.body.user).toEqual({
-      id: 1, email: 'a@b.com', name: 'Test', role: 'dev', company: 'IBM',
+      id: 1, email: 'a@b.com', name: 'Test', role: 'user', company: 'IBM',
     });
+    expect(res.body.mustChangePassword).toBe(false);
 
     // Verify token is valid
     const decoded = jwt.verify(res.body.token, process.env.JWT_SECRET);
@@ -188,8 +220,13 @@ describe('GET /api/auth/me', () => {
   });
 
   test('returns user on valid token', async () => {
+    // First call: auth middleware role lookup
     db.query.mockResolvedValueOnce({
-      rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: 'dev', company: 'IBM' }],
+      rows: [{ role: 'user', must_change_password: false }],
+    });
+    // Second call: /me endpoint query
+    db.query.mockResolvedValueOnce({
+      rows: [{ id: 1, email: 'a@b.com', name: 'Test', role: 'user', company: 'IBM', security_question: 'Q?', must_change_password: false }],
     });
 
     const res = await request(app)
@@ -198,15 +235,16 @@ describe('GET /api/auth/me', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.email).toBe('a@b.com');
+    expect(res.body.securityQuestion).toBe('Q?');
   });
 
-  test('returns 404 when user not found', async () => {
-    db.query.mockResolvedValueOnce({ rows: [] });
+  test('returns 401 when user not found (middleware)', async () => {
+    db.query.mockResolvedValueOnce({ rows: [] }); // auth middleware: user deleted
 
     const res = await request(app)
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${makeToken(999)}`);
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
   });
 });

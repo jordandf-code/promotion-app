@@ -1,7 +1,7 @@
 // pages/Sharing.jsx
-// Owner view: generate share/feedback links, configure what's visible, see feedback inbox.
+// Owner view: generate share/feedback links, configure what's visible, see feedback inbox, peer access.
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, apiGet, apiPut, authHeaders } from '../utils/api.js';
 
 const DEFAULT_SETTINGS = { showWins: true, showNarrative: true, showScorecard: false, showReadiness: false };
@@ -155,6 +155,9 @@ export default function Sharing() {
         </span>
       </div>
 
+      {/* ── Peer access ──────────────────────────────────────────── */}
+      <PeerAccessSection />
+
       {/* ── Feedback inbox ──────────────────────────────────────── */}
       <section className="section">
         <div className="section-header">
@@ -181,5 +184,120 @@ export default function Sharing() {
         </div>
       </section>
     </div>
+  );
+}
+
+// ── Peer access section ─────────────────────────────────────────────────────
+
+function PeerAccessSection() {
+  const [granted, setGranted] = useState([]);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const loadGranted = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/access/granted`, { headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok) setGranted(data.users);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadGranted(); }, [loadGranted]);
+
+  async function grantAccess(e) {
+    e.preventDefault();
+    setMsg('');
+    setSaving(true);
+    try {
+      // First look up user by email to get their ID
+      // We'll pass the email to the grant endpoint and let the backend resolve it
+      const res = await fetch(`${API_BASE}/api/access/grant`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setEmail('');
+      setMsg('Access granted');
+      loadGranted();
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function revokeAccess(userId) {
+    setMsg('');
+    try {
+      const res = await fetch(`${API_BASE}/api/access/revoke`, {
+        method: 'DELETE',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setGranted(prev => prev.filter(u => u.id !== userId));
+      setMsg('Access revoked');
+    } catch (err) {
+      setMsg(err.message);
+    }
+  }
+
+  return (
+    <section className="section">
+      <div className="section-header">
+        <h2 className="section-title">Peer access</h2>
+      </div>
+      <div className="card sharing-card">
+        <p className="admin-description">
+          Grant other users read-only access to your dashboard and narrative via the "View others" tab.
+          This is separate from the public share link above.
+        </p>
+
+        {msg && <p className="muted" style={{ marginBottom: '0.5rem' }}>{msg}</p>}
+
+        <form onSubmit={grantAccess} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <input
+            className="form-input"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="User's email address"
+            required
+            style={{ flex: 1 }}
+          />
+          <button className="btn-primary" disabled={saving || !email.trim()}>
+            {saving ? 'Granting…' : 'Grant access'}
+          </button>
+        </form>
+
+        {loading ? (
+          <p className="muted">Loading…</p>
+        ) : granted.length === 0 ? (
+          <p className="muted">No users have been granted access.</p>
+        ) : (
+          <div className="admin-list">
+            {granted.map(u => (
+              <div key={u.id} className="admin-list-item">
+                <div className="admin-list-row">
+                  <span className="admin-list-label">{u.name} ({u.email})</span>
+                  <button className="admin-list-btn admin-list-btn--danger" onClick={() => revokeAccess(u.id)}>
+                    Revoke
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

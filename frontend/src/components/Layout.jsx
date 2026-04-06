@@ -19,8 +19,15 @@ const ALL_NAV_ITEMS = [
   { to: '/story',     label: 'Narrative + Gaps'       },
   { to: '/calendar',  label: 'Calendar'              },
   { to: '/sharing',   label: 'Sharing'               },
+  { to: '/view-others', label: 'View others'         },
   { to: '/admin',     label: 'Admin'                 },
 ];
+
+// Routes that viewers can access (everything else is hidden)
+const VIEWER_ROUTES = new Set(['/view-others', '/admin']);
+
+// These tabs are not reorderable via navOrder — they sit in fixed positions
+const NON_REORDERABLE = new Set(['/view-others', '/super-admin']);
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -28,12 +35,35 @@ export default function Layout() {
   const { navOrder } = useAdminData();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const navItems = (navOrder ?? []).length
-    ? [
-        ...navOrder.map(route => ALL_NAV_ITEMS.find(n => n.to === route)).filter(Boolean),
-        ...ALL_NAV_ITEMS.filter(n => !(navOrder ?? []).includes(n.to)),
-      ]
-    : ALL_NAV_ITEMS;
+  // Filter nav items by role
+  let baseItems;
+  if (user.role === 'viewer') {
+    baseItems = ALL_NAV_ITEMS.filter(n => VIEWER_ROUTES.has(n.to));
+  } else {
+    baseItems = ALL_NAV_ITEMS;
+  }
+
+  // Apply user's custom tab ordering (only for reorderable items)
+  let navItems;
+  if ((navOrder ?? []).length && user.role !== 'viewer') {
+    const reorderable = baseItems.filter(n => !NON_REORDERABLE.has(n.to));
+    navItems = [
+      ...navOrder.map(route => reorderable.find(n => n.to === route)).filter(Boolean),
+      ...reorderable.filter(n => !(navOrder ?? []).includes(n.to)),
+    ];
+  } else {
+    navItems = baseItems;
+  }
+
+  // Superuser gets "Super Admin" tab always last
+  if (user.role === 'superuser') {
+    navItems = [...navItems, { to: '/super-admin', label: 'Super Admin' }];
+  }
+
+  // Display-friendly role label
+  const roleLabel = user.role === 'superuser' ? 'Superuser'
+    : user.role === 'viewer' ? 'Viewer'
+    : user.company || 'User';
 
   function closeMenu() { setMenuOpen(false); }
 
@@ -88,7 +118,7 @@ export default function Layout() {
             </button>
           </div>
           <div className="sidebar-user-name">{user.name}</div>
-          <div className="sidebar-user-role">{user.role || user.company || 'IBM'}</div>
+          <div className="sidebar-user-role">{roleLabel}</div>
           <button className="sidebar-logout" onClick={logout}>Sign out</button>
         </div>
       </aside>

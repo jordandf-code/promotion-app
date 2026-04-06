@@ -1,20 +1,27 @@
 // pages/Admin.jsx
-// App settings split into sub-tabs: GenAI, Categories, User Settings.
+// App settings split into sub-tabs: My profile, GenAI, Categories, User Settings.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { API_BASE } from '../utils/api.js';
+import { API_BASE, authHeaders } from '../utils/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useAdminData, COLOR_PALETTE, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
 import WipeSection from '../components/admin/WipeSection.jsx';
 import { DEFAULT_WEIGHTS } from '../hooks/useReadinessScore.js';
 
-const TABS = [
-  { id: 'ai',         label: 'GenAI'         },
-  { id: 'categories', label: 'Categories'    },
-  { id: 'settings',   label: 'User settings' },
-];
-
 export default function Admin() {
-  const [tab, setTab] = useState('ai');
+  const { user } = useAuth();
+  const isViewer = user?.role === 'viewer';
+
+  const TABS = [
+    { id: 'profile',    label: 'My profile'    },
+    ...(!isViewer ? [
+      { id: 'ai',         label: 'GenAI'         },
+      { id: 'categories', label: 'Categories'    },
+      { id: 'settings',   label: 'User settings' },
+    ] : []),
+  ];
+
+  const [tab, setTab] = useState('profile');
 
   return (
     <div className="page">
@@ -34,9 +41,183 @@ export default function Admin() {
         ))}
       </div>
 
-      {tab === 'ai'         && <GenAITab />}
-      {tab === 'categories' && <CategoriesTab />}
-      {tab === 'settings'   && <SettingsTab />}
+      {tab === 'profile'    && <ProfileTab />}
+      {tab === 'ai'         && !isViewer && <GenAITab />}
+      {tab === 'categories' && !isViewer && <CategoriesTab />}
+      {tab === 'settings'   && !isViewer && <SettingsTab />}
+    </div>
+  );
+}
+
+// ── Tab: My Profile ─────────────────────────────────────────────────────────
+
+function ProfileTab() {
+  const { user, updateUser } = useAuth();
+
+  const [name, setName] = useState(user?.name || '');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameMsg, setNameMsg] = useState('');
+
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState('');
+
+  const [sqForm, setSqForm] = useState({ currentPassword: '', question: '', answer: '' });
+  const [sqSaving, setSqSaving] = useState(false);
+  const [sqMsg, setSqMsg] = useState('');
+
+  async function saveName(e) {
+    e.preventDefault();
+    setNameMsg('');
+    setNameSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/profile`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      updateUser({ name: data.user.name });
+      setNameMsg('Name updated');
+    } catch (err) {
+      setNameMsg(err.message);
+    } finally {
+      setNameSaving(false);
+    }
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setPwMsg('');
+    if (pwForm.newPw !== pwForm.confirm) { setPwMsg('Passwords do not match'); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPwForm({ current: '', newPw: '', confirm: '' });
+      setPwMsg('Password changed');
+    } catch (err) {
+      setPwMsg(err.message);
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  async function updateSQ(e) {
+    e.preventDefault();
+    setSqMsg('');
+    setSqSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/update-security-question`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          currentPassword: sqForm.currentPassword,
+          securityQuestion: sqForm.question,
+          securityAnswer: sqForm.answer,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSqForm({ currentPassword: '', question: '', answer: '' });
+      setSqMsg('Security question updated');
+    } catch (err) {
+      setSqMsg(err.message);
+    } finally {
+      setSqSaving(false);
+    }
+  }
+
+  return (
+    <div className="tab-content">
+      <section className="section">
+        <div className="section-header"><h2 className="section-title">Profile</h2></div>
+        <div className="card admin-card">
+          <form onSubmit={saveName}>
+            <label>
+              Name
+              <input className="form-input" value={name} onChange={e => setName(e.target.value)} required />
+            </label>
+            <label>
+              Email <span className="form-unit">(read-only)</span>
+              <input className="form-input" value={user?.email || ''} disabled />
+            </label>
+            <label>
+              Role <span className="form-unit">(read-only)</span>
+              <input className="form-input" value={user?.role || ''} disabled />
+            </label>
+            <div className="admin-save-row">
+              {nameMsg && <span className="muted">{nameMsg}</span>}
+              <button className="btn-primary" disabled={nameSaving || name === user?.name}>
+                {nameSaving ? 'Saving…' : 'Update name'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header"><h2 className="section-title">Change password</h2></div>
+        <div className="card admin-card">
+          <form onSubmit={changePassword}>
+            <label>
+              Current password
+              <input className="form-input" type="password" value={pwForm.current}
+                onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} required autoComplete="current-password" />
+            </label>
+            <label>
+              New password <span className="auth-hint">(min 8 characters)</span>
+              <input className="form-input" type="password" value={pwForm.newPw} minLength={8}
+                onChange={e => setPwForm(f => ({ ...f, newPw: e.target.value }))} required autoComplete="new-password" />
+            </label>
+            <label>
+              Confirm new password
+              <input className="form-input" type="password" value={pwForm.confirm} minLength={8}
+                onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} required autoComplete="new-password" />
+            </label>
+            <div className="admin-save-row">
+              {pwMsg && <span className="muted">{pwMsg}</span>}
+              <button className="btn-primary" disabled={pwSaving}>{pwSaving ? 'Saving…' : 'Change password'}</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header"><h2 className="section-title">Security question</h2></div>
+        <div className="card admin-card">
+          {user?.securityQuestion && (
+            <p className="admin-description">Current question: <strong>{user.securityQuestion}</strong></p>
+          )}
+          <form onSubmit={updateSQ}>
+            <label>
+              Current password <span className="form-unit">(re-authentication)</span>
+              <input className="form-input" type="password" value={sqForm.currentPassword}
+                onChange={e => setSqForm(f => ({ ...f, currentPassword: e.target.value }))} required autoComplete="current-password" />
+            </label>
+            <label>
+              New security question
+              <input className="form-input" value={sqForm.question}
+                onChange={e => setSqForm(f => ({ ...f, question: e.target.value }))} required />
+            </label>
+            <label>
+              New security answer
+              <input className="form-input" value={sqForm.answer}
+                onChange={e => setSqForm(f => ({ ...f, answer: e.target.value }))} required />
+            </label>
+            <div className="admin-save-row">
+              {sqMsg && <span className="muted">{sqMsg}</span>}
+              <button className="btn-primary" disabled={sqSaving}>{sqSaving ? 'Saving…' : 'Update security question'}</button>
+            </div>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

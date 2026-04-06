@@ -65,11 +65,11 @@ Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (c
 
 ## Current status
 
-Phases 1–16 complete. Phase 7c (people relationship status) is a small backlog item. Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
+Phases 1–16, 21, and 18 complete. Phase 7c (people relationship status) is a small backlog item. Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
 
 ## What to build next
 
-Priority order: Phase 21 (readiness score) → Phase 18 (roles/access) → Phase 17 (learning tab). See dependency map in `docs/PLAN.md`.
+Priority order: Phase 17 (learning tab) → Phase 7c (people relationship status) → Phase 19 (mobile). See dependency map in `docs/PLAN.md`.
 
 ## Important gotchas
 
