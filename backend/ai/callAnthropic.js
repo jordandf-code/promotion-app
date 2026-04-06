@@ -52,6 +52,7 @@ function mapErrorCode(err) {
   if (status === 529) return 'OVERLOADED';
   if (status === 402 || message.includes('credit') || message.includes('billing'))
     return 'BILLING';
+  if (status === 400 && message.includes('token')) return 'CONTEXT_TOO_LARGE';
   return 'AI_ERROR';
 }
 
@@ -61,8 +62,9 @@ function friendlyMessage(code, rawMessage) {
     RATE_LIMITED: 'Rate limit exceeded — wait a moment and try again.',
     OVERLOADED:   'The AI service is temporarily overloaded. Try again in a minute.',
     BILLING:      'Insufficient API credits — top up at console.anthropic.com.',
-    PARSE_ERROR:  'The AI returned an unexpected format. Try regenerating.',
-    AI_ERROR:     `AI request failed: ${rawMessage}`,
+    PARSE_ERROR:       'The AI returned an unexpected format. Try regenerating.',
+    CONTEXT_TOO_LARGE: 'Your data exceeds the AI context limit. Try shortening your IBM criteria or career history.',
+    AI_ERROR:          `AI request failed: ${rawMessage}`,
   };
   return messages[code] || messages.AI_ERROR;
 }
@@ -82,10 +84,7 @@ async function callAnthropic({ apiKey, systemPrompt, userContent, maxTokens, par
         messages,
       });
 
-      // Dev token logging
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[AI] input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens} model=${response.model}`);
-      }
+      console.log(`[AI] input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens} model=${response.model}`);
 
       const rawText = response.content[0].text.trim();
       const usage = {
