@@ -73,7 +73,7 @@ IBM sets annual targets for four metrics, tracked by calendar year (Jan–Dec):
 - **People** tracks sponsors, decision makers, clients, external contacts
 - **Wins** captured in business impact terms with eminence tags
 - **Eminence** split into internal (IBM visibility) and external (public sector presence)
-- **My story** uses AI to synthesize all data into a structured case and polished narrative
+- **Narrative + Gaps** uses AI to generate a polished promotion narrative and gap analysis against IBM Partner criteria
 - **Sharing** allows a read-only public summary link and structured feedback from invited reviewers
 
 ---
@@ -120,7 +120,7 @@ IBM sets annual targets for four metrics, tracked by calendar year (Jan–Dec):
 | People | Owner only | Contacts, relationship types, touchpoint log |
 | Wins | Owner only | Accomplishments, impact, eminence tags |
 | Action items | Owner only | To-dos with due dates, mark done |
-| My story | Owner only | AI-generated narrative, gap analysis, 2027 plan |
+| Narrative + Gaps | Owner only | AI-generated promotion narrative and gap analysis against IBM Partner criteria |
 | Public summary | Anyone with link | Read-only: selected wins, story narrative, scorecard highlights |
 | Feedback portal | Invited reviewers | Structured feedback form, tied to owner's profile |
 | Admin | Owner only | Configurable lists, AI key, IBM criteria, career history |
@@ -224,7 +224,7 @@ setting_currency        — display currency: 'CAD' (CDN$) or 'USD' (USD$, at 1.
 - [x] Basic user profile (name, role, company)
 
 ### Phase 3 — Static UI shell ✅
-- [x] Tab navigation (Dashboard, Scorecard, Goals, People, Wins, Action items, My story, Admin)
+- [x] Tab navigation (Dashboard, Scorecard, Pursuits, Goals, People, Wins, Action items, Narrative + Gaps, Calendar, Sharing, Admin)
 - [x] Card and layout components
 - [x] Hardcoded sample data so it looks real
 - [x] Consistent color scheme and typography (IBM blue `#0040a0`, qualifying year amber accent)
@@ -303,20 +303,21 @@ setting_currency        — display currency: 'CAD' (CDN$) or 'USD' (USD$, at 1.
 - [x] Goals link via checkbox list in add/edit modal (multi-select, done goals shown struck through)
 - [x] Edit/Remove buttons on every row (open and completed sections)
 
-### Phase 10 — My story tab (AI-powered) ✅
-- [x] IBM Partner criteria stored in Admin (textarea, paste from PPT/framework doc)
-- [x] Career history stored in Admin (textarea, anchors narrative to pre-app background)
-- [x] Anthropic API key stored per-user in Admin — saved to user's DB record; never in any env file
-- [x] My Story tab generates full story from one button: evidence map, gaps, narrative, 2027 plan
+### Phase 10 — Narrative + Gaps tab (AI-powered) ✅
+- [x] IBM Partner criteria stored in Admin > GenAI (textarea, paste from PPT/framework doc)
+- [x] Career history stored in Admin > GenAI (textarea, anchors narrative to pre-app background)
+- [x] Anthropic API key stored per-user in Admin > GenAI — saved to user's DB record; never in any env file
+- [x] Two independent AI modes: polished narrative (plain text) and gap analysis (JSON table with criterion/evidence/strength/recommendation)
+- [x] Each section has its own Generate/Regenerate button; "Generate all" fires both in parallel
 - [x] Shows setup prompt with Admin link if criteria or API key not yet configured
-- [x] Evidence map: each IBM criterion mapped to supporting wins, goals, scorecard data
-- [x] Gap analysis: criteria with weak or missing evidence highlighted with △
-- [x] Polished narrative: 4–6 paragraph first-person promotion case, regenerable as data grows
-- [x] 2027 plan: 5–7 prioritised AI recommendations to close gaps before the ask
+- [x] Gap analysis: each IBM criterion rated Strong/Partial/Missing with actionable recommendations
+- [x] Polished narrative: 250-350 word first-person promotion case with structured sections, regenerable as data grows
+- [x] System prompts never refuse output — write honest narrative even with thin data
+- [x] Token usage (input + output) displayed on each section
 - [x] Export to plain text (.txt download)
-- [x] ✦ Suggest goals button in Goals tab now live — calls AI, shows suggestions with checkboxes to add
-- [x] ✦ Suggest impact button in Wins form now uses key from Admin
-- [x] `storyData_v1` localStorage key stores last generated output
+- [x] ✦ Suggest goals button in Goals tab — scorecard-aware, returns targetDate + isGate for one-click adding
+- [x] ✦ Suggest impact button in Wins form — deal/goal context injected, scorecard framing
+- [x] `storyData_v1` caches each mode independently with timestamp
 
 ### Phase 11 — Persistence ✅
 - [x] All data saved to PostgreSQL via backend API (`GET/PUT /api/data/:domain`)
