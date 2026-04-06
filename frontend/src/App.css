@@ -113,6 +113,9 @@
   min-height: 100vh;
 }
 
+/* ── Mobile header (hidden on desktop) ── */
+.mobile-header { display: none; }
+
 /* ── Sidebar ── */
 
 .sidebar {
@@ -3635,6 +3638,13 @@ tr:last-child .sc-td { border-bottom: none; }
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+.pursuits-isc-link {
+  font-size: 0.78rem;
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 600;
+}
+.pursuits-isc-link:hover { text-decoration: underline; }
 .pursuits-rationale {
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -3642,4 +3652,94 @@ tr:last-child .sc-td { border-bottom: none; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤768px)
+═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* ── Mobile header ── */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3.25rem;
+    background: var(--brand);
+    color: #fff;
+    padding: 0 1rem;
+    z-index: 310;
+  }
+  .mobile-hamburger {
+    background: none; border: none; cursor: pointer; padding: 0.25rem;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .mobile-hamburger span {
+    display: block; width: 20px; height: 2px; background: #fff; border-radius: 1px;
+  }
+  .mobile-header-title { font-weight: 700; font-size: 0.95rem; }
+
+  /* ── Sidebar as overlay ── */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300;
+  }
+  .sidebar--open { transform: translateX(0); }
+
+  .sidebar-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 299;
+  }
+
+  /* ── Main content shifts down for mobile header ── */
+  .main-content {
+    margin-left: 0;
+    padding-top: 3.25rem;
+  }
+
+  /* ── Page layout ── */
+  .page { padding: 1rem; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+
+  /* ── Tables scroll horizontally ── */
+  .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Form rows stack on small screens ── */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* ── Dashboard stat row ── */
+  .dash-stats { flex-direction: column; }
+
+  /* ── Pursuits summary strip ── */
+  .pursuits-summary { flex-wrap: wrap; }
+  .pursuits-summary .pursuits-stat { min-width: calc(50% - 0.5rem); }
+
+  /* ── Pursuits funnel ── */
+  .pursuits-funnel { flex-wrap: wrap; }
+  .pursuits-funnel-stage { min-width: calc(33% - 0.35rem); }
+
+  /* ── Modals ── */
+  .modal-backdrop { padding: 0.5rem; }
+  .modal, .modal--wide { max-width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════════════════════ */
+
+@media print {
+  .sidebar, .mobile-header, .sidebar-backdrop { display: none !important; }
+  .main-content { margin-left: 0 !important; padding-top: 0 !important; }
+  .page-header-actions, .btn-primary, .btn-secondary, .btn-ai-inline,
+  .row-btn, .filter-select, .tab-toolbar, .modal-backdrop,
+  .action-check, .action-item-btns, .sidebar-logout { display: none !important; }
+  .page { padding: 0; }
+  .card, .admin-card { box-shadow: none; border: 1px solid #ddd; }
+  body { font-size: 11pt; }
+  .data-table { font-size: 9pt; }
+  .data-table-wrap { overflow: visible; }
 }

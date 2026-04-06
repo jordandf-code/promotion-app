@@ -358,14 +358,14 @@ setting_currency        — display currency: 'CAD' (CDN$) or 'USD' (USD$, at 1.
 - [x] All data fully isolated per user — `user_data` keyed by `(user_id, domain)`, every query scoped to `req.userId`
 - [x] No user can see another user's private data — no cross-user endpoints exist
 
-### Phase 14 — Polish
-- [ ] Mobile-friendly layout
-- [ ] Export wins to plain text (for performance review)
-- [ ] Print-friendly scorecard and story views
-- [ ] Email notification when feedback is received (optional)
-- [ ] Clean up unused `scorecard` export from `sampleData.js` (superseded by `useScorecardData`)
+### Phase 14 — Polish ✅
+- [x] Mobile-friendly layout — hamburger menu, sidebar overlay, responsive tables/grids/forms, mobile header
+- [x] Export wins to plain text — "Export" button on Wins page downloads a `.txt` file
+- [x] Print-friendly scorecard and story views — `@media print` hides nav/buttons, removes shadows
+- [ ] Email notification when feedback is received (deferred — requires email service)
+- [x] Clean up unused sample data exports from `sampleData.js` — only helper functions remain
 
-### Phase 15 — Source control, deployment, and promotion workflow
+### Phase 15 — Source control, deployment, and promotion workflow ✅
 
 **Goal**: Get the app on GitHub, deployed publicly on Vercel + Render, and establish a safe
 local → production promotion workflow so changes can be tested before going live.
@@ -377,7 +377,7 @@ local → production promotion workflow so changes can be tested before going li
 - [x] Add root `README.md` with local setup instructions and env var reference
 - [x] Add `DEPLOY.md` — the step-by-step promotion workflow cheatsheet
 - [x] Create `dev` branch for day-to-day work
-- [ ] Push to GitHub and protect `main` branch — all changes go through `dev` branch and PR
+- [x] Push to GitHub with `main` and `dev` branches
 
 #### 15b — Environment separation
 
@@ -397,19 +397,16 @@ Two environments: **local/dev** and **production**. Each has its own isolated da
 in the Admin tab. The backend reads it from the user's database record at call time.
 This is identical in both environments — no special handling needed.
 
-- [ ] Create two Supabase projects: `promotion-tracker-dev` and `promotion-tracker-prod`
-- [ ] Run `backend/migration.sql` and `backend/migration_phase12.sql` on both projects
-- [ ] Confirm `backend/.env` and `frontend/.env` are listed in `.gitignore`
+- [x] Create two Supabase projects: `promotion-tracker-dev` and `promotion-tracker-prod`
+- [x] Run `backend/migration.sql` and `backend/migration_phase12.sql` on both projects
+- [x] Confirm `backend/.env` and `frontend/.env` are listed in `.gitignore`
 
 #### 15c — Deployment
-- [ ] **Backend → Render**: connect GitHub repo; set root directory to `backend/`; add `JWT_SECRET`
-  and `DATABASE_URL` (pointing to prod Supabase) as Render environment variables;
-  auto-deploys on push to `main`
-- [ ] **Frontend → Vercel**: connect GitHub repo; set root directory to `frontend/`; add
-  `VITE_API_URL` pointing to the Render backend URL; auto-deploys on push to `main`
-- [ ] Add the Vercel domain to the CORS allowed-origins list in `backend/index.js`
-- [ ] Smoke-test production after first deploy: register a new account, log in, add a win,
-  confirm AI feature shows the "configure key in Admin" prompt
+- [x] **Backend → Render**: connected GitHub repo; root directory `backend/`; `JWT_SECRET` and `DATABASE_URL` set as Render env vars; auto-deploys on push to `main`
+- [x] **Frontend → Vercel**: connected GitHub repo; root directory `frontend/`; `VITE_API_URL` pointing to Render backend; auto-deploys on push to `main`
+- [x] Add the Vercel domain (`https://promotion-app-lovat.vercel.app`) to CORS allowed-origins in `backend/index.js`
+- [x] All frontend fetch calls use `API_BASE` from `VITE_API_URL` env var (empty locally, Render URL in prod)
+- [x] Smoke-test production passed: register, login, add data — all working
 
 #### 15d — Promotion workflow (local → production)
 

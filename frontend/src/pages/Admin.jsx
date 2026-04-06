@@ -97,6 +97,7 @@ function CategoriesTab() {
   const {
     relationshipTypes, setRelationshipTypes,
     winTags,           setWinTags,
+    pipelineStages,    setPipelineStages,
     dealTypes,         setDealTypes,
     logoTypes,         setLogoTypes,
     originTypes,       setOriginTypes,
@@ -130,13 +131,25 @@ function CategoriesTab() {
 
       <section className="section">
         <div className="section-header">
+          <h2 className="section-title">Pipeline stages</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Opportunity pipeline stages used in the Pursuits page and Scorecard. Click the colour dot to change the stage colour.
+          </p>
+          <EditableColorList items={pipelineStages ?? []} onChange={setPipelineStages} />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
           <h2 className="section-title">Deal types</h2>
         </div>
         <div className="card admin-card">
           <p className="admin-description">
             Deal type options for opportunities. The value is used as a key — the label is what users see.
           </p>
-          <EditableValueList items={dealTypes} onChange={setDealTypes} />
+          <EditableValueList items={dealTypes ?? []} onChange={setDealTypes} />
         </div>
       </section>
 
@@ -148,7 +161,7 @@ function CategoriesTab() {
           <p className="admin-description">
             Logo type options for opportunities and wins (e.g. net new vs expansion).
           </p>
-          <EditableValueList items={logoTypes} onChange={setLogoTypes} />
+          <EditableValueList items={logoTypes ?? []} onChange={setLogoTypes} />
         </div>
       </section>
 
@@ -160,7 +173,7 @@ function CategoriesTab() {
           <p className="admin-description">
             How opportunities and wins originated (e.g. referral, cold outreach).
           </p>
-          <EditableValueList items={originTypes} onChange={setOriginTypes} />
+          <EditableValueList items={originTypes ?? []} onChange={setOriginTypes} />
         </div>
       </section>
     </div>

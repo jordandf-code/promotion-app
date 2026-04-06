@@ -6,23 +6,26 @@ import { useState } from 'react';
 import { useScorecardData } from '../hooks/useScorecardData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { fmtDate } from '../data/sampleData.js';
-import { useAdminData, DEFAULT_ORIGIN_TYPES } from '../hooks/useAdminData.js';
-import OppModal, { STAGES } from '../components/scorecard/OppModal.jsx';
-import { StagePip, LogoTypePip, STAGE_COLORS } from '../components/scorecard/OpportunitiesTab.jsx';
+import { useAdminData, DEFAULT_ORIGIN_TYPES, DEFAULT_PIPELINE_STAGES } from '../hooks/useAdminData.js';
+import OppModal from '../components/scorecard/OppModal.jsx';
+import { StagePip, LogoTypePip, stageColorMap } from '../components/scorecard/OpportunitiesTab.jsx';
 
 const EMPTY_FORM = {
   name: '', client: '', year: new Date().getFullYear(),
   status: 'open', winDate: '', totalValue: '', signingsValue: '',
   stage: 'Qualified', probability: '', expectedClose: '',
   dealType: 'one-time', logoType: 'net-new',
-  strategicNote: '', relationshipOrigin: '',
+  strategicNote: '', relationshipOrigin: '', iscId: '',
 };
 
 export default function Pursuits() {
   const scorecard  = useScorecardData();
   const { fmtCurrency, scorecardYears } = useSettings();
-  const { originTypes } = useAdminData();
+  const { originTypes, pipelineStages } = useAdminData();
   const ORIGIN_OPTIONS = originTypes ?? DEFAULT_ORIGIN_TYPES;
+  const stageList      = pipelineStages ?? DEFAULT_PIPELINE_STAGES;
+  const STAGES         = stageList.map(s => s.label);
+  const STAGE_COLORS   = stageColorMap(stageList);
   const [stageFilter, setStageFilter] = useState('all');
   const [modal, setModal] = useState(null);
 
@@ -136,6 +139,7 @@ export default function Pursuits() {
               <th>Expected close</th>
               <th>Type</th>
               <th>Origin</th>
+              <th>ISC Link</th>
               <th>Strategic rationale</th>
               <th className="action-col" />
             </tr>
@@ -143,7 +147,7 @@ export default function Pursuits() {
           <tbody>
             {pursuits.length === 0 ? (
               <tr>
-                <td colSpan={10} className="table-empty">
+                <td colSpan={11} className="table-empty">
                   {allOpen.length === 0
                     ? 'No active pursuits. Add one above or open an opportunity in the Scorecard.'
                     : 'No pursuits match the current filter.'}
@@ -165,6 +169,11 @@ export default function Pursuits() {
                     ? <span className="pursuits-origin">{originLabel(opp.relationshipOrigin)}</span>
                     : <span className="muted">—</span>}
                 </td>
+                <td>
+                  {opp.iscId
+                    ? <a href={opp.iscId} target="_blank" rel="noopener noreferrer" className="pursuits-isc-link">ISC</a>
+                    : <span className="muted">—</span>}
+                </td>
                 <td className="pursuits-rationale">
                   {opp.strategicNote || <span className="muted">—</span>}
                 </td>
@@ -183,7 +192,7 @@ export default function Pursuits() {
                 <td className="num-col tfoot-total font-bold">
                   {fmtCurrency(pursuits.reduce((s, o) => s + (Number(o.signingsValue) || 0), 0))}
                 </td>
-                <td colSpan={5} />
+                <td colSpan={6} />
               </tr>
             </tfoot>
           )}

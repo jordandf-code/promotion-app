@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { fmtDate } from '../../data/sampleData.js';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { useWinsData } from '../../hooks/useWinsData.js';
-import OppModal, { STAGES } from './OppModal.jsx';
+import { useAdminData, DEFAULT_PIPELINE_STAGES } from '../../hooks/useAdminData.js';
+import OppModal from './OppModal.jsx';
 import WinFormModal from '../wins/WinFormModal.jsx';
 
 const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
@@ -17,7 +18,7 @@ const EMPTY_FORM = {
   status: 'open', winDate: '', totalValue: '', signingsValue: '',
   stage: 'Qualified', probability: '', expectedClose: '',
   dealType: 'one-time', logoType: 'net-new',
-  strategicNote: '', relationshipOrigin: '',
+  strategicNote: '', relationshipOrigin: '', iscId: '',
 };
 
 export default function OpportunitiesTab({ scorecard, scorecardYears }) {
@@ -190,17 +191,15 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
   );
 }
 
-export const STAGE_COLORS = {
-  'Identified': '#64748b',
-  'Qualified':  '#2563eb',
-  'Proposed':   '#7c3aed',
-  'Verbal':     '#d97706',
-  'Closed':     '#15803d',
-};
+export function stageColorMap(pipelineStages) {
+  return Object.fromEntries((pipelineStages ?? DEFAULT_PIPELINE_STAGES).map(s => [s.label, s.color]));
+}
 
 export function StagePip({ stage }) {
+  const { pipelineStages } = useAdminData();
   if (!stage) return <span className="muted">—</span>;
-  const color = STAGE_COLORS[stage] ?? '#64748b';
+  const colors = stageColorMap(pipelineStages);
+  const color = colors[stage] ?? '#64748b';
   return (
     <span className="stage-pip" style={{ background: color + '18', color, borderColor: color + '60' }}>
       {stage}

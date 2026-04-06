@@ -3,19 +3,18 @@
 
 import { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
-import { useAdminData, DEFAULT_DEAL_TYPES, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../../hooks/useAdminData.js';
+import { useAdminData, DEFAULT_DEAL_TYPES, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES, DEFAULT_PIPELINE_STAGES } from '../../hooks/useAdminData.js';
 
 const STATUSES = ['open', 'won', 'lost'];
 const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
 
-export const STAGES = ['Identified', 'Qualified', 'Proposed', 'Verbal', 'Closed'];
-
 export default function OppModal({ mode, initial, scorecardYears, onSave, onClose }) {
   const { currencySymbol, toInputValue, fromInputValue } = useSettings();
-  const { dealTypes, logoTypes, originTypes } = useAdminData();
+  const { dealTypes, logoTypes, originTypes, pipelineStages } = useAdminData();
   const DEAL_TYPE_OPTIONS = dealTypes ?? DEFAULT_DEAL_TYPES;
   const LOGO_TYPE_OPTIONS = logoTypes ?? DEFAULT_LOGO_TYPES;
   const ORIGIN_OPTIONS    = originTypes ?? DEFAULT_ORIGIN_TYPES;
+  const STAGES            = (pipelineStages ?? DEFAULT_PIPELINE_STAGES).map(s => s.label);
 
   const [form, setForm] = useState(() => ({
     stage: 'Qualified',
@@ -25,6 +24,7 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
     logoType: 'net-new',
     strategicNote: '',
     relationshipOrigin: '',
+    iscId: '',
     ...initial,
     totalValue:    toInputValue(initial.totalValue),
     signingsValue: toInputValue(initial.signingsValue),
@@ -99,6 +99,13 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
             <label>Expected close
               <input className="form-input" type="date" value={form.expectedClose ?? ''}
                 onChange={e => setField('expectedClose', e.target.value)} />
+            </label>
+          </div>
+          <div className="form-row">
+            <label>ISC Opportunity Link
+              <input className="form-input" type="url" value={form.iscId ?? ''}
+                onChange={e => setField('iscId', e.target.value)}
+                placeholder="https://isc.ibm.com/opportunities/..." />
             </label>
           </div>
 

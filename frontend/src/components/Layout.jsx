@@ -2,6 +2,7 @@
 // App shell: fixed sidebar with nav + scrollable main content area.
 // Child pages render via <Outlet />.
 
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettings } from '../context/SettingsContext.jsx';
@@ -25,6 +26,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { currency, setCurrency } = useSettings();
   const { navOrder } = useAdminData();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navItems = (navOrder ?? []).length
     ? [
@@ -33,9 +35,22 @@ export default function Layout() {
       ]
     : ALL_NAV_ITEMS;
 
+  function closeMenu() { setMenuOpen(false); }
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {/* Mobile top bar */}
+      <header className="mobile-header">
+        <button className="mobile-hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
+          <span /><span /><span />
+        </button>
+        <span className="mobile-header-title">Promotion Tracker</span>
+      </header>
+
+      {/* Backdrop */}
+      {menuOpen && <div className="sidebar-backdrop" onClick={closeMenu} />}
+
+      <aside className={`sidebar ${menuOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
             <span className="sidebar-brand-name">Promotion</span>
@@ -49,6 +64,7 @@ export default function Layout() {
                 to={to}
                 end={end}
                 className={({ isActive }) => 'nav-item' + (isActive ? ' nav-item--active' : '')}
+                onClick={closeMenu}
               >
                 {label}
               </NavLink>

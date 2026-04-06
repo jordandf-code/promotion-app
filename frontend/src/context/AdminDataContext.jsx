@@ -48,12 +48,21 @@ export const DEFAULT_ORIGIN_TYPES = [
   { value: 'existing-client', label: 'Existing client' },
 ];
 
+export const DEFAULT_PIPELINE_STAGES = [
+  { label: 'Identified', color: '#64748b' },
+  { label: 'Qualified',  color: '#2563eb' },
+  { label: 'Proposed',   color: '#7c3aed' },
+  { label: 'Verbal',     color: '#d97706' },
+  { label: 'Closed',     color: '#15803d' },
+];
+
 const DEFAULTS = {
   relationshipTypes: DEFAULT_RELATIONSHIP_TYPES,
   winTags:           DEFAULT_WIN_TAGS,
   dealTypes:         DEFAULT_DEAL_TYPES,
   logoTypes:         DEFAULT_LOGO_TYPES,
   originTypes:       DEFAULT_ORIGIN_TYPES,
+  pipelineStages:    DEFAULT_PIPELINE_STAGES,
   ibmCriteria:       '',
   careerHistory:     '',
   anthropicKey:      '',
@@ -116,6 +125,7 @@ export function AdminDataProvider({ children }) {
   function setDealTypes(types)          { setAdminData(d => ({ ...d, dealTypes: types })); }
   function setLogoTypes(types)          { setAdminData(d => ({ ...d, logoTypes: types })); }
   function setOriginTypes(types)        { setAdminData(d => ({ ...d, originTypes: types })); }
+  function setPipelineStages(stages)    { setAdminData(d => ({ ...d, pipelineStages: stages })); }
   function setIbmCriteria(text)         { setAdminData(d => ({ ...d, ibmCriteria: text })); }
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
@@ -124,7 +134,7 @@ export function AdminDataProvider({ children }) {
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
-      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes,
+      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setPipelineStages,
       setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder,
     }}>
       {children}

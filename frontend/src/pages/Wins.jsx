@@ -47,12 +47,31 @@ export default function Wins() {
     if (confirm('Remove this win?')) removeWin(id);
   }
 
+  function exportWins() {
+    const lines = filtered.map(w => {
+      const parts = [`${w.title}  (${w.date})`];
+      if (w.impact) parts.push(`Impact: ${w.impact}`);
+      if (w.description) parts.push(w.description);
+      if (w.tags.length) parts.push(`Tags: ${w.tags.join(', ')}`);
+      return parts.join('\n');
+    });
+    const text = `Wins Export — ${new Date().toLocaleDateString('en-CA')}\n${'='.repeat(50)}\n\n${lines.join('\n\n---\n\n')}\n`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'wins-export.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Wins</h1>
         <div className="page-header-actions">
           <span className="page-count">{wins.length} win{wins.length !== 1 ? 's' : ''} logged</span>
+          <button className="btn-secondary" onClick={exportWins} disabled={filtered.length === 0}>Export</button>
           <button className="btn-primary" onClick={openAdd}>+ Add win</button>
         </div>
       </div>
