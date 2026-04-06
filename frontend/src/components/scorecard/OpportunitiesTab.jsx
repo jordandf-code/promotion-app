@@ -1,0 +1,219 @@
+// components/scorecard/OpportunitiesTab.jsx
+// Sales opportunities table with summary strip, filters, and CRUD.
+// When an opportunity's status changes to "won", prompts to log a win.
+
+import { useState } from 'react';
+import { fmtDate } from '../../data/sampleData.js';
+import { useSettings } from '../../context/SettingsContext.jsx';
+import { useWinsData } from '../../hooks/useWinsData.js';
+import OppModal, { STAGES } from './OppModal.jsx';
+import WinFormModal from '../wins/WinFormModal.jsx';
+
+const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
+const STATUSES = ['open', 'won', 'lost'];
+
+const EMPTY_FORM = {
+  name: '', client: '', year: new Date().getFullYear(),
+  status: 'open', winDate: '', totalValue: '', signingsValue: '',
+  stage: 'Qualified', probability: '', expectedClose: '',
+  dealType: 'one-time', logoType: 'net-new',
+  strategicNote: '', relationshipOrigin: '',
+};
+
+export default function OpportunitiesTab({ scorecard, scorecardYears }) {
+  const { fmtCurrency } = useSettings();
+  const { wins, addWin, hasWinForSource } = useWinsData();
+  const [yearFilter,   setYearFilter]   = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [modal,        setModal]        = useState(null);
+  const [winPrompt,    setWinPrompt]    = useState(null);
+
+  const opps = scorecard.opportunities
+    .filter(o => yearFilter   === 'all' || o.year   === Number(yearFilter))
+    .filter(o => statusFilter === 'all' || o.status === statusFilter)
+    .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
+
+  const summaryOpps = yearFilter === 'all'
+    ? scorecard.opportunities
+    : scorecard.opportunities.filter(o => o.year === Number(yearFilter));
+  const totalWon  = summaryOpps.filter(o => o.status === 'won') .reduce((s, o) => s + (Number(o.signingsValue) || 0), 0);
+  const totalOpen = summaryOpps.filter(o => o.status === 'open').reduce((s, o) => s + (Number(o.signingsValue) || 0), 0);
+
+  function openAdd() {
+    setModal({ mode: 'add', data: { ...EMPTY_FORM, year: scorecardYears[Math.floor(scorecardYears.length / 2)] } });
+  }
+  function openEdit(opp) { setModal({ mode: 'edit', data: { ...opp } }); }
+  function closeModal()   { setModal(null); }
+
+  function handleSave(form) {
+    const payload = {
+      ...form,
+      year:          Number(form.year),
+      totalValue:    Number(form.totalValue)    || 0,
+      signingsValue: Number(form.signingsValue) || 0,
+      winDate:       form.winDate || null,
+    };
+
+    const isBecomingWon = payload.status === 'won' && modal.data.status !== 'won';
+
+    if (modal.mode === 'add') scorecard.addOpportunity(payload);
+    else scorecard.updateOpportunity(modal.data.id, payload);
+    closeModal();
+
+    if (isBecomingWon && !hasWinForSource(modal.mode === 'add' ? null : modal.data.id)) {
+      const oppId = modal.mode === 'edit' ? modal.data.id : null;
+      if (oppId) {
+        setWinPrompt({
+          sourceType:  'opportunity',
+          sourceId:    oppId,
+          sourceName:  payload.name,
+          title:       `${payload.name} — ${payload.client}`,
+          date:        payload.winDate || new Date().toISOString().slice(0, 10),
+          impact:      `Signed ${fmtCurrency(payload.totalValue)} deal`,
+          description: '',
+          tags:        ['Revenue', 'Client relationship'],
+        });
+      }
+    }
+  }
+
+  function handleWinSave(form) {
+    addWin({ ...winPrompt, ...form });
+    setWinPrompt(null);
+  }
+
+  function handleDelete(id) {
+    if (confirm('Remove this opportunity?')) scorecard.removeOpportunity(id);
+  }
+
+  return (
+    <div className="tab-content">
+      <div className="opp-summary">
+        <div className="opp-summary-stat">
+          <div className="opp-summary-value won-color">{fmtCurrency(totalWon)}</div>
+          <div className="opp-summary-label">Realized signings</div>
+        </div>
+        <div className="opp-summary-stat">
+          <div className="opp-summary-value forecast-color">{fmtCurrency(totalOpen)}</div>
+          <div className="opp-summary-label">Forecast signings</div>
+        </div>
+        <div className="opp-summary-stat">
+          <div className="opp-summary-value">{fmtCurrency(totalWon + totalOpen)}</div>
+          <div className="opp-summary-label">Total pipeline</div>
+        </div>
+      </div>
+
+      <div className="tab-toolbar">
+        <div className="tab-filters">
+          <select className="filter-select" value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+            <option value="all">All years</option>
+            {scorecardYears.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+          </select>
+          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+          </select>
+        </div>
+        <button className="btn-primary" onClick={openAdd}>+ Add opportunity</button>
+      </div>
+
+      <div className="data-table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Opportunity</th><th>Client</th><th>Year</th><th>Stage</th><th>Status</th>
+              <th>Win date</th><th>Type</th>
+              <th className="num-col">Total value</th>
+              <th className="num-col">Signings</th><th className="action-col" />
+            </tr>
+          </thead>
+          <tbody>
+            {opps.length === 0
+              ? <tr><td colSpan={10} className="table-empty">No opportunities match the current filters.</td></tr>
+              : opps.map(opp => (
+                <tr key={opp.id}>
+                  <td className="td-primary">{opp.name}</td>
+                  <td>{opp.client}</td>
+                  <td>{opp.year}</td>
+                  <td><StagePip stage={opp.stage} /></td>
+                  <td>
+                    <span className={`status-pip status-pip--${opp.status}`}>{STATUS_LABELS[opp.status]}</span>
+                    {wins.some(w => w.sourceId === opp.id) && (
+                      <span className="opp-win-linked" title="Win logged">W</span>
+                    )}
+                  </td>
+                  <td>{opp.winDate ? fmtDate(opp.winDate) : <span className="muted">—</span>}</td>
+                  <td><LogoTypePip logoType={opp.logoType} /></td>
+                  <td className="num-col">{fmtCurrency(Number(opp.totalValue) || 0)}</td>
+                  <td className="num-col font-bold">{fmtCurrency(Number(opp.signingsValue) || 0)}</td>
+                  <td className="action-col">
+                    <button className="row-btn" onClick={() => openEdit(opp)}>Edit</button>
+                    <button className="row-btn row-btn--danger" onClick={() => handleDelete(opp.id)}>✕</button>
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+          {opps.length > 0 && (
+            <tfoot>
+              <tr>
+                <td colSpan={7} className="tfoot-label">{opps.length} opportunit{opps.length === 1 ? 'y' : 'ies'}</td>
+                <td className="num-col tfoot-total">{fmtCurrency(opps.reduce((s, o) => s + (Number(o.totalValue) || 0), 0))}</td>
+                <td className="num-col tfoot-total font-bold">{fmtCurrency(opps.reduce((s, o) => s + (Number(o.signingsValue) || 0), 0))}</td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+
+      {modal && (
+        <OppModal
+          mode={modal.mode}
+          initial={modal.data}
+          scorecardYears={scorecardYears}
+          onSave={handleSave}
+          onClose={closeModal}
+        />
+      )}
+
+      {winPrompt && (
+        <WinFormModal
+          mode="prompt"
+          initial={winPrompt}
+          promptContext={`"${winPrompt.sourceName}" was just marked as won. Want to log this as a win?`}
+          onSave={handleWinSave}
+          onClose={() => setWinPrompt(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+export const STAGE_COLORS = {
+  'Identified': '#64748b',
+  'Qualified':  '#2563eb',
+  'Proposed':   '#7c3aed',
+  'Verbal':     '#d97706',
+  'Closed':     '#15803d',
+};
+
+export function StagePip({ stage }) {
+  if (!stage) return <span className="muted">—</span>;
+  const color = STAGE_COLORS[stage] ?? '#64748b';
+  return (
+    <span className="stage-pip" style={{ background: color + '18', color, borderColor: color + '60' }}>
+      {stage}
+    </span>
+  );
+}
+
+export function LogoTypePip({ logoType }) {
+  if (!logoType) return <span className="muted">—</span>;
+  const isNew = logoType === 'net-new';
+  return (
+    <span className={`logo-type-pip ${isNew ? 'logo-type-pip--new' : 'logo-type-pip--exp'}`}>
+      {isNew ? 'Net new' : 'Expansion'}
+    </span>
+  );
+}
