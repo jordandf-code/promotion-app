@@ -5,10 +5,19 @@
 const express        = require('express');
 const bcrypt         = require('bcryptjs');
 const jwt            = require('jsonwebtoken');
+const rateLimit      = require('express-rate-limit');
 const db             = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,                   // 20 attempts per window
+  message: { error: 'Too many attempts — please try again in 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function safeUser(user) {
   return { id: user.id, email: user.email, name: user.name, role: user.role, company: user.company };
@@ -19,7 +28,7 @@ function signToken(userId) {
 }
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { email, password, name, role, company } = req.body;
 
   if (!email || !password || !name) {
@@ -49,7 +58,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {

@@ -1,6 +1,6 @@
 # AI Prompt Reference — Narrative + Gaps
 
-This document defines the system prompts, input schema, and output contracts for the two
+This document defines the system prompts, input schema, and output contracts for the three
 narrative modes in the Narrative + Gaps tab. It is the authoritative reference for
 `backend/ai/prompts.js` implementation.
 
@@ -13,7 +13,7 @@ a structured JSON payload from the user's app data via `buildContext.js`, select
 appropriate system prompt, and passes both to the API. Results are cached in `storyData_v1`.
 
 **Model**: `claude-sonnet-4-6`
-**Max tokens**: 2000 (gap analysis), 1500 (polished narrative)
+**Max tokens**: 2000 (gap analysis), 1500 (polished narrative), 3000 (2027 plan)
 
 ---
 
@@ -100,7 +100,7 @@ Pass it as the `user` message content, serialized as JSON.
     }
   ],
 
-  "narrative_mode": "gap_analysis | polished_narrative"
+  "narrative_mode": "gap_analysis | polished_narrative | plan_2027"
 }
 ```
 
@@ -258,14 +258,75 @@ The 2027 Ask
 
 ---
 
+## Mode 3 — 2027 Plan
+
+**`narrative_mode`: `"plan_2027"`**
+
+### System prompt
+
+```
+You are a senior IBM executive coach helping an Associate Partner plan their first year as a newly promoted Partner.
+
+CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Do not explain why data is thin. Do not offer alternatives. Output ONLY the JSON object. If data is sparse, ground your recommendations in what a new Partner at IBM Canada in public sector consulting would typically need to do, and note where the candidate should build evidence.
+
+You will receive structured data: scorecard performance, wins, opportunities, pipeline, goals, people network, and IBM Partner criteria.
+
+Your task is to produce a prioritized action plan for the first year as Partner. Assume the promotion is granted in early of the target year. The candidate needs to know what to do differently — not just more of the same.
+
+Write a structured plan with four sections:
+
+1. First 90 days — the three highest-priority actions to establish credibility and visibility as a new Partner at IBM Canada
+2. Commercial focus — which deals, clients, or market segments to double down on, and why, based on what has shown the most traction in the pipeline and win data
+3. Gaps to close — areas where the candidate's profile is weak for a Partner (from the data) and how to address them in the first year
+4. Eminence and network — two or three specific moves to raise external profile in the Canadian public sector market
+
+For each item:
+- ALWAYS produce the full four-section plan. Never refuse or ask for permission.
+- Be concrete and specific to this candidate's context (IBM Canada, federal/provincial/municipal clients)
+- Give a rationale grounded in the data — do not give generic advice
+- Where relevant, name specific people from the candidate's network who should be activated
+- If data is thin in an area, ground your recommendations in what a new Partner at IBM Canada in public sector consulting would typically need to do, noting that the candidate should build this evidence
+
+Format your response as a JSON object:
+{
+  "first_90_days": [
+    { "action": "string", "rationale": "string" }
+  ],
+  "commercial_focus": [
+    { "focus": "string", "rationale": "string" }
+  ],
+  "gaps_to_close": [
+    { "gap": "string", "approach": "string" }
+  ],
+  "eminence_and_network": [
+    { "move": "string", "rationale": "string" }
+  ]
+}
+
+Return only valid JSON. No preamble, no markdown fences.
+```
+
+### Output contract
+
+Returns a JSON object with four sections:
+
+| Section | Item fields | Notes |
+|---|---|---|
+| `first_90_days` | `action`, `rationale` | 3 high-priority actions for new Partner credibility |
+| `commercial_focus` | `focus`, `rationale` | Deals/clients/segments to prioritize |
+| `gaps_to_close` | `gap`, `approach` | Weak areas + how to address in year one |
+| `eminence_and_network` | `move`, `rationale` | 2–3 moves to raise external profile |
+
+---
+
 ## Backend Notes
 
 - Select system prompt based on `narrative_mode` field in the input payload
 - Strip `narrative_mode` from the payload before sending to the API — it is routing metadata only
 - For `gap_analysis`: robust JSON parser — strips fences, extracts JSON from prose, repairs truncated responses
 - For `polished_narrative`: return plain text as-is
-- Cache both outputs in `storyData_v1` under keys `gap_analysis` and `polished_narrative`,
-  each with `data`, `generated_at`, and `usage` (input/output token counts)
+- Cache all outputs in `storyData_v1` under keys `gap_analysis`, `polished_narrative`, and
+  `plan_2027`, each with `data`, `generated_at`, and `usage` (input/output token counts)
 - Regenerate on demand — do not auto-regenerate on data change
 - All context assembled server-side via `backend/ai/buildContext.js` — frontend sends only
   `{ narrative_mode }` with JWT auth header

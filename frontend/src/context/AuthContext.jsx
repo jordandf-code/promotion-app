@@ -11,25 +11,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
-
-  // On mount: if we have a stored token, verify it's still valid and restore the user
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    fetch(`${API_BASE}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (data) setUser(data);
-        else clearAuth();
-      })
-      .catch(() => clearAuth())
-      .finally(() => setLoading(false));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'));
 
   function clearAuth() {
     setUser(null);
@@ -42,6 +24,21 @@ export function AuthProvider({ children }) {
     setToken(data.token);
     localStorage.setItem('token', data.token);
   }
+
+  // On mount: if we have a stored token, verify it's still valid and restore the user
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data) setUser(data);
+        else clearAuth();
+      })
+      .catch(() => clearAuth())
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function register({ email, password, name, role, company }) {
     const res = await fetch(`${API_BASE}/api/auth/register`, {
