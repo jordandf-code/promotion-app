@@ -17,6 +17,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 
+// Trust proxy headers (Render, Vercel, etc.) so express-rate-limit sees real client IPs
+app.set('trust proxy', 1);
+
 // --- ROUTES ---
 app.use('/api/auth',   require('./routes/auth'));
 app.use('/api/ai',     require('./routes/ai'));
