@@ -181,7 +181,7 @@ function ActionModal({ mode, initial, goals, onSave, onClose }) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{mode === 'add' ? 'Add action item' : 'Edit action item'}</h3>

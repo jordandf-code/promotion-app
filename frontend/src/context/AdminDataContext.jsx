@@ -95,11 +95,13 @@ export function AdminDataProvider({ children }) {
   const [adminData, setAdminData]     = useState(DEFAULTS);
   const [initialized, setInitialized] = useState(false);
   const skipSync                      = useRef(false);
+  const serverLoaded                  = useRef(false);
 
   useEffect(() => {
     const local = loadLocal() ?? DEFAULTS;
     apiGet('admin')
       .then(serverData => {
+        serverLoaded.current = true;
         if (serverData !== null) {
           skipSync.current = true;
           setAdminData({ ...DEFAULTS, ...serverData });
@@ -110,13 +112,18 @@ export function AdminDataProvider({ children }) {
         localStorage.removeItem('adminData_v2');
         localStorage.removeItem('adminData_v1');
       })
-      .catch(() => setAdminData(local))
+      .catch(() => {
+        // Server unreachable — use local/defaults for display but do NOT sync
+        // back to the server, as that would overwrite real data with empty defaults.
+        setAdminData(local);
+      })
       .finally(() => setInitialized(true));
   }, []);
 
   useEffect(() => {
     if (!initialized) return;
     if (skipSync.current) { skipSync.current = false; return; }
+    if (!serverLoaded.current) return; // never write defaults from a failed load
     apiPut('admin', adminData);
   }, [adminData, initialized]);
 

@@ -16,7 +16,7 @@ const ALL_NAV_ITEMS = [
   { to: '/people',    label: 'People'                },
   { to: '/wins',      label: 'Wins'                  },
   { to: '/actions',   label: 'Action items'          },
-  { to: '/story',     label: 'My story'              },
+  { to: '/story',     label: 'Narrative + Gaps'       },
   { to: '/calendar',  label: 'Calendar'              },
   { to: '/sharing',   label: 'Sharing'               },
   { to: '/admin',     label: 'Admin'                 },

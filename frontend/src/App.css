@@ -1952,6 +1952,78 @@ tr:last-child .sc-td { border-bottom: none; }
 }
 .story-gap-item:last-child { border-bottom: none; }
 
+/* ── Story section actions (timestamp + regenerate) ── */
+.story-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-sm { padding: 0.25rem 0.6rem; font-size: 0.75rem; }
+
+/* ── Story loading card ── */
+.story-loading-card {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+.story-empty-section { padding: 1.5rem; }
+.story-token-usage {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--text-light);
+  text-align: right;
+  padding: 0.5rem 1.25rem 0.75rem;
+  margin: 0;
+}
+
+/* ── Story narrative lines ── */
+.story-narrative-line {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+.story-narrative-line:last-child { margin-bottom: 0; }
+
+/* ── Story strength badges ── */
+.story-strength {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.story-strength--strong  { background: #dcfce7; color: #15803d; }
+.story-strength--partial { background: #fef3c7; color: #b45309; }
+.story-strength--missing { background: #fee2e2; color: #dc2626; }
+
+/* ── 2027 Plan sections ── */
+.story-plan-sections { display: flex; flex-direction: column; gap: 1.25rem; padding: 1rem 1.25rem; }
+.story-plan-group-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.story-plan-item {
+  margin-bottom: 0.6rem;
+}
+.story-plan-item-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.story-plan-item-detail {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
 /* Admin — text sections */
 
 .admin-textarea {
@@ -1999,6 +2071,18 @@ tr:last-child .sc-td { border-bottom: none; }
 .suggest-goal-content  { flex: 1; }
 .suggest-goal-title    { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.2rem; }
 .suggest-goal-rationale { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; }
+.suggest-goal-gate {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #b45309;
+  vertical-align: middle;
+}
+.suggest-goal-date { font-size: 0.78rem; color: var(--text-light); margin-top: 0.2rem; }
 
 /* ═══════════════════════════════════════════════════════════
    SCORECARD — INTERACTIVE CELLS & PANEL
@@ -2613,6 +2697,7 @@ tr:last-child .sc-td { border-bottom: none; }
   box-shadow: 0 0 0 3px rgba(0,64,160,0.1);
 }
 .form-hint { font-weight: 400; color: var(--text-light); font-size: 0.78rem; }
+.form-field-error { font-size: 0.78rem; color: var(--red); margin-top: 0.25rem; }
 .form-required { color: #dc2626; margin-left: 0.15rem; font-weight: 700; }
 .form-unit { font-weight: 400; color: var(--text-muted); font-size: 0.78rem; margin-left: 0.2rem; }
 

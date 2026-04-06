@@ -1,78 +1,78 @@
 // pages/MyStory.jsx
-// AI-powered promotion narrative. Reads IBM criteria, career history, and API key
-// from Admin settings. Generates evidence map, gap analysis, narrative, and 2027 plan.
+// AI-powered promotion narrative — three independent modes:
+// gap_analysis, polished_narrative, plan_2027.
+// Each fires in parallel, renders independently, and can be regenerated individually.
 
 import { useState } from 'react';
-import { API_BASE } from '../utils/api.js';
-import { useAdminData }    from '../hooks/useAdminData.js';
-import { useStoryData }    from '../hooks/useStoryData.js';
-import { useWinsData }     from '../hooks/useWinsData.js';
-import { useGoalsData }    from '../hooks/useGoalsData.js';
-import { useScorecardData } from '../hooks/useScorecardData.js';
-import { useSettings }     from '../context/SettingsContext.jsx';
+import { API_BASE, authHeaders } from '../utils/api.js';
+import { mapAiError } from '../utils/aiErrors.js';
+import { useAdminData } from '../hooks/useAdminData.js';
+import { useStoryData } from '../hooks/useStoryData.js';
+
+const MODES = [
+  { id: 'polished_narrative', label: 'Narrative' },
+  { id: 'gap_analysis',       label: 'Gap analysis' },
+];
 
 export default function MyStory() {
-  const { ibmCriteria, careerHistory, anthropicKey } = useAdminData();
-  const { story, saveStory }  = useStoryData();
-  const { wins }              = useWinsData();
-  const { goals }             = useGoalsData();
-  const scorecard             = useScorecardData();
-  const { qualifyingYear, fmtCurrency } = useSettings();
-
-  const [generating, setGenerating] = useState(false);
-  const [error,      setError]      = useState(null);
+  const { ibmCriteria, anthropicKey } = useAdminData();
+  const { story, saveStorySection, clearStory } = useStoryData();
+  const [loading, setLoading] = useState({});
+  const [errors,  setErrors]  = useState({});
 
   const configured = !!(anthropicKey && ibmCriteria);
 
-  async function generate() {
-    setGenerating(true);
-    setError(null);
+  async function generateMode(mode) {
+    setLoading(prev => ({ ...prev, [mode]: true }));
+    setErrors(prev  => ({ ...prev, [mode]: null }));
     try {
-      const s = scorecard.getSalesStats(qualifyingYear);
-      const r = scorecard.getRevenueStats(qualifyingYear);
-      const g = scorecard.getGPStats(qualifyingYear);
-      const u = scorecard.getUtilStats(qualifyingYear);
-
       const res = await fetch(`${API_BASE}/api/ai/generate-story`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey:       anthropicKey,
-          ibmCriteria,
-          careerHistory,
-          wins:  wins.map(w => ({ title: w.title, impact: w.impact, tags: w.tags })),
-          goals: goals.map(g => ({ title: g.title, status: g.status, isGate: g.isGate })),
-          scorecardSummary: { year: qualifyingYear, sales: s, revenue: r, gp: g, util: u },
-        }),
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body:    JSON.stringify({ narrative_mode: mode }),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      saveStory({ ...data, generatedAt: new Date().toISOString() });
+      if (!data.ok) {
+        const err = new Error(data.error);
+        err.code = data.code;
+        throw err;
+      }
+      saveStorySection(mode, data.data, data.generated_at, data.usage);
     } catch (err) {
-      setError(err.message);
+      setErrors(prev => ({ ...prev, [mode]: mapAiError(err.code, err.message) }));
     } finally {
-      setGenerating(false);
+      setLoading(prev => ({ ...prev, [mode]: false }));
     }
   }
 
+  function generateAll() {
+    MODES.forEach(m => generateMode(m.id));
+  }
+
+  const anyLoading = Object.values(loading).some(Boolean);
+  const hasAny = story && (story.gap_analysis || story.polished_narrative);
+
   function exportText() {
     if (!story) return;
-    const lines = [
-      'MY PROMOTION STORY',
-      `Generated: ${new Date(story.generatedAt).toLocaleString()}`,
-      '',
-      '═══ NARRATIVE ═══',
-      story.narrative,
-      '',
-      '═══ 2027 PLAN ═══',
-      story.plan,
-      '',
-      '═══ EVIDENCE MAP ═══',
-      ...story.evidenceMap.map(e => `\n${e.criterion}\n${e.evidence.map(ev => `  • ${ev}`).join('\n')}`),
-      '',
-      '═══ GAPS TO ADDRESS ═══',
-      ...story.gaps.map(g => `  △ ${g}`),
-    ];
+    const lines = [];
+    lines.push('MY PROMOTION STORY');
+    lines.push(`Exported: ${new Date().toLocaleString()}`);
+
+    if (story.polished_narrative) {
+      lines.push('', '═══ NARRATIVE ═══', '');
+      lines.push(story.polished_narrative.data);
+    }
+
+    if (story.gap_analysis) {
+      lines.push('', '═══ GAP ANALYSIS ═══', '');
+      story.gap_analysis.data.forEach(g => {
+        lines.push(`[${g.strength}] ${g.criterion}`);
+        g.evidence.forEach(e => lines.push(`  • ${e}`));
+        if (g.recommendation) lines.push(`  → ${g.recommendation}`);
+        lines.push('');
+      });
+    }
+
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -80,20 +80,21 @@ export default function MyStory() {
     URL.revokeObjectURL(url);
   }
 
+  // ── Setup required ──
   if (!configured) {
     return (
       <div className="page">
-        <div className="page-header"><h1 className="page-title">My story</h1></div>
+        <div className="page-header"><h1 className="page-title">Promotion Narrative + Gaps</h1></div>
         <div className="card story-setup-card">
           <div className="story-setup-icon">✦</div>
           <h2 className="story-setup-title">Setup required</h2>
-          <p>Configure two things in <strong>Admin</strong> to get started:</p>
+          <p>Configure two things in <strong>Admin &gt; GenAI</strong> to get started:</p>
           <ul className="story-setup-list">
             <li><strong>IBM Partner criteria</strong> — paste from the Partner framework document</li>
-            <li><strong>AI settings</strong> — add your Anthropic API key</li>
+            <li><strong>Anthropic API key</strong> — your personal key for AI features</li>
           </ul>
           <p className="story-setup-hint">Career history is optional but makes the narrative significantly stronger.</p>
-          <a className="btn-primary story-setup-btn" href="/admin">Go to Admin →</a>
+          <a className="btn-primary story-setup-btn" href="/admin">Go to Admin</a>
         </div>
       </div>
     );
@@ -102,91 +103,129 @@ export default function MyStory() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">My story</h1>
+        <h1 className="page-title">Promotion Narrative + Gaps</h1>
         <div className="page-header-actions">
-          {story && <button className="btn-secondary" onClick={exportText}>Export text</button>}
-          <button className="btn-primary btn-ai" onClick={generate} disabled={generating}>
-            {generating ? 'Generating…' : story ? '↺ Regenerate' : '✦ Generate my story'}
+          {hasAny && <button className="btn-secondary" onClick={exportText}>Export text</button>}
+          <button className="btn-primary btn-ai" onClick={generateAll} disabled={anyLoading}>
+            {anyLoading ? 'Generating…' : hasAny ? '↺ Regenerate all' : '✦ Generate my story'}
           </button>
         </div>
       </div>
 
-      {story && !generating && (
-        <p className="story-generated-at">Last generated: {new Date(story.generatedAt).toLocaleString()}</p>
-      )}
-      {error && <div className="story-error">{error}</div>}
+      {/* ── Narrative ── */}
+      <StorySection
+        mode="polished_narrative"
+        title="Narrative"
+        subtitle="First-person promotion case for the IBM committee"
+        loading={loading.polished_narrative}
+        error={errors.polished_narrative}
+        data={story?.polished_narrative}
+        onRegenerate={() => generateMode('polished_narrative')}
+      >
+        {story?.polished_narrative && (
+          <div className="story-narrative-card">
+            {story.polished_narrative.data.split('\n').filter(Boolean).map((line, i) => (
+              <p key={i} className="story-narrative-line">{line}</p>
+            ))}
+          </div>
+        )}
+      </StorySection>
 
-      {generating && (
-        <div className="story-generating">
-          <div className="story-spinner">✦</div>
-          <p>Analysing your wins, scorecard, and goals against the IBM Partner criteria…</p>
-          <p className="story-generating-hint">This takes about 15–30 seconds.</p>
-        </div>
-      )}
+      {/* ── Gap Analysis ── */}
+      <StorySection
+        mode="gap_analysis"
+        title="Gap analysis"
+        subtitle="Each IBM criterion mapped to your evidence with strength ratings"
+        loading={loading.gap_analysis}
+        error={errors.gap_analysis}
+        data={story?.gap_analysis}
+        onRegenerate={() => generateMode('gap_analysis')}
+      >
+        {story?.gap_analysis && (
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Criterion</th>
+                  <th>Evidence</th>
+                  <th>Strength</th>
+                  <th>Recommendation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {story.gap_analysis.data.map((g, i) => (
+                  <tr key={i}>
+                    <td className="td-primary">{g.criterion}</td>
+                    <td>{g.evidence.map((e, j) => <div key={j}>• {e}</div>)}</td>
+                    <td>
+                      <span className={`story-strength story-strength--${g.strength.toLowerCase()}`}>
+                        {g.strength}
+                      </span>
+                    </td>
+                    <td>{g.recommendation || <span className="muted">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </StorySection>
 
-      {!story && !generating && (
-        <div className="card story-empty-card">
-          <p>Click <strong>✦ Generate my story</strong> to map your evidence against IBM Partner criteria and produce a polished promotion narrative.</p>
-          <p className="story-setup-hint">Uses your {wins.length} win{wins.length !== 1 ? 's' : ''}, {goals.length} goal{goals.length !== 1 ? 's' : ''}, and qualifying year scorecard.</p>
-        </div>
-      )}
-
-      {story && !generating && (
-        <>
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Narrative</h2>
-            </div>
-            <div className="card story-narrative-card">
-              {story.narrative.split('\n\n').filter(Boolean).map((para, i) => (
-                <p key={i} className="story-narrative-para">{para}</p>
-              ))}
-            </div>
-          </section>
-
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">2027 plan</h2>
-              <span className="section-sub">Prioritised actions to close gaps and make the strongest possible case</span>
-            </div>
-            <div className="card story-plan-card">
-              <div className="story-plan-text">{story.plan}</div>
-            </div>
-          </section>
-
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Evidence map</h2>
-              <span className="section-sub">IBM criteria mapped to your supporting wins, goals, and scorecard</span>
-            </div>
-            <div className="card">
-              {story.evidenceMap.map((e, i) => (
-                <div key={i} className="story-criterion-row">
-                  <div className="story-criterion-text">{e.criterion}</div>
-                  <ul className="story-evidence-list">
-                    {e.evidence.map((ev, j) => <li key={j}>{ev}</li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="section">
-            <div className="section-header">
-              <h2 className="section-title">Gaps</h2>
-              <span className="section-sub">Criteria with thin or missing evidence — focus areas for 2026</span>
-            </div>
-            <div className="card">
-              {story.gaps.length === 0
-                ? <p className="list-empty" style={{ padding: '1rem 1.25rem' }}>No significant gaps — strong coverage across all criteria.</p>
-                : <ul className="story-gap-list">
-                    {story.gaps.map((g, i) => <li key={i} className="story-gap-item">{g}</li>)}
-                  </ul>
-              }
-            </div>
-          </section>
-        </>
-      )}
     </div>
+  );
+}
+
+// ── Section wrapper ─────────────────────────────────────────────────────────
+
+function StorySection({ title, subtitle, loading, error, data, onRegenerate, children }) {
+  return (
+    <section className="section">
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">{title}</h2>
+          {subtitle && <span className="section-sub">{subtitle}</span>}
+        </div>
+        {!loading && (
+          <div className="story-section-actions">
+            {data && (
+              <span className="story-generated-at">
+                {new Date(data.generated_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+            <button className="btn-secondary btn-sm" onClick={onRegenerate}>
+              {data ? '↺ Regenerate' : '✦ Generate'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {loading && (
+        <div className="card story-loading-card">
+          <div className="story-spinner">✦</div>
+          <p>Generating {title.toLowerCase()}…</p>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="story-error">{error}</div>
+      )}
+
+      {!loading && data && (
+        <div className="card">
+          {children}
+          {data.usage && (
+            <p className="story-token-usage">
+              {data.usage.input_tokens} input tokens · {data.usage.output_tokens} output tokens
+            </p>
+          )}
+        </div>
+      )}
+
+      {!loading && !data && !error && (
+        <div className="card story-empty-section">
+          <p className="muted">Not yet generated. Click "Generate my story" above or regenerate this section.</p>
+        </div>
+      )}
+    </section>
   );
 }

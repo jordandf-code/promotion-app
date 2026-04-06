@@ -111,7 +111,7 @@ function PersonModal({ mode, initial, relationshipTypes, onSave, onClose }) {
   const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{mode === 'add' ? 'Add person' : 'Edit person'}</h3>

@@ -62,7 +62,7 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{mode === 'add' ? 'Add project' : 'Edit project'}</h3>

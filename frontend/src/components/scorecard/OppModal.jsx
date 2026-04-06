@@ -45,7 +45,7 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{mode === 'add' ? 'Add opportunity' : 'Edit opportunity'}</h3>

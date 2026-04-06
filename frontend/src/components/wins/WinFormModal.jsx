@@ -2,7 +2,8 @@
 // Shared win form — 'prompt' mode (triggered on won/done), 'add'/'edit' from Wins tab.
 
 import { useState } from 'react';
-import { API_BASE } from '../../utils/api.js';
+import { API_BASE, authHeaders } from '../../utils/api.js';
+import { mapAiError } from '../../utils/aiErrors.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../../hooks/useAdminData.js';
 
 function tagStyle(color, active) {
@@ -12,7 +13,7 @@ function tagStyle(color, active) {
 }
 
 export default function WinFormModal({ mode, initial, promptContext, onSave, onClose }) {
-  const { winTags, anthropicKey, logoTypes, originTypes } = useAdminData();
+  const { winTags, logoTypes, originTypes } = useAdminData();
   const LOGO_TYPE_OPTIONS = logoTypes ?? DEFAULT_LOGO_TYPES;
   const ORIGIN_OPTIONS    = originTypes ?? DEFAULT_ORIGIN_TYPES;
 
@@ -28,21 +29,34 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
     ...initial,
   });
   const [suggestingImpact, setSuggestingImpact] = useState(false);
+  const [impactError,     setImpactError]     = useState(null);
+  const [impactUsage,     setImpactUsage]     = useState(null);
 
   const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
   async function handleSuggestImpact() {
     setSuggestingImpact(true);
+    setImpactError(null);
     try {
       const res  = await fetch(`${API_BASE}/api/ai/suggest-impact`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ title: form.title, description: form.description, apiKey: anthropicKey }),
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body:    JSON.stringify({
+          title:       form.title,
+          description: form.description,
+          sourceId:    initial?.sourceId ?? null,
+          sourceType:  initial?.sourceType ?? null,
+        }),
       });
       const data = await res.json();
-      if (data.impact) setField('impact', data.impact);
+      if (!data.ok) {
+        setImpactError(mapAiError(data.code, data.error));
+        return;
+      }
+      setField('impact', data.impact);
+      if (data.usage) setImpactUsage(data.usage);
     } catch {
-      // silently ignore
+      setImpactError('Could not reach the AI service');
     } finally {
       setSuggestingImpact(false);
     }
@@ -59,7 +73,7 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
   const heading  = isPrompt ? 'Log this as a win?' : mode === 'add' ? 'Add win' : 'Edit win';
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{heading}</h3>
@@ -95,6 +109,12 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
             <input className="form-input" value={form.impact}
               onChange={e => setField('impact', e.target.value)}
               placeholder="One line for your promotion case, e.g. $2M revenue secured" />
+            {impactError && <p className="form-field-error">{impactError}</p>}
+            {impactUsage && (
+              <p className="story-token-usage" style={{ textAlign: 'left', padding: '0.25rem 0 0' }}>
+                {impactUsage.input_tokens} input · {impactUsage.output_tokens} output tokens
+              </p>
+            )}
           </div>
 
           <label>Description

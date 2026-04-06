@@ -5,7 +5,8 @@ import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useG
 import { useActionsData }  from '../hooks/useActionsData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
 import { useAdminData }    from '../hooks/useAdminData.js';
-import { API_BASE }        from '../utils/api.js';
+import { API_BASE, authHeaders } from '../utils/api.js';
+import { mapAiError }      from '../utils/aiErrors.js';
 import GoalCard            from '../components/goals/GoalCard.jsx';
 import WinFormModal        from '../components/wins/WinFormModal.jsx';
 import SuggestGoalsModal   from '../components/goals/SuggestGoalsModal.jsx';
@@ -16,7 +17,7 @@ export default function Goals() {
   const { goals, addGoal, updateGoal, removeGoal, cycleStatus } = useGoalsData();
   const { actions, addAction, toggleDone, linkToGoal, unlinkFromGoal } = useActionsData();
   const { wins, addWin, hasWinForSource } = useWinsData();
-  const { ibmCriteria, careerHistory, anthropicKey } = useAdminData();
+  const { anthropicKey, ibmCriteria } = useAdminData();
 
   const [modal,        setModal]        = useState(null);
   const [winPrompt,    setWinPrompt]    = useState(null);
@@ -70,26 +71,23 @@ export default function Goals() {
   }
 
   async function handleSuggestGoals() {
-    if (!anthropicKey || !ibmCriteria) {
-      setSuggestState({ missingConfig: true });
-      return;
-    }
     setSuggestState('loading');
     try {
       const res = await fetch(`${API_BASE}/api/ai/suggest-goals`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey:       anthropicKey,
-          ibmCriteria,
-          careerHistory,
-          currentGoals: goals.map(g => ({ title: g.title, status: g.status })),
-          wins:         wins.map(w => ({ title: w.title, impact: w.impact })),
-        }),
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body:    JSON.stringify({}),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setSuggestState({ suggestions: data.suggestions });
+      if (!data.ok) {
+        if (data.code === 'NO_KEY' || data.code === 'NO_CRITERIA') {
+          setSuggestState({ missingConfig: true });
+        } else {
+          setSuggestState({ error: mapAiError(data.code, data.error) });
+        }
+        return;
+      }
+      setSuggestState({ suggestions: data.suggestions, usage: data.usage });
     } catch (err) {
       setSuggestState({ error: err.message });
     }
@@ -175,7 +173,14 @@ export default function Goals() {
       {suggestState?.suggestions && (
         <SuggestGoalsModal
           suggestions={suggestState.suggestions}
-          onAdd={title => addGoal({ title, targetDate: '', status: 'not_started', notes: '', isGate: false })}
+          usage={suggestState.usage}
+          onAdd={s => addGoal({
+            title: s.title,
+            targetDate: s.targetDate || '',
+            status: 'not_started',
+            notes: s.rationale || '',
+            isGate: s.isGate || false,
+          })}
           onClose={() => setSuggestState(null)}
         />
       )}
@@ -188,7 +193,7 @@ function GoalModal({ mode, initial, onSave, onClose }) {
   const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{mode === 'add' ? 'Add goal' : 'Edit goal'}</h3>
@@ -232,7 +237,7 @@ function GoalModal({ mode, initial, onSave, onClose }) {
 
 function SuggestConfigModal({ onClose }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>✦ Setup required</h3>
@@ -258,7 +263,7 @@ function SuggestConfigModal({ onClose }) {
 
 function SuggestErrorModal({ error, onClose }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Suggestion failed</h3>

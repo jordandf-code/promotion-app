@@ -82,7 +82,7 @@ export default function QuickAddModal({ onAddWin, onAddAction, onAddGoal, onAddP
   }[mode];
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Quick add</h3>

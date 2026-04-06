@@ -1,218 +1,206 @@
 // routes/ai.js
-// Proxies AI requests to Anthropic so API keys stay server-side.
-// All endpoints accept an optional apiKey in the request body,
-// falling back to ANTHROPIC_API_KEY in .env.
+// AI endpoints — all require JWT auth. The API key and user data are loaded
+// from the database via buildContext, never sent from the frontend.
 
-const express   = require('express');
-const Anthropic  = require('@anthropic-ai/sdk');
-const router    = express.Router();
+const express        = require('express');
+const Anthropic      = require('@anthropic-ai/sdk');
+const authMiddleware = require('../middleware/auth');
+const { buildContext }   = require('../ai/buildContext');
+const { callAnthropic }  = require('../ai/callAnthropic');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT } = require('../ai/prompts');
+const { fmtCurrency }   = require('../ai/formatUtils');
+const db = require('../db');
 
-function getClient(req) {
-  const apiKey = req.body?.apiKey || process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-  return new Anthropic({ apiKey });
-}
+const router = express.Router();
+router.use(authMiddleware);
 
-// Translate Anthropic SDK errors into clear user-facing messages.
-function friendlyError(err) {
-  const status  = err?.status;
-  const message = err?.message ?? String(err);
-  if (status === 401) return 'Invalid API key — check the key saved in Admin settings.';
-  if (status === 403) return 'API key does not have permission for this model.';
-  if (status === 429) return 'Rate limit exceeded — wait a moment and try again.';
-  if (status === 402 || message.toLowerCase().includes('credit') || message.toLowerCase().includes('billing'))
-    return 'Insufficient API credits — top up your Anthropic account at console.anthropic.com.';
-  if (status === 400 && message.toLowerCase().includes('model'))
-    return `Model error: ${message}`;
-  return `AI request failed: ${message}`;
-}
+// ── Helper: handle buildContext errors ──────────────────────────────────────
 
-function parseAIJson(text) {
-  const clean = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
-  return JSON.parse(clean);
-}
-
-function fmtCAD(n) {
-  if (n == null || isNaN(n)) return 'n/a';
-  if (n >= 1_000_000) return `CDN$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `CDN$${Math.round(n / 1_000)}K`;
-  return `CDN$${Math.round(n)}`;
-}
-
-function pctStr(total, target) {
-  if (!target) return '';
-  return ` (${Math.round((total / target) * 100)}% of target)`;
-}
-
-// POST /api/ai/suggest-impact
-// Body: { title, description, apiKey? }
-router.post('/suggest-impact', async (req, res) => {
-  const { title, description } = req.body ?? {};
-  if (!title && !description) return res.status(400).json({ error: 'title or description required' });
-
-  const client = getClient(req);
-  if (!client) return res.status(503).json({ error: 'AI not configured — add API key in Admin or backend .env' });
-
-  try {
-    const userContent = [
-      title       && `Win title: ${title}`,
-      description && `Description: ${description}`,
-    ].filter(Boolean).join('\n');
-
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 80,
-      messages: [{ role: 'user', content:
-        `You are helping an IBM Associate Partner build their promotion case to Partner level.\n\n${userContent}\n\nWrite a single punchy impact statement — one sentence, under 20 words — that captures the business value of this win. Focus on measurable outcomes: revenue secured, client relationships built, or strategic influence. Output only the impact sentence, nothing else.`
-      }],
-    });
-
-    res.json({ impact: message.content[0].text.trim() });
-  } catch (err) {
-    console.error('suggest-impact error:', err.message);
-    res.status(500).json({ error: friendlyError(err) });
+function handleContextError(err, res) {
+  if (err.code === 'NO_KEY' || err.code === 'NO_CRITERIA') {
+    return res.status(400).json({ ok: false, error: err.message, code: err.code });
   }
-});
+  console.error('buildContext error:', err.message);
+  return res.status(500).json({ ok: false, error: 'Failed to load user data', code: 'AI_ERROR' });
+}
 
-// POST /api/ai/generate-story
-// Body: { apiKey?, ibmCriteria, careerHistory, wins, goals, scorecardSummary }
+// ── Helper: build user message for story modes (strip internal fields) ──────
+
+function buildUserMessage(ctx) {
+  const { anthropicKey, _stats, career_history, ...payload } = ctx;
+  if (career_history) payload.career_history = career_history;
+  return JSON.stringify(payload);
+}
+
+// ── POST /api/ai/generate-story ─────────────────────────────────────────────
+// Body: { narrative_mode: 'gap_analysis' | 'polished_narrative' | 'plan_2027' }
+
 router.post('/generate-story', async (req, res) => {
-  const { ibmCriteria, careerHistory, wins = [], goals = [], scorecardSummary } = req.body ?? {};
-  if (!ibmCriteria) return res.status(400).json({ error: 'IBM criteria required' });
-
-  const client = getClient(req);
-  if (!client) return res.status(503).json({ error: 'AI not configured — add API key in Admin' });
-
-  const winsText = wins.length
-    ? wins.map(w => `- ${w.title}${w.impact ? ` — ${w.impact}` : ''}${w.tags?.length ? ` [${w.tags.join(', ')}]` : ''}`).join('\n')
-    : '(none logged yet)';
-
-  const goalsText = goals.length
-    ? goals.map(g => `- [${g.status.replace('_', ' ')}] ${g.title}${g.isGate ? ' ★ IBM gate' : ''}`).join('\n')
-    : '(none set)';
-
-  let scorecardText = '(not available)';
-  if (scorecardSummary) {
-    const { year, sales, revenue, gp, util } = scorecardSummary;
-    scorecardText = [
-      `Year: ${year}`,
-      `Sales: ${fmtCAD(sales?.realized)} realized + ${fmtCAD(sales?.forecast)} forecast = ${fmtCAD(sales?.total)} vs ${fmtCAD(sales?.target)} target${pctStr(sales?.total, sales?.target)}`,
-      `Revenue: ${fmtCAD(revenue?.realized)} realized + ${fmtCAD(revenue?.forecast)} forecast = ${fmtCAD(revenue?.total)} vs ${fmtCAD(revenue?.target)} target${pctStr(revenue?.total, revenue?.target)}`,
-      `Gross Profit: ${fmtCAD(gp?.realized)} realized + ${fmtCAD(gp?.forecast)} forecast = ${fmtCAD(gp?.total)} vs ${fmtCAD(gp?.target)} target${pctStr(gp?.total, gp?.target)}`,
-      `Utilization: ${util?.hoursToDate ?? 'n/a'} hrs actual, ${util?.projection ?? 'n/a'} hrs projected vs ${util?.target ?? 'n/a'} target${util?.pct != null ? ` (${util.pct}%)` : ''}`,
-    ].join('\n');
+  const { narrative_mode } = req.body ?? {};
+  const mode = STORY_MODES[narrative_mode];
+  if (!mode) {
+    return res.status(400).json({ ok: false, error: 'Invalid narrative_mode', code: 'AI_ERROR' });
   }
 
-  const prompt = `You are helping an IBM Associate Partner at IBM Canada build a compelling, evidence-based case for Partner promotion. IBM Partner is an executive designation (not equity partnership) — comparable to Managing Director at other firms.
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
 
-CAREER HISTORY:
-${careerHistory || '(not provided)'}
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: mode.prompt,
+    userContent:  buildUserMessage(ctx),
+    maxTokens:    mode.maxTokens,
+    parseJson:    mode.parseJson,
+  });
 
-IBM PARTNER CRITERIA:
-${ibmCriteria}
+  if (!result.ok) return res.status(500).json(result);
 
-WINS LOGGED:
-${winsText}
-
-GOALS:
-${goalsText}
-
-QUALIFYING YEAR SCORECARD:
-${scorecardText}
-
-Return ONLY a valid JSON object — no markdown, no code fences, no preamble:
-{
-  "evidenceMap": [
-    { "criterion": "criterion as stated in the IBM framework", "evidence": ["specific win, goal, or data point"] }
-  ],
-  "gaps": ["criterion with weak or missing evidence — these are the priorities to address"],
-  "narrative": "4–6 paragraphs in first person. Open with career context and the case for Partner. Build through key achievements citing specific wins and numbers. Close with readiness and the ask. Written to hand to a VP sponsor.",
-  "plan": "5–7 prioritised action items for the next 12 months to close gaps and maximise the promotion case. Each item on its own line starting with •."
-}
-
-Parse the IBM Partner Criteria to identify each distinct criterion. Map every criterion to specific evidence from the data. Be concrete — cite actual win titles, dollar amounts, and goal names.`;
-
-  try {
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = parseAIJson(message.content[0].text);
-    res.json(result);
-  } catch (err) {
-    console.error('generate-story error:', err.message);
-    res.status(500).json({ error: friendlyError(err) });
-  }
+  res.json({
+    ok: true,
+    data: result.data,
+    narrative_mode,
+    generated_at: new Date().toISOString(),
+    usage: result.usage,
+  });
 });
 
-// POST /api/ai/suggest-goals
-// Body: { apiKey?, ibmCriteria, careerHistory, currentGoals, wins }
+// ── POST /api/ai/suggest-goals ──────────────────────────────────────────────
+// Body: {} (all data loaded from DB)
+
 router.post('/suggest-goals', async (req, res) => {
-  const { ibmCriteria, careerHistory, currentGoals = [], wins = [] } = req.body ?? {};
-  if (!ibmCriteria) return res.status(400).json({ error: 'IBM criteria required' });
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
 
-  const client = getClient(req);
-  if (!client) return res.status(503).json({ error: 'AI not configured — add API key in Admin' });
-
-  const goalsText = currentGoals.length
-    ? currentGoals.map(g => `- [${g.status.replace('_', ' ')}] ${g.title}`).join('\n')
-    : '(none)';
-
-  const winsText = wins.length
-    ? wins.map(w => `- ${w.title}${w.impact ? ` — ${w.impact}` : ''}`).join('\n')
-    : '(none)';
-
-  const prompt = `You are helping an IBM Associate Partner build their case for Partner promotion.
-
-IBM PARTNER CRITERIA:
-${ibmCriteria}
-
-CAREER HISTORY:
-${careerHistory || '(not provided)'}
-
-CURRENT GOALS:
-${goalsText}
-
-RECENT WINS:
-${winsText}
-
-Suggest 5 specific, actionable goals that would strengthen this person's Partner promotion case. Focus on criteria gaps — areas where the current wins and goals don't yet provide strong evidence. Each goal should be achievable within 12 months.
-
-Return ONLY a valid JSON object — no markdown, no code fences:
-{
-  "suggestions": [
-    {
-      "title": "concise goal title (under 15 words)",
-      "rationale": "one sentence: which criterion this addresses and why it strengthens the case"
-    }
-  ]
-}`;
-
-  try {
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 800,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = parseAIJson(message.content[0].text);
-    res.json(result);
-  } catch (err) {
-    console.error('suggest-goals error:', err.message);
-    res.status(500).json({ error: friendlyError(err) });
+  // Build enriched user content with scorecard weakness context
+  const qyStats = ctx.scorecard.years.find(y => y.status === 'qualifying');
+  let weaknessHint = '';
+  if (qyStats) {
+    const metrics = qyStats.metrics;
+    const weak = [];
+    if (metrics.signings.pct != null && metrics.signings.pct < 80)
+      weak.push(`Signings at ${metrics.signings.pct}% of target`);
+    if (metrics.revenue.pct != null && metrics.revenue.pct < 80)
+      weak.push(`Revenue at ${metrics.revenue.pct}% of target`);
+    if (metrics.gross_profit.pct != null && metrics.gross_profit.pct < 80)
+      weak.push(`Gross profit at ${metrics.gross_profit.pct}% of target`);
+    if (metrics.utilization.pct_of_target != null && metrics.utilization.pct_of_target < 80)
+      weak.push(`Utilization at ${metrics.utilization.pct_of_target}% of target`);
+    if (weak.length) weaknessHint = `\n\nWEAKEST SCORECARD AREAS:\n${weak.join('\n')}`;
   }
+
+  const existingTitles = ctx.goals.map(g => g.title);
+  const userContent = buildUserMessage(ctx) + weaknessHint
+    + `\n\nEXISTING GOAL TITLES (do not duplicate):\n${existingTitles.join('\n')}`;
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: SUGGEST_GOALS_PROMPT,
+    userContent,
+    maxTokens:    800,
+    parseJson:    true,
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Post-filter: remove suggestions that overlap with existing goals
+  const lowerTitles = existingTitles.map(t => t.toLowerCase());
+  const filtered = (result.data.suggestions ?? []).filter(s => {
+    const lower = s.title.toLowerCase();
+    return !lowerTitles.some(existing => existing.includes(lower) || lower.includes(existing));
+  });
+
+  res.json({ ok: true, suggestions: filtered, usage: result.usage });
 });
 
-// POST /api/ai/check-key
-// Body: { apiKey? }
-// Returns: { ok: true } or { error: string }
+// ── POST /api/ai/suggest-impact ─────────────────────────────────────────────
+// Body: { title, description?, sourceId?, sourceType? }
+
+router.post('/suggest-impact', async (req, res) => {
+  const { title, description, sourceId, sourceType } = req.body ?? {};
+  if (!title && !description) {
+    return res.status(400).json({ ok: false, error: 'title or description required', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build enriched user content
+  const parts = [];
+  parts.push(`Win title: ${title}`);
+  if (description) parts.push(`Description: ${description}`);
+
+  // Inject linked source context
+  if (sourceId && sourceType === 'opportunity') {
+    const opp = ctx.opportunities.find(o => o.name === sourceId || ctx._stats?.largest_pursuit?.name === sourceId);
+    // Fall back to searching raw scorecard data
+    if (!opp) {
+      const rawResult = await db.query(
+        `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'scorecard'`,
+        [req.userId]
+      );
+      const rawOpps = rawResult.rows[0]?.data?.opportunities ?? [];
+      const rawOpp = rawOpps.find(o => o.id === sourceId);
+      if (rawOpp) {
+        parts.push(`\nLinked opportunity: ${rawOpp.name} for ${rawOpp.client}`);
+        parts.push(`Deal value: ${fmtCurrency(Number(rawOpp.signingsValue) || 0)}`);
+        if (rawOpp.logoType) parts.push(`Logo type: ${rawOpp.logoType}`);
+        if (rawOpp.strategicNote) parts.push(`Strategic context: ${rawOpp.strategicNote}`);
+      }
+    } else {
+      parts.push(`\nLinked opportunity: ${opp.name} for ${opp.client}`);
+      parts.push(`Deal value: ${fmtCurrency(opp.signings_value)}`);
+      if (opp.logo_type) parts.push(`Logo type: ${opp.logo_type}`);
+      if (opp.strategic_note) parts.push(`Strategic context: ${opp.strategic_note}`);
+    }
+  } else if (sourceId && sourceType === 'goal') {
+    const goal = ctx.goals.find(g => g.title === sourceId);
+    if (!goal) {
+      const rawResult = await db.query(
+        `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'goals'`,
+        [req.userId]
+      );
+      const rawGoal = (rawResult.rows[0]?.data ?? []).find(g => g.id === sourceId);
+      if (rawGoal) {
+        parts.push(`\nLinked goal: ${rawGoal.title}${rawGoal.isGate ? ' (IBM milestone)' : ''}`);
+      }
+    } else {
+      parts.push(`\nLinked goal: ${goal.title}${goal.is_gate ? ' (IBM milestone)' : ''}`);
+    }
+  }
+
+  // Inject qualifying year scorecard position
+  const qy = ctx.scorecard.years.find(y => y.status === 'qualifying');
+  if (qy) {
+    const s = qy.metrics.signings;
+    if (s.target) {
+      parts.push(`\nQualifying year signings: ${fmtCurrency(s.actual + s.forecast)} of ${fmtCurrency(s.target)} target (${s.pct}%)`);
+    }
+  }
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: SUGGEST_IMPACT_PROMPT,
+    userContent:  parts.join('\n'),
+    maxTokens:    80,
+    parseJson:    false,
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+  res.json({ ok: true, impact: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/check-key ──────────────────────────────────────────────────
+// Body: { apiKey } — still accepts key in body (testing before save)
+
 router.post('/check-key', async (req, res) => {
-  const client = getClient(req);
-  if (!client) return res.status(400).json({ error: 'No API key provided.' });
+  const apiKey = req.body?.apiKey;
+  if (!apiKey) return res.status(400).json({ ok: false, error: 'No API key provided.', code: 'NO_KEY' });
 
   try {
+    const client = new Anthropic({ apiKey });
     await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 1,
@@ -220,7 +208,10 @@ router.post('/check-key', async (req, res) => {
     });
     res.json({ ok: true });
   } catch (err) {
-    res.status(200).json({ error: friendlyError(err) });
+    const message = err?.status === 401
+      ? 'Invalid API key — check the key.'
+      : err?.message ?? 'Unknown error';
+    res.json({ ok: false, error: message });
   }
 });
 

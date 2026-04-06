@@ -188,7 +188,7 @@ function SettingsTab() {
   const NAV_LABELS = {
     '/': 'Dashboard', '/scorecard': 'Scorecard', '/pursuits': 'Pursuits', '/goals': 'Goals',
     '/people': 'People', '/wins': 'Wins', '/actions': 'Action items',
-    '/story': 'My story', '/calendar': 'Calendar', '/sharing': 'Sharing', '/admin': 'Admin',
+    '/story': 'Narrative + Gaps', '/calendar': 'Calendar', '/sharing': 'Sharing', '/admin': 'Admin',
   };
 
   const savedOrder = navOrder ?? DEFAULT_NAV_ORDER;

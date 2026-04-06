@@ -436,82 +436,56 @@ When a new phase adds schema changes (new table or column):
 
 ---
 
-### Phase 16 — AI prompt engineering and call optimisation
+### Phase 16 — AI prompt engineering and call optimisation ✅
 
 **Goal**: Make AI features faster, cheaper, and higher quality by improving prompts with
-full IBM/public-sector context, consolidating My Story into a single structured call,
-adding streaming so the user sees output progressively, and handling errors clearly.
-
-#### Context: current AI call inventory
-
-| Feature | Trigger | Current state | Problem |
-|---|---|---|---|
-| My Story — full generation | "Generate story" button | Multiple sequential calls | Slow; no streaming; partial failure loses all output |
-| Suggest goals | "✦ Suggest goals" in Goals tab | Single call | Generic prompt; no IBM or scorecard context |
-| Suggest impact | "✦ Suggest impact" in Win form | Single call | Generic; ignores deal context and scorecard status |
+full IBM/public-sector context, centralizing context assembly on the backend, and handling
+errors clearly. System prompts defined in `AIprompt.md`.
 
 #### 16a — Shared prompt context builder
-- [ ] Create `backend/ai/buildContext.js` — a single function that assembles a structured
-  context block from the user's live DB data: current role, company, market focus, promotion
-  year, qualifying year (and days remaining), scorecard summary (targets vs actuals for the
-  qualifying year across all four metrics), top 20 wins (title + impact + tags), active goals,
-  IBM Partner criteria, and career history
-- [ ] Every AI endpoint calls `buildContext(userId)` and injects the result into the system
-  prompt — no feature reimplements this assembly logic
-- [ ] Context is built server-side at call time from live DB data — never stale, never
-  passed from the frontend
+- [x] `backend/ai/buildContext.js` loads all user data from DB in one query, pre-computes scorecard stats, normalizes to snake_case AIprompt.md schema
+- [x] Every AI endpoint calls `buildContext(userId)` — frontend never sends data or API key
+- [x] Context caps: 20 most recent wins, people without touchpoints, no projects, empty arrays omitted, nulls stripped
 
-#### 16b — My Story: consolidate and stream
-- [ ] Consolidate My Story generation from multiple sequential calls into **one API call**
-  that returns a structured JSON object with four top-level keys:
-  `evidenceMap`, `gapAnalysis`, `narrative`, `plan`
-- [ ] System prompt includes strict JSON schema instructions and explicitly forbids markdown
-  fences or preamble — output must be directly parseable
-- [ ] Enable **streaming** on the backend (`stream: true`); pipe the response to the frontend
-  via chunked transfer or SSE
-- [ ] Frontend renders each section progressively as it arrives in the stream: evidence map
-  appears first (fast, structured), then gap analysis, then narrative (longest), then plan
-- [ ] On partial failure (stream cuts out mid-response), catch and return whatever sections
-  arrived successfully with an error flag on the failed section — never lose completed output
+#### 16b — Promotion Narrative + Gaps (renamed from My Story)
+- [x] Two independent modes: `polished_narrative` (plain text) and `gap_analysis` (JSON array with criterion/evidence/strength/recommendation)
+- [x] 2027 plan removed — gap analysis covers actionable recommendations
+- [x] Each section generates independently with its own Generate/Regenerate button
+- [x] "Generate all" fires both in parallel; each renders as it completes
+- [x] Per-section loading, error, and token usage display
+- [x] System prompts include CRITICAL INSTRUCTION to never refuse output, even with thin data
+- [x] Robust JSON parser: strips fences, extracts JSON from prose, repairs truncated responses
+- [x] Cached separately in `storyData_v1` under `gap_analysis` and `polished_narrative` keys
 
 #### 16c — Suggest goals: IBM-aware and gap-driven
-- [ ] Inject full shared context block into the system prompt
-- [ ] Prompt instructs the model to prioritise suggestions that address the user's weakest
-  scorecard metrics first, then eminence gaps, then relationship gaps — not generic advice
-- [ ] Response schema: `[ { title, rationale, targetDate, isGate } ]` — structured so the
-  frontend can pre-populate all goal form fields directly, not just display text
-- [ ] Before returning suggestions, filter out any titles that closely match an existing goal
-  (simple lowercase substring match is sufficient)
+- [x] Full context injected; scorecard weakness areas highlighted in prompt
+- [x] Response includes `targetDate` and `isGate` for one-click adding
+- [x] Post-filter removes suggestions matching existing goals (case-insensitive substring)
+- [x] Token usage shown in suggestions modal
 
 #### 16d — Suggest impact: deal-context-aware
-- [ ] When a win is linked to an opportunity, inject the full opportunity record into the
-  prompt: client, signings value, stage at win, logo type, relationship origin, strategic note
-- [ ] When a win is linked to a goal, inject the goal title, target date, and IBM milestone flag
-- [ ] Inject the qualifying year scorecard status so the model can frame impact relative to
-  annual targets (e.g. "this deal represented X% of the qualifying year signings target")
-- [ ] Prompt explicitly requests first-person, business-impact language suitable for an IBM
-  Partner promotion case — concise, outcome-focused, no generic filler phrases
+- [x] Linked opportunity details injected: client, value, logo type, strategic note
+- [x] Linked goal details injected: title, IBM milestone flag
+- [x] Qualifying year scorecard position injected for relative framing
+- [x] First-person IBM-style prompt; token usage shown inline
+- [x] Inline error display on failure instead of silent ignore
 
-#### 16e — Error handling and user feedback
-- [ ] All AI backend endpoints return a consistent error envelope:
-  `{ ok: false, error: 'human-readable message', code: 'NO_KEY' | 'INVALID_KEY' | 'OVERLOADED' | 'PARSE_ERROR' }`
-- [ ] Frontend maps error codes to specific UI messages:
-  - `NO_KEY` → "Add your Anthropic API key in Admin to use this feature"
-  - `INVALID_KEY` → "Your API key was rejected — check it in Admin"
-  - `OVERLOADED` → "Anthropic is busy right now — wait a moment and try again"
-  - `PARSE_ERROR` → "The AI returned an unexpected response — try regenerating"
-- [ ] Backend retries on HTTP 529 (overloaded): 2 retries with 2s / 4s exponential backoff
-  before returning an `OVERLOADED` error to the frontend
-- [ ] Add a lightweight **AI usage log** in Admin — last 10 calls per user showing: feature name,
-  timestamp, estimated token count (`charCount / 4`), and success/fail status; helps users
-  understand usage and diagnose key issues
+#### 16e — Error handling
+- [x] Consistent error envelope: `{ ok: false, error, code }` with codes: NO_KEY, NO_CRITERIA, INVALID_KEY, RATE_LIMITED, OVERLOADED, BILLING, PARSE_ERROR
+- [x] Backend retries on 529: 2 retries with 2s/4s exponential backoff
+- [x] Frontend `aiErrors.js` maps codes to user-facing messages
+- [x] All AI routes require JWT auth; API key loaded from DB, never from request body
+- [ ] AI usage log in Admin (deferred)
 
 #### 16f — Token efficiency
-- [ ] Cap context payload before sending to the model: truncate wins to the 20 most recent,
-  truncate touchpoint logs to the last 3 per person — the model does not need full history
-- [ ] Log estimated token counts to the server console in development for every AI call —
-  makes it easy to spot bloated prompts before they hit production
-- [ ] My Story generation budget: target under 4,000 input tokens and under 2,000 output tokens
+- [x] Compact JSON (no pretty-printing), null stripping, empty scorecard years filtered out
+- [x] Wins capped at 20 most recent; people reduced to name/type/org/last_contact
+- [x] Token counts logged to console in dev; shown in UI for all AI features
+- [x] Admin data race condition fixed: sync effect blocked when server load fails, preventing default overwrites
+
+#### Bug fixes during Phase 16
+- [x] Modal backdrop click no longer closes modals — prevents accidental data loss
+- [x] Admin data wipe prevention: `serverLoaded` ref blocks sync after failed fetch
 
 ---
 
@@ -549,6 +523,10 @@ adding streaming so the user sees output progressively, and handling errors clea
 | 2026-04-05 | Pursuits page added — CRM pipeline view; stage funnel; weighted pipeline; Opportunity model extended with stage/probability/expectedClose/dealType/logoType/relationshipOrigin/strategicNote; Win model extended with logoType/relationshipOrigin/strategicNote |
 | 2026-04-05 | Admin page split into sub-tabs (GenAI, Categories, User settings); deal types, logo types, relationship origins now configurable lists; all opportunity/win dropdowns read from admin data |
 | 2026-04-05 | Form UX standardised: required fields marked with red *, no (optional) text, units shown inline via .form-unit; form-row labels use flex-wrap baseline alignment |
+| 2026-04-05 | All category lists support drag-and-drop reordering; colour picker upgraded with native color wheel alongside palette swatches |
+| 2026-04-05 | Phase 14 complete — mobile layout, win export, print styles, sample data cleanup |
+| 2026-04-05 | Phase 15 complete — Git repo, GitHub, Vercel + Render deployment, CORS, API_BASE for production fetch calls, vercel.json for client-side routing |
+| 2026-04-06 | Phase 16 complete — AI prompt engineering: buildContext.js centralizes data assembly; prompts.js from AIprompt.md; callAnthropic.js with retry/error handling; Narrative + Gaps replaces My Story (2 independent modes); suggest-goals scorecard-aware; suggest-impact deal-context-aware; token usage displayed; compact JSON; admin data wipe prevention; modal backdrop click fix |
 | 2026-04-05 | All category lists support drag-and-drop reordering; colour picker upgraded with native color wheel alongside palette swatches |
 
 ---
