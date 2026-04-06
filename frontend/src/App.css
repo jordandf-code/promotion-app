@@ -3828,3 +3828,261 @@ tr:last-child .sc-td { border-bottom: none; }
   .data-table { font-size: 9pt; }
   .data-table-wrap { overflow: visible; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SYNC WARNING BANNER
+═══════════════════════════════════════════════════════════ */
+.sync-warning {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #d32f2f;
+  color: #fff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  z-index: 9999;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  animation: sync-fade-in 0.3s ease;
+}
+@keyframes sync-fade-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Readiness score ────────────────────────────────────────────────────── */
+
+.readiness-widget {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+.readiness-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.readiness-arc-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.readiness-arc-svg { display: block; }
+.readiness-arc-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.readiness-arc-pct {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+}
+.readiness-arc-label {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #1e293b);
+}
+.readiness-arc-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+  margin-top: 0.15rem;
+}
+
+/* Dimension bars */
+.readiness-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.readiness-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.readiness-bar:hover { background: var(--hover-bg, #f1f5f9); }
+.readiness-bar-label {
+  width: 160px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-primary, #1e293b);
+}
+.readiness-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.readiness-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease, background-color 0.3s ease;
+}
+.readiness-bar-pct {
+  width: 36px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+/* Action prompt + warnings */
+.readiness-action {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 6px;
+  border-left: 3px solid #d97706;
+}
+.readiness-warning {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  color: #92400e;
+  background: #fffbeb;
+  border-radius: 4px;
+}
+
+/* ── Readiness strip (MyStory compact view) ─────────────────────────── */
+
+.readiness-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.readiness-strip-overall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-right: 1rem;
+  border-right: 1px solid #e5e7eb;
+}
+.readiness-strip-overall-pct {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.readiness-strip-overall-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.readiness-strip-dims {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.readiness-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.readiness-strip-item:hover { background: var(--hover-bg, #f1f5f9); }
+.readiness-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.readiness-strip-label {
+  font-size: 0.75rem;
+  color: var(--text-primary, #1e293b);
+}
+.readiness-strip-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ── Readiness weights (Admin) ──────────────────────────────────────── */
+
+.readiness-weights-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.readiness-weight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.readiness-weight-label {
+  width: 180px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.readiness-weight-input {
+  width: 72px;
+  text-align: center;
+}
+.readiness-weight-norm {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+  width: 40px;
+}
+.readiness-weights-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ── Public summary readiness ───────────────────────────────────────── */
+
+.public-readiness-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+.public-readiness-row { display: flex; align-items: center; gap: 0.75rem; }
+.public-readiness-label { width: 160px; font-size: 0.85rem; flex-shrink: 0; }
+.public-readiness-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.public-readiness-fill { height: 100%; border-radius: 4px; }
+.public-readiness-pct { width: 40px; text-align: right; font-size: 0.85rem; font-weight: 600; }
+
+/* ── Readiness responsive ───────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .readiness-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+  .readiness-bars { width: 100%; }
+  .readiness-bar-label { width: 120px; }
+  .readiness-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .readiness-strip-overall {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding-right: 0;
+    padding-bottom: 0.5rem;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .readiness-strip-dims {
+    justify-content: center;
+  }
+}

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useGoalsData.js';
 import { useActionsData }  from '../hooks/useActionsData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
-import { useAdminData }    from '../hooks/useAdminData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { mapAiError }      from '../utils/aiErrors.js';
 import GoalCard            from '../components/goals/GoalCard.jsx';
@@ -16,8 +15,7 @@ const EMPTY_FORM = { title: '', targetDate: '', status: 'not_started', notes: ''
 export default function Goals() {
   const { goals, addGoal, updateGoal, removeGoal, cycleStatus } = useGoalsData();
   const { actions, addAction, toggleDone, linkToGoal, unlinkFromGoal } = useActionsData();
-  const { wins, addWin, hasWinForSource } = useWinsData();
-  const { anthropicKey, ibmCriteria } = useAdminData();
+  const { addWin, hasWinForSource } = useWinsData();
 
   const [modal,        setModal]        = useState(null);
   const [winPrompt,    setWinPrompt]    = useState(null);

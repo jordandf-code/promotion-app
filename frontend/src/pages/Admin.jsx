@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE } from '../utils/api.js';
 import { useAdminData, COLOR_PALETTE, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
 import WipeSection from '../components/admin/WipeSection.jsx';
+import { DEFAULT_WEIGHTS } from '../hooks/useReadinessScore.js';
 
 const TABS = [
   { id: 'ai',         label: 'GenAI'         },
@@ -43,7 +44,7 @@ export default function Admin() {
 // ── Tab 1: GenAI ────────────────────────────────────────────────────────────
 
 function GenAITab() {
-  const { ibmCriteria, setIbmCriteria, careerHistory, setCareerHistory, anthropicKey, setAnthropicKey } = useAdminData();
+  const { ibmCriteria, setIbmCriteria, careerHistory, setCareerHistory, anthropicKey, setAnthropicKey, readinessWeights, setReadinessWeights } = useAdminData();
 
   return (
     <div className="tab-content">
@@ -87,7 +88,68 @@ function GenAITab() {
             placeholder="e.g. 12 years at IBM Canada. Started as a consultant, promoted to Senior Consultant (2017), Manager (2019), Associate Partner (2022). Focus on federal public sector IT transformation..." rows={7} />
         </div>
       </section>
+
+      <ReadinessWeightsSection weights={readinessWeights} onChange={setReadinessWeights} />
     </div>
+  );
+}
+
+// ── Readiness weights editor ────────────────────────────────────────────────
+
+const WEIGHT_LABELS = {
+  scorecard: 'Scorecard performance',
+  pipeline:  'Pipeline coverage',
+  gates:     'Gate completion',
+  evidence:  'Evidence strength',
+  wins:      'Wins & eminence',
+};
+
+function ReadinessWeightsSection({ weights, onChange }) {
+  const current = weights ?? DEFAULT_WEIGHTS;
+  const sum = Object.values(current).reduce((a, b) => a + (Number(b) || 0), 0);
+
+  function setWeight(key, value) {
+    onChange({ ...current, [key]: Math.max(0, Math.min(100, Number(value) || 0)) });
+  }
+
+  function resetDefaults() {
+    onChange(DEFAULT_WEIGHTS);
+  }
+
+  return (
+    <section className="section">
+      <div className="section-header">
+        <h2 className="section-title">Readiness score weights</h2>
+      </div>
+      <div className="card admin-card">
+        <p className="admin-description">
+          Adjust how each dimension contributes to your overall readiness score.
+          Values are automatically normalized to sum to 100%.
+        </p>
+        <div className="readiness-weights-grid">
+          {Object.keys(DEFAULT_WEIGHTS).map(key => {
+            const normalized = sum > 0 ? Math.round((current[key] / sum) * 100) : 0;
+            return (
+              <div key={key} className="readiness-weight-row">
+                <label className="readiness-weight-label">{WEIGHT_LABELS[key]}</label>
+                <input
+                  type="number"
+                  className="form-input readiness-weight-input"
+                  min="0" max="100"
+                  value={current[key]}
+                  onChange={e => setWeight(key, e.target.value)}
+                />
+                <span className="readiness-weight-norm">{normalized}%</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="readiness-weights-footer">
+          <span className="muted">Total: {sum} (normalized to 100%)</span>
+          <button type="button" className="btn-secondary btn-sm" onClick={resetDefaults}>Reset to defaults</button>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -13,6 +13,8 @@ import { daysUntil, fmtDate } from '../data/sampleData.js';
 import { usePeopleData, daysSinceContact } from '../hooks/usePeopleData.js';
 import ScorecardTable from '../components/dashboard/ScorecardTable.jsx';
 import QuickAddModal  from '../components/dashboard/QuickAddModal.jsx';
+import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
+import { useReadinessScore } from '../hooks/useReadinessScore.js';
 
 const TODAY = new Date();
 
@@ -24,6 +26,7 @@ export default function Dashboard() {
   const { addGoal } = useGoalsData();
   const { people, addPerson } = usePeopleData();
   const navigate = useNavigate();
+  const readiness = useReadinessScore();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const deadline = `${qualifyingYear}-12-31`;
@@ -68,6 +71,8 @@ export default function Dashboard() {
           <div className="stat-label">contact{staleContacts.length !== 1 ? 's' : ''} to follow up</div>
         </div>
       </div>
+
+      <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} />
 
       <section className="section">
         <div className="section-header">

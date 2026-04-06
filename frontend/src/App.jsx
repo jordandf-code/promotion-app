@@ -19,10 +19,12 @@ import Calendar from './pages/Calendar';
 import Pursuits from './pages/Pursuits';
 import PublicSummary from './pages/PublicSummary';
 import FeedbackForm from './pages/FeedbackForm';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
       <AdminDataProvider>
@@ -63,5 +65,6 @@ export default function App() {
       </AdminDataProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

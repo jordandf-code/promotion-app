@@ -21,7 +21,7 @@ function convertQuarters(q, convertFn) {
 }
 
 export default function ProjectModal({ mode, initial, scorecardYears, opportunities, onSave, onClose }) {
-  const { fmtCurrency, currencySymbol, toInputValue, fromInputValue } = useSettings();
+  const { currencySymbol, toInputValue, fromInputValue } = useSettings();
 
   const [form, setForm] = useState(() => {
     const base = JSON.parse(JSON.stringify(initial));

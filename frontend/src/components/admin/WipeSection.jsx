@@ -69,7 +69,7 @@ export default function WipeSection() {
       ]);
 
       window.location.reload();
-    } catch (err) {
+    } catch {
       setError('Something went wrong — please try again.');
       setWiping(false);
     }
@@ -95,7 +95,7 @@ export default function WipeSection() {
       ]);
 
       window.location.reload();
-    } catch (err) {
+    } catch {
       setError('Restore failed — please try again.');
       setRestoring(false);
     }

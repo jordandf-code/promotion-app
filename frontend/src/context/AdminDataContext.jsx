@@ -67,6 +67,7 @@ const DEFAULTS = {
   careerHistory:     '',
   anthropicKey:      '',
   navOrder:          DEFAULT_NAV_ORDER,
+  readinessWeights:  null,
 };
 
 function migrateFromV1(v1data) {
@@ -137,12 +138,13 @@ export function AdminDataProvider({ children }) {
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
+  function setReadinessWeights(weights) { setAdminData(d => ({ ...d, readinessWeights: weights })); }
 
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setPipelineStages,
-      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder,
+      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setReadinessWeights,
     }}>
       {children}
     </AdminDataContext.Provider>

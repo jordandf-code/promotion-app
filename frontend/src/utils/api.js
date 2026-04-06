@@ -21,15 +21,31 @@ export async function apiGet(domain) {
   return data;
 }
 
-// Fire-and-forget PUT — silently ignores network errors.
+// PUT with one retry — warns user on persistent failure.
 export async function apiPut(domain, data) {
-  try {
-    await fetch(`${API_BASE}/api/data/${domain}`, {
-      method:  'PUT',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body:    JSON.stringify({ data }),
-    });
-  } catch {
-    // backend unavailable — will sync on next successful call
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}/api/data/${domain}`, {
+        method:  'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body:    JSON.stringify({ data }),
+      });
+      if (res.ok) return;
+    } catch {
+      // network error — retry once
+    }
+    if (attempt === 0) await new Promise(r => setTimeout(r, 1500));
   }
+  showSyncWarning();
+}
+
+let syncWarningVisible = false;
+function showSyncWarning() {
+  if (syncWarningVisible) return;
+  syncWarningVisible = true;
+  const el = document.createElement('div');
+  el.className = 'sync-warning';
+  el.textContent = 'Some changes could not be saved — check your connection and refresh.';
+  document.body.appendChild(el);
+  setTimeout(() => { el.remove(); syncWarningVisible = false; }, 6000);
 }

@@ -30,7 +30,7 @@ export default function PublicSummary() {
   if (state === 'notfound') return <PublicShell><p className="public-error">This share link is no longer active.</p></PublicShell>;
   if (state === 'error')    return <PublicShell><p className="public-error">Something went wrong — please try again.</p></PublicShell>;
 
-  const { owner, wins, narrative, scorecard } = data;
+  const { owner, wins, narrative, scorecard, readiness } = data;
 
   return (
     <PublicShell>
@@ -38,6 +38,26 @@ export default function PublicSummary() {
         <h1 className="public-owner">{owner.name}</h1>
         <p className="public-subtitle">IBM Associate Partner — Partner promotion profile</p>
       </div>
+
+      {readiness && (
+        <section className="public-section">
+          <h2 className="public-section-title">Promotion readiness — {readiness.overall}%</h2>
+          <div className="public-readiness-bars">
+            {Object.entries(readiness.dimensions).map(([key, dim]) => (
+              <div key={key} className="public-readiness-row">
+                <span className="public-readiness-label">{dim.label}</span>
+                <div className="public-readiness-track">
+                  <div className="public-readiness-fill" style={{
+                    width: `${dim.score}%`,
+                    backgroundColor: dim.score >= 80 ? '#15803d' : dim.score >= 50 ? '#d97706' : '#dc2626'
+                  }} />
+                </div>
+                <span className="public-readiness-pct">{dim.score}%</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {scorecard && (
         <section className="public-section">
