@@ -8,6 +8,8 @@ import { API_BASE, authHeaders } from '../utils/api.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useStoryData } from '../hooks/useStoryData.js';
+import { useReadinessScore } from '../hooks/useReadinessScore.js';
+import ReadinessStrip from '../components/readiness/ReadinessStrip.jsx';
 
 const MODES = [
   { id: 'polished_narrative', label: 'Narrative' },
@@ -16,7 +18,8 @@ const MODES = [
 
 export default function MyStory() {
   const { ibmCriteria, anthropicKey } = useAdminData();
-  const { story, saveStorySection, clearStory } = useStoryData();
+  const { story, saveStorySection } = useStoryData();
+  const readiness = useReadinessScore();
   const [loading, setLoading] = useState({});
   const [errors,  setErrors]  = useState({});
 
@@ -111,6 +114,8 @@ export default function MyStory() {
           </button>
         </div>
       </div>
+
+      <ReadinessStrip readiness={readiness} />
 
       {/* ── Narrative ── */}
       <StorySection

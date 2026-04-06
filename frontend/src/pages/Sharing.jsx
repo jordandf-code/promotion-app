@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { API_BASE, apiGet, apiPut, authHeaders } from '../utils/api.js';
 
-const DEFAULT_SETTINGS = { showWins: true, showNarrative: true, showScorecard: false };
+const DEFAULT_SETTINGS = { showWins: true, showNarrative: true, showScorecard: false, showReadiness: false };
 
 function stars(rating) {
   return '★'.repeat(rating) + '☆'.repeat(5 - rating);
@@ -106,6 +106,11 @@ export default function Sharing() {
               <input type="checkbox" checked={settings.showScorecard}
                 onChange={() => toggle('showScorecard')} />
               Show scorecard summary
+            </label>
+            <label className="sharing-toggle">
+              <input type="checkbox" checked={settings.showReadiness}
+                onChange={() => toggle('showReadiness')} />
+              Show readiness score
             </label>
           </div>
 
