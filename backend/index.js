@@ -9,7 +9,13 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // --- MIDDLEWARE ---
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://promotion-app-lovat.vercel.app',
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 // --- ROUTES ---

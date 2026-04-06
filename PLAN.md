@@ -353,10 +353,10 @@ setting_currency        — display currency: 'CAD' (CDN$) or 'USD' (USD$, at 1.
 - [x] **Quick add expanded** — modal now covers 5 types: Win, Action item, Goal, Person, Opportunity; modal maintains fixed height so it doesn't resize between tabs
 - [x] **Pursuits page** — CRM-style pipeline view of open opportunities; summary strip (total pipeline, weighted pipeline, net-new count, expansion count); clickable stage funnel that filters the table; full pipeline table with stage, probability, signings, expected close, logo type, origin, and strategic rationale; weighted pipeline calculated as Σ(signingsValue × probability/100), defaulting to 50% when probability is unset; stage pills and logo type pills exported as shared components (`StagePip`, `LogoTypePip`) from `OpportunitiesTab`; Opportunity model extended with 7 new fields (stage, probability, expectedClose, dealType, logoType, relationshipOrigin, strategicNote); Win model extended with 3 new strategic context fields (logoType, relationshipOrigin, strategicNote) shown on win cards
 
-### Phase 13 — Multi-user
-- [ ] Second user can register and use the app independently
-- [ ] All data fully isolated per user
-- [ ] No user can see another user's private data
+### Phase 13 — Multi-user ✅
+- [x] Second user can register and use the app independently
+- [x] All data fully isolated per user — `user_data` keyed by `(user_id, domain)`, every query scoped to `req.userId`
+- [x] No user can see another user's private data — no cross-user endpoints exist
 
 ### Phase 14 — Polish
 - [ ] Mobile-friendly layout
@@ -371,12 +371,13 @@ setting_currency        — display currency: 'CAD' (CDN$) or 'USD' (USD$, at 1.
 local → production promotion workflow so changes can be tested before going live.
 
 #### 15a — GitHub setup
-- [ ] Initialise Git repo (if not already done) and push to GitHub (`main` branch)
-- [ ] Add `.gitignore` — exclude `node_modules/`, `.env` files, and build artifacts (`dist/`, `build/`)
-- [ ] Add `backend/.env.example` and `frontend/.env.example` — safe templates committed to repo
-- [ ] Add root `README.md` with local setup instructions and env var reference
-- [ ] Add `DEPLOY.md` — the step-by-step promotion workflow cheatsheet
-- [ ] Protect `main` branch — no direct pushes; all changes go through `dev` branch and PR
+- [x] Initialise Git repo and create initial commit on `main` branch
+- [x] Add `.gitignore` — exclude `node_modules/`, `.env` files, build artifacts, `.claude/`
+- [x] Add `backend/.env.example` and `frontend/.env.example` — safe templates committed to repo
+- [x] Add root `README.md` with local setup instructions and env var reference
+- [x] Add `DEPLOY.md` — the step-by-step promotion workflow cheatsheet
+- [x] Create `dev` branch for day-to-day work
+- [ ] Push to GitHub and protect `main` branch — all changes go through `dev` branch and PR
 
 #### 15b — Environment separation
 
