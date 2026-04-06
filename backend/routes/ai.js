@@ -90,7 +90,7 @@ router.post('/suggest-goals', async (req, res) => {
     if (weak.length) weaknessHint = `\n\nWEAKEST SCORECARD AREAS:\n${weak.join('\n')}`;
   }
 
-  const existingTitles = ctx.goals.map(g => g.title);
+  const existingTitles = (ctx.goals ?? []).map(g => g.title);
   const userContent = buildUserMessage(ctx) + weaknessHint
     + `\n\nEXISTING GOAL TITLES (do not duplicate):\n${existingTitles.join('\n')}`;
 

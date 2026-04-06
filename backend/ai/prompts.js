@@ -106,8 +106,8 @@ Return only valid JSON. No preamble, no markdown fences.`;
 // ── Story mode lookup ───────────────────────────────────────────────────────
 
 const STORY_MODES = {
-  gap_analysis:       { prompt: GAP_ANALYSIS_PROMPT,       maxTokens: 2000, parseJson: true  },
-  polished_narrative: { prompt: POLISHED_NARRATIVE_PROMPT, maxTokens: 1500, parseJson: false },
+  gap_analysis:       { prompt: GAP_ANALYSIS_PROMPT,       maxTokens: 4000, parseJson: true  },
+  polished_narrative: { prompt: POLISHED_NARRATIVE_PROMPT, maxTokens: 2500, parseJson: false },
   plan_2027:          { prompt: PLAN_2027_PROMPT,          maxTokens: 3000, parseJson: true  },
 };
 
