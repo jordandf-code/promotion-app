@@ -2,6 +2,7 @@
 // App settings split into sub-tabs: GenAI, Categories, User Settings.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { API_BASE } from '../utils/api.js';
 import { useAdminData, COLOR_PALETTE, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
 import WipeSection from '../components/admin/WipeSection.jsx';
 
@@ -502,7 +503,7 @@ function ApiKeySection({ value, onSave }) {
   async function testKey() {
     setKeyStatus('checking');
     try {
-      const res  = await fetch('/api/ai/check-key', {
+      const res  = await fetch(`${API_BASE}/api/ai/check-key`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ apiKey: value }),

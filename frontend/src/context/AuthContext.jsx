@@ -4,6 +4,7 @@
 // session survives a page refresh.
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE } from '../utils/api.js';
 
 const AuthContext = createContext(null);
 
@@ -18,7 +19,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
-    fetch('/api/auth/me', {
+    fetch(`${API_BASE}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => (res.ok ? res.json() : null))
@@ -43,7 +44,7 @@ export function AuthProvider({ children }) {
   }
 
   async function register({ email, password, name, role, company }) {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name, role, company }),
@@ -54,7 +55,7 @@ export function AuthProvider({ children }) {
   }
 
   async function login({ email, password }) {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

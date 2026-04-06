@@ -2,6 +2,7 @@
 // Shared win form — 'prompt' mode (triggered on won/done), 'add'/'edit' from Wins tab.
 
 import { useState } from 'react';
+import { API_BASE } from '../../utils/api.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../../hooks/useAdminData.js';
 
 function tagStyle(color, active) {
@@ -33,7 +34,7 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
   async function handleSuggestImpact() {
     setSuggestingImpact(true);
     try {
-      const res  = await fetch('/api/ai/suggest-impact', {
+      const res  = await fetch(`${API_BASE}/api/ai/suggest-impact`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ title: form.title, description: form.description, apiKey: anthropicKey }),

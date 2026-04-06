@@ -5,6 +5,7 @@ import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useG
 import { useActionsData }  from '../hooks/useActionsData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
 import { useAdminData }    from '../hooks/useAdminData.js';
+import { API_BASE }        from '../utils/api.js';
 import GoalCard            from '../components/goals/GoalCard.jsx';
 import WinFormModal        from '../components/wins/WinFormModal.jsx';
 import SuggestGoalsModal   from '../components/goals/SuggestGoalsModal.jsx';
@@ -75,7 +76,7 @@ export default function Goals() {
     }
     setSuggestState('loading');
     try {
-      const res = await fetch('/api/ai/suggest-goals', {
+      const res = await fetch(`${API_BASE}/api/ai/suggest-goals`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

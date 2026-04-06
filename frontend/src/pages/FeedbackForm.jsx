@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_BASE } from '../utils/api.js';
 
 export default function FeedbackForm() {
   const { token } = useParams();
@@ -17,7 +18,7 @@ export default function FeedbackForm() {
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/share/feedback-info/${token}`)
+    fetch(`${API_BASE}/api/share/feedback-info/${token}`)
       .then(res => {
         if (res.status === 404) { setInfoState('notfound'); return null; }
         if (!res.ok)            { setInfoState('error');    return null; }
@@ -33,7 +34,7 @@ export default function FeedbackForm() {
     setSubmitState('submitting');
     setSubmitError('');
     try {
-      const res  = await fetch(`/api/share/feedback/${token}`, {
+      const res  = await fetch(`${API_BASE}/api/share/feedback/${token}`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ reviewer, rating, comments }),

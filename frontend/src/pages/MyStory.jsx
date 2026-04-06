@@ -3,6 +3,7 @@
 // from Admin settings. Generates evidence map, gap analysis, narrative, and 2027 plan.
 
 import { useState } from 'react';
+import { API_BASE } from '../utils/api.js';
 import { useAdminData }    from '../hooks/useAdminData.js';
 import { useStoryData }    from '../hooks/useStoryData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
@@ -32,7 +33,7 @@ export default function MyStory() {
       const g = scorecard.getGPStats(qualifyingYear);
       const u = scorecard.getUtilStats(qualifyingYear);
 
-      const res = await fetch('/api/ai/generate-story', {
+      const res = await fetch(`${API_BASE}/api/ai/generate-story`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

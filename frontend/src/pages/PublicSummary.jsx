@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_BASE } from '../utils/api.js';
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -15,7 +16,7 @@ export default function PublicSummary() {
   const [data,  setData]  = useState(null);
 
   useEffect(() => {
-    fetch(`/api/share/view/${token}`)
+    fetch(`${API_BASE}/api/share/view/${token}`)
       .then(res => {
         if (res.status === 404) { setState('notfound'); return null; }
         if (!res.ok)            { setState('error');    return null; }

@@ -2,7 +2,7 @@
 // Owner view: generate share/feedback links, configure what's visible, see feedback inbox.
 
 import { useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut, authHeaders } from '../utils/api.js';
+import { API_BASE, apiGet, apiPut, authHeaders } from '../utils/api.js';
 
 const DEFAULT_SETTINGS = { showWins: true, showNarrative: true, showScorecard: false };
 
@@ -25,9 +25,9 @@ export default function Sharing() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/share/tokens', { headers: authHeaders() }).then(r => r.json()),
+      fetch(`${API_BASE}/api/share/tokens`, { headers: authHeaders() }).then(r => r.json()),
       apiGet('sharing'),
-      fetch('/api/share/feedback', { headers: authHeaders() }).then(r => r.json()),
+      fetch(`${API_BASE}/api/share/feedback`, { headers: authHeaders() }).then(r => r.json()),
     ]).then(([tokensData, settingsData, feedbackData]) => {
       setTokens({ shareToken: tokensData.shareToken, feedbackToken: tokensData.feedbackToken });
       if (settingsData) setSettings(settingsData);
@@ -60,7 +60,7 @@ export default function Sharing() {
     if (!window.confirm('Resetting will invalidate your current links — anyone with the old links won\'t be able to access them. Continue?')) return;
     setResetting(true);
     try {
-      const res  = await fetch('/api/share/reset', { method: 'POST', headers: authHeaders() });
+      const res  = await fetch(`${API_BASE}/api/share/reset`, { method: 'POST', headers: authHeaders() });
       const data = await res.json();
       setTokens({ shareToken: data.shareToken, feedbackToken: data.feedbackToken });
     } finally {
