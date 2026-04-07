@@ -46,10 +46,11 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 ## Completion status
 
-**Phases 1–23, 7c**: Complete (all of Phase 19 including 19c/g/h/i). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
+**Phases 1–23, 7c, 20**: Complete (all of Phase 19 including 19c/g/h/i; Phase 20 working but marked testing-only). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
 
 **Uncompleted items in "done" phases**:
 - Phase 16 — AI usage log in Admin: deferred (add to future phase)
+- Phase 20 — PowerPoint deck export: core pipeline working (prompt, render, route, Admin UI, MyStory UI) but output quality needs work. Marked as testing only. Revisit: improve placeholder replacement fidelity, tune AI prompt for better content, fix template rendering issues.
 - Phase 23 — Only weekly digest + feedback received implemented; overdue_action, stale_contact, goal_deadline, scorecard_at_risk notification types deferred
 
 ## Backlog and build sequence
@@ -60,7 +61,7 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 |---|---|---|
 | 24 — Bulk import/export | — | ✅ |
 | 25 — LinkedIn import | — | ✅ |
-| 20 — PowerPoint deck export | — | ✅ |
+| 20 — PowerPoint deck export | — | ✅ (testing only — needs polish) |
 | 26a–e — Structured 360 feedback | — | ✅ |
 | 26g — Sponsor view | — | ✅ |
 | 26h — Peer benchmarking | — | ✅ |
@@ -68,10 +69,9 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 ### Recommended priority
 
 **All remaining phases are unblocked:**
-1. **Phase 20** — PowerPoint deck export.
-2. **Phase 24** — Bulk import/export.
-3. **Phase 25** — LinkedIn import.
-4. **Phase 26a–e** — Structured 360 feedback.
+1. **Phase 24** — Bulk import/export.
+2. **Phase 25** — LinkedIn import.
+3. **Phase 26a–e** — Structured 360 feedback.
 5. **Phase 26g** — Sponsor view.
 6. **Phase 26h** — Peer benchmarking.
 

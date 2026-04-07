@@ -14,8 +14,9 @@ const corsOrigins = process.env.CORS_ORIGINS
 app.use(cors({
   origin: corsOrigins,
   credentials: true,
+  exposedHeaders: ['X-Token-Usage', 'Content-Disposition'],
 }));
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '5mb' }));
 
 // Trust proxy headers (Render, Vercel, etc.) so express-rate-limit sees real client IPs
 app.set('trust proxy', 1);
@@ -28,6 +29,7 @@ app.get('/api/health', (_req, res) => {
 // --- ROUTES ---
 app.use('/api/auth',   require('./routes/auth'));
 app.use('/api/ai',     require('./routes/ai'));
+app.use('/api/ai',     require('./routes/deck'));
 app.use('/api/data',   require('./routes/data'));
 app.use('/api/share',  require('./routes/share'));
 app.use('/api/admin',  require('./routes/admin'));
