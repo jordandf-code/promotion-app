@@ -72,11 +72,11 @@ Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (c
 
 ## Current status
 
-Phases 1–23 and 7c complete (all of Phase 19 including 19c/g/h/i). All foundation phases are done. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
+Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
 
 ## What to build next
 
-All remaining phases are unblocked. Priority order: Phase 20 (PowerPoint export) → Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
+All remaining phases are unblocked. Priority order: Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
 
 ## Important gotchas
 

@@ -19,7 +19,7 @@ import { useReadinessScore } from '../hooks/useReadinessScore.js';
 const TODAY = new Date();
 
 export default function Dashboard() {
-  const { qualifyingYear, scorecardYears } = useSettings();
+  const { qualifyingYear, scorecardYears, demoMode } = useSettings();
   const scorecard = useScorecardData();
   const { actions, toggleDone, addAction } = useActionsData();
   const { wins, addWin } = useWinsData();
@@ -54,6 +54,16 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => setShowQuickAdd(true)}>+ Quick add</button>
         </div>
       </div>
+
+      {demoMode && (
+        <div className="card" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+          <p style={{ margin: 0, color: '#1e40af' }}>
+            You're viewing sample data. To use your real data, go to{' '}
+            <Link to="/admin" style={{ fontWeight: 600, color: '#1e40af', textDecoration: 'underline' }}>Admin</Link>{' '}
+            and start your promotion journey.
+          </p>
+        </div>
+      )}
 
       <div className="stat-strip">
         <div className="stat-card stat-card--qual stat-card--link" onClick={() => navigate('/calendar')}>

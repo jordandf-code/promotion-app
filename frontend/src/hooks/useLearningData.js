@@ -74,6 +74,51 @@ export function sortCourses(courses) {
   });
 }
 
+/* ── Seed data for new users ── */
+
+const SEED_LEARNING = {
+  certifications: [
+    {
+      id: 'cert-1', name: 'AWS Solutions Architect – Associate',
+      issuer: 'Amazon Web Services', status: 'earned',
+      dateEarned: '2024-06-15', expiryDate: '2027-06-15',
+      credentialId: 'AWS-SAA-12345', notes: 'Hybrid cloud discussions with federal clients.',
+    },
+    {
+      id: 'cert-2', name: 'IBM Garage Practitioner',
+      issuer: 'IBM', status: 'earned',
+      dateEarned: '2025-03-20', expiryDate: null,
+      credentialId: null, notes: 'Applied to 3 client engagements.',
+    },
+    {
+      id: 'cert-3', name: 'ITIL 4 Foundation',
+      issuer: 'PeopleCert', status: 'planned',
+      dateEarned: null, expiryDate: null,
+      credentialId: null, notes: 'Target Q3 2026 — supports ITSM modernization credibility.',
+    },
+  ],
+  courses: [
+    {
+      id: 'course-1', title: 'IBM Partner Academy — Executive Leadership',
+      provider: 'IBM', status: 'completed',
+      dateCompleted: '2025-11-01', hours: 40,
+      notes: 'Required for Partner promotion gate.',
+    },
+    {
+      id: 'course-2', title: 'AI for Business Leaders',
+      provider: 'IBM SkillsBuild', status: 'completed',
+      dateCompleted: '2026-01-18', hours: 16,
+      notes: 'Foundations for AI-driven client conversations.',
+    },
+    {
+      id: 'course-3', title: 'Government of Canada Security Clearance Briefing',
+      provider: 'IBM Canada', status: 'completed',
+      dateCompleted: '2025-08-10', hours: 4,
+      notes: 'Mandatory for federal client engagements.',
+    },
+  ],
+};
+
 /* ── Default shape ── */
 
 const EMPTY = { certifications: [], courses: [] };
@@ -94,7 +139,8 @@ export function useLearningData() {
           apiPutMarkClean('learning', merged);
           setData(merged);
         } else {
-          apiPutMarkClean('learning', EMPTY);
+          setData(SEED_LEARNING);
+          apiPut('learning', SEED_LEARNING);
         }
       })
       .catch(() => {})

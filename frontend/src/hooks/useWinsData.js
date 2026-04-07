@@ -72,7 +72,7 @@ export function useWinsData() {
   const skipSync                      = useRef(false);
 
   useEffect(() => {
-    const local = loadLocal() ?? [];
+    const local = loadLocal() ?? SEED_WINS;
     apiGet('wins')
       .then(serverData => {
         if (serverData !== null) {

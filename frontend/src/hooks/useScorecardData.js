@@ -44,7 +44,7 @@ export function useScorecardData() {
   const skipSync                      = useRef(false);
 
   useEffect(() => {
-    const local = loadLocal() ?? EMPTY_DATA;
+    const local = loadLocal() ?? DEFAULT_DATA;
     apiGet('scorecard')
       .then(serverData => {
         if (serverData !== null) {

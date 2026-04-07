@@ -12,6 +12,7 @@ const CAD_TO_USD_RATE = 1.5; // 1 USD = 1.50 CAD (IBM standard rate)
 const DEFAULTS = {
   promotionYear: 2027,
   currency: 'CAD',
+  demoMode: false,
 };
 
 function formatAmount(cadAmount, currency) {
@@ -51,8 +52,10 @@ export function SettingsProvider({ children }) {
           apiPutMarkClean('settings', merged);
           setSettings(merged);
         } else {
-          setSettings(local);
-          apiPut('settings', local);
+          // New user — enable demo mode so they see sample data
+          const initial = { ...local, demoMode: true };
+          setSettings(initial);
+          apiPut('settings', initial);
         }
         localStorage.removeItem('setting_promotionYear');
         localStorage.removeItem('setting_currency');
@@ -73,6 +76,10 @@ export function SettingsProvider({ children }) {
 
   function setCurrency(value) {
     setSettings(s => ({ ...s, currency: value }));
+  }
+
+  function setDemoMode(value) {
+    setSettings(s => ({ ...s, demoMode: value }));
   }
 
   function fmtCurrency(cadAmount) {
@@ -97,7 +104,7 @@ export function SettingsProvider({ children }) {
       : Math.round(n);
   }
 
-  const { promotionYear, currency } = settings;
+  const { promotionYear, currency, demoMode } = settings;
   const currencySymbol = currency === 'USD' ? 'USD$' : 'CA$';
   const qualifyingYear = promotionYear - 1;
   const scorecardYears = [
@@ -112,7 +119,7 @@ export function SettingsProvider({ children }) {
 
   return (
     <SettingsContext.Provider
-      value={{ promotionYear, setPromotionYear, qualifyingYear, scorecardYears, currency, setCurrency, fmtCurrency, currencySymbol, toInputValue, fromInputValue }}
+      value={{ promotionYear, setPromotionYear, qualifyingYear, scorecardYears, currency, setCurrency, fmtCurrency, currencySymbol, toInputValue, fromInputValue, demoMode, setDemoMode }}
     >
       {children}
     </SettingsContext.Provider>
