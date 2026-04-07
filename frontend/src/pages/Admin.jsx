@@ -344,6 +344,7 @@ function CategoriesTab() {
     dealTypes,         setDealTypes,
     logoTypes,         setLogoTypes,
     originTypes,       setOriginTypes,
+    eminenceTypes,     setEminenceTypes,
   } = useAdminData();
 
   return (
@@ -410,6 +411,18 @@ function CategoriesTab() {
 
       <section className="section">
         <div className="section-header">
+          <h2 className="section-title">Eminence types</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Activity types for the Eminence tab (e.g. speaking, publication, panel).
+          </p>
+          <EditableValueList items={eminenceTypes ?? []} onChange={setEminenceTypes} />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
           <h2 className="section-title">Relationship origins</h2>
         </div>
         <div className="card admin-card">
@@ -430,7 +443,7 @@ function SettingsTab() {
 
   const NAV_LABELS = {
     '/': 'Dashboard', '/scorecard': 'Scorecard', '/pursuits': 'Pursuits', '/goals': 'Goals',
-    '/people': 'People', '/wins': 'Wins', '/actions': 'Action items', '/learning': 'Learning',
+    '/people': 'People', '/wins': 'Wins', '/eminence': 'Eminence', '/actions': 'Action items', '/learning': 'Learning',
     '/story': 'Narrative + Gaps', '/calendar': 'Calendar', '/sharing': 'Sharing', '/admin': 'Admin',
   };
 

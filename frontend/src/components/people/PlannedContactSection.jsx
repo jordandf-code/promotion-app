@@ -146,7 +146,7 @@ export default function PlannedContactSection({
                       )}
                     </div>
                     <div className="tp-planned-btns">
-                      <button className="tp-log-btn" onClick={() => startLog(pt)}>✓ Log</button>
+                      <button className="tp-log-btn" onClick={() => startLog(pt)}>Mark done</button>
                       <button className="goal-action-unlink" onClick={() => onRemove(person.id, pt.id)} title="Remove">✕</button>
                     </div>
                   </div>

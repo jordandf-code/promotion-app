@@ -2,7 +2,7 @@
 // Person card: header with edit/remove, contact info, touchpoint log, planned contacts.
 
 import { useState } from 'react';
-import { lastContactDate, daysSinceContact } from '../../hooks/usePeopleData.js';
+import { lastContactDate, daysSinceContact, RELATIONSHIP_STATUS_LABELS, nextRelationshipStatus } from '../../hooks/usePeopleData.js';
 import { fmtDate } from '../../data/sampleData.js';
 import PlannedContactSection from './PlannedContactSection.jsx';
 
@@ -13,6 +13,7 @@ export default function PersonCard({
   relationshipTypes,
   onEdit,
   onDelete,
+  onUpdatePerson,
   onAddTouchpoint,
   onRemoveTouchpoint,
   onAddPlannedTouchpoint,
@@ -66,6 +67,13 @@ export default function PersonCard({
           color:       typeColor,
           border:      `1px solid ${typeColor}55`,
         }}>{person.type}</span>
+        <button
+          className={`status-badge status-badge--${person.relationshipStatus === 'established' ? 'done' : 'in_progress'} status-badge--btn`}
+          onClick={() => onUpdatePerson(person.id, { relationshipStatus: nextRelationshipStatus(person.relationshipStatus ?? 'in-progress') })}
+          title={`Click to change → ${RELATIONSHIP_STATUS_LABELS[nextRelationshipStatus(person.relationshipStatus ?? 'in-progress')]}`}
+        >
+          {RELATIONSHIP_STATUS_LABELS[person.relationshipStatus ?? 'in-progress']}
+        </button>
         {stale && <span className="stale-badge">Follow up needed</span>}
       </div>
 

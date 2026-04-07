@@ -8,6 +8,20 @@ import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
+export const RELATIONSHIP_STATUSES = ['in-progress', 'established'];
+export const RELATIONSHIP_STATUS_LABELS = {
+  'in-progress': 'In progress',
+  'established': 'Established',
+};
+export function nextRelationshipStatus(current) {
+  const idx = RELATIONSHIP_STATUSES.indexOf(current);
+  return RELATIONSHIP_STATUSES[(idx + 1) % RELATIONSHIP_STATUSES.length];
+}
+
+function migratePerson(p) {
+  return { relationshipStatus: 'in-progress', ...p };
+}
+
 export function lastContactDate(person) {
   if (!person.touchpoints?.length) return null;
   return [...person.touchpoints].sort((a, b) => b.date.localeCompare(a.date))[0].date;
@@ -23,7 +37,7 @@ export function daysSinceContact(person) {
 const SEED_PEOPLE = [
   {
     id: 'per-1', name: 'Lisa Chen', title: 'VP, Public Sector', org: 'IBM Canada',
-    type: 'Champion', email: '', phone: '',
+    type: 'Champion', relationshipStatus: 'established', email: '', phone: '',
     need: 'Champion my Partner nomination with the senior leadership team',
     touchpoints: [
       { id: 'tp-1a', date: '2026-03-18', note: 'Q1 check-in — discussed nomination timeline and what she needs from me this year' },
@@ -32,7 +46,7 @@ const SEED_PEOPLE = [
   },
   {
     id: 'per-2', name: 'Ahmed Malik', title: 'Director General, Digital Services', org: 'Treasury Board Secretariat',
-    type: 'Supporter', email: '', phone: '',
+    type: 'Supporter', relationshipStatus: 'in-progress', email: '', phone: '',
     need: 'Decision authority on $4M contract renewal discussion',
     touchpoints: [
       { id: 'tp-2a', date: '2026-02-28', note: 'Intro meeting following TBS Digital Modernization close — discussed renewal scope' },
@@ -41,7 +55,7 @@ const SEED_PEOPLE = [
   },
   {
     id: 'per-3', name: 'Sarah Park', title: 'Director, Technology Enablement', org: 'City of Toronto',
-    type: 'Client', email: '', phone: '',
+    type: 'Client', relationshipStatus: 'established', email: '', phone: '',
     need: 'Expand engagement into Phase 2 of ITSM modernization',
     touchpoints: [
       { id: 'tp-3a', date: '2026-03-30', note: 'Project close-out review — strong satisfaction, opened door to Phase 2 conversation' },
@@ -50,7 +64,7 @@ const SEED_PEOPLE = [
   },
   {
     id: 'per-4', name: 'Marcus Thompson', title: 'Partner, Public Sector', org: 'IBM Canada',
-    type: 'Peer', email: '', phone: '',
+    type: 'Peer', relationshipStatus: 'established', email: '', phone: '',
     need: 'Mentorship and nomination support from an existing Partner',
     touchpoints: [
       { id: 'tp-4a', date: '2026-03-22', note: 'Lunch — reviewed IBM Partner criteria and gaps in my current profile' },
@@ -59,7 +73,7 @@ const SEED_PEOPLE = [
   },
   {
     id: 'per-5', name: 'Diane Lefebvre', title: 'ADM, Shared Services Canada', org: 'Government of Canada',
-    type: 'Supporter', email: '', phone: '',
+    type: 'Supporter', relationshipStatus: 'in-progress', email: '', phone: '',
     need: 'Long-term relationship for future SSC opportunities',
     touchpoints: [
       { id: 'tp-5a', date: '2026-01-15', note: 'Industry event — brief introduction, agreed to follow up in Q2' },
@@ -71,7 +85,7 @@ const SEED_PEOPLE = [
 function loadLocal() {
   try {
     const stored = localStorage.getItem('peopleData_v1');
-    return stored ? JSON.parse(stored) : null;
+    return stored ? JSON.parse(stored).map(migratePerson) : null;
   } catch {
     return null;
   }
@@ -88,8 +102,9 @@ export function usePeopleData() {
       .then(serverData => {
         if (serverData !== null) {
           skipSync.current = true;
-          apiPutMarkClean('people', serverData);
-          setPeople(serverData);
+          const migrated = serverData.map(migratePerson);
+          apiPutMarkClean('people', migrated);
+          setPeople(migrated);
         } else {
           setPeople(local);
           apiPut('people', local);

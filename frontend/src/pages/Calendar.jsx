@@ -8,6 +8,7 @@ import { useActionsData }    from '../hooks/useActionsData.js';
 import { useWinsData }       from '../hooks/useWinsData.js';
 import { useScorecardData }  from '../hooks/useScorecardData.js';
 import { usePeopleData }     from '../hooks/usePeopleData.js';
+import { useEminenceData }   from '../hooks/useEminenceData.js';
 
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
@@ -19,6 +20,7 @@ const TYPE_META = {
   win:         { label: 'Win',             color: '#15803d', route: '/wins'      },
   opportunity: { label: 'Opportunity',     color: '#7c3aed', route: '/scorecard' },
   touchpoint:  { label: 'Planned contact', color: '#0f766e', route: '/people'    },
+  eminence:    { label: 'Eminence',        color: '#c2410c', route: '/eminence'  },
 };
 
 function dateKey(d) {
@@ -59,6 +61,7 @@ export default function Calendar() {
   const { wins }          = useWinsData();
   const { opportunities } = useScorecardData();
   const { people }        = usePeopleData();
+  const { activities: eminenceActivities } = useEminenceData();
 
   const eventMap = useMemo(() => {
     const map = {};
@@ -73,8 +76,10 @@ export default function Calendar() {
     people.forEach(p =>
       (p.plannedTouchpoints ?? []).forEach(pt =>
         pt.date && addEvent(map, pt.date, { type: 'touchpoint', label: p.name })));
+    eminenceActivities.forEach(a =>
+      a.date && addEvent(map, a.date, { type: 'eminence', label: a.title }));
     return map;
-  }, [goals, actions, wins, opportunities, people]);
+  }, [goals, actions, wins, opportunities, people, eminenceActivities]);
 
   const grid     = useMemo(() => buildGrid(year, month), [year, month]);
   const todayKey = dateKey(today);

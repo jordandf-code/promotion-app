@@ -23,7 +23,7 @@ const EMPTY_FORM = {
 
 export default function OpportunitiesTab({ scorecard, scorecardYears }) {
   const { fmtCurrency } = useSettings();
-  const { wins, addWin, hasWinForSource } = useWinsData();
+  const { wins, addWin, removeWin, hasWinForSource } = useWinsData();
   const [yearFilter,   setYearFilter]   = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modal,        setModal]        = useState(null);
@@ -60,6 +60,15 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
     if (modal.mode === 'add') scorecard.addOpportunity(payload);
     else scorecard.updateOpportunity(modal.data.id, payload);
     closeModal();
+
+    // If changing away from 'won', offer to remove linked win
+    const isLeavingWon = modal.data.status === 'won' && payload.status !== 'won' && modal.mode === 'edit';
+    if (isLeavingWon) {
+      const linkedWin = wins.find(w => w.sourceId === modal.data.id);
+      if (linkedWin && confirm('This opportunity has a linked win. Remove it?')) {
+        removeWin(linkedWin.id);
+      }
+    }
 
     if (isBecomingWon && !hasWinForSource(modal.mode === 'add' ? null : modal.data.id)) {
       const oppId = modal.mode === 'edit' ? modal.data.id : null;
@@ -139,7 +148,7 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                   <td><StagePip stage={opp.stage} /></td>
                   <td>
                     <span className={`status-pip status-pip--${opp.status}`}>{STATUS_LABELS[opp.status]}</span>
-                    {wins.some(w => w.sourceId === opp.id) && (
+                    {opp.status !== 'lost' && wins.some(w => w.sourceId === opp.id) && (
                       <span className="opp-win-linked" title="Win logged">W</span>
                     )}
                   </td>
