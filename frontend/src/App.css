@@ -246,6 +246,20 @@
 
 .sidebar-logout:hover { background: rgba(255,255,255,0.22); }
 
+.sidebar-report-btn {
+  background: none;
+  color: rgba(255,255,255,0.6);
+  border: none;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.12s;
+}
+.sidebar-report-btn:hover { color: rgba(255,255,255,0.95); }
+
 /* ── Main content ── */
 
 .main-content {
@@ -2703,6 +2717,8 @@ tr:last-child .sc-td { border-bottom: none; }
   padding: 2rem 1rem;
   overflow-y: auto;
 }
+.modal-backdrop--centered { align-items: center; }
+
 .modal {
   background: var(--surface);
   border-radius: var(--radius);
@@ -3856,6 +3872,11 @@ tr:last-child .sc-td { border-bottom: none; }
     -webkit-user-select: none;
     user-select: none;
     transition: color 0.15s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
   }
   .bottom-tab:active {
     opacity: 0.7;
@@ -4333,6 +4354,36 @@ tr:last-child .sc-td { border-bottom: none; }
     position: sticky;
     top: 3.25rem; /* below mobile header */
     z-index: 50;
+  }
+
+  /* ── Public scorecard table → cards on mobile ── */
+  .public-scorecard-table thead { display: none; }
+  .public-scorecard-table,
+  .public-scorecard-table tbody { display: flex; flex-direction: column; gap: 0.5rem; }
+  .public-scorecard-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+  }
+  .public-scorecard-table td {
+    border-bottom: none;
+    padding: 0;
+    font-size: 0.85rem;
+  }
+  .public-scorecard-table td:first-child {
+    width: 100%;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  /* ── Feedback form: full-width submit button ── */
+  .feedback-form button[type="submit"] {
+    width: 100%;
+    min-height: 48px;
   }
 }
 

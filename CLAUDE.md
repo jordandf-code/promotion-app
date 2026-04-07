@@ -36,6 +36,8 @@ cd frontend && npm run dev   # port 5173
 
 # Git workflow
 git checkout dev             # all work on dev branch
+# Before committing: update docs/PLAN.md, docs/PHASES_COMPLETE.md, and CLAUDE.md
+# to reflect what was built (completion status, dependency map, "what to build next")
 git add -A && git commit -m "description"
 git push origin dev          # then PR to main
 gh pr create --base main --head dev --title "title" --body "body"
@@ -70,11 +72,11 @@ Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (c
 
 ## Current status
 
-Phases 1–19 and 21 complete (except Phase 7c — people relationship status, a small backlog item). Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
+Phases 1–22 and 7c complete (all of Phase 19 including 19c/g/h/i). All foundation phases are done. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
 
 ## What to build next
 
-Priority order: Phase 7c (people relationship status) → Phase 22 (eminence tracker) → Phase 23 (notifications). See dependency map in `docs/PLAN.md`.
+All remaining phases are unblocked (except 26a–e which needs 23). Priority order: Phase 23 (notifications) → Phase 20 (PowerPoint export) → Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
 
 ## Important gotchas
 
@@ -82,7 +84,6 @@ Priority order: Phase 7c (people relationship status) → Phase 22 (eminence tra
 - Anthropic API key is NEVER an env var — always per-user from DB
 - Never modify existing `migration*.sql` files — always create new ones
 - `adminData` sync has a `serverLoaded` guard to prevent race conditions — do not remove
-- Phase 7 header says "relationship status added in Phase 7c" but 7c is NOT built yet
 - Scorecard metric labels: "Signings" (not Sales), "Chargeable utilization" (not Utilization), "Gross profit" (not Gross Profit)
 
 ## Session workflow

@@ -26,6 +26,7 @@ app.use('/api/ai',     require('./routes/ai'));
 app.use('/api/data',   require('./routes/data'));
 app.use('/api/share',  require('./routes/share'));
 app.use('/api/admin',  require('./routes/admin'));
+app.use('/api/issues', require('./routes/issues'));
 app.use('/api',        require('./routes/peers'));
 
 app.get('/api/health', (_req, res) => {

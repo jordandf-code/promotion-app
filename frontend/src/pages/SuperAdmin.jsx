@@ -182,7 +182,7 @@ function UsersTab() {
 
       {/* Reset password modal */}
       {resetModal && (
-        <div className="modal-overlay">
+        <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
               <h3 className="modal-title">Reset password</h3>
@@ -208,7 +208,7 @@ function UsersTab() {
 
       {/* Delete confirmation modal */}
       {deleteModal && (
-        <div className="modal-overlay">
+        <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
               <h3 className="modal-title">Delete account</h3>
@@ -333,6 +333,70 @@ function InviteCodeTab() {
 // ── Platform tab ────────────────────────────────────────────────────────────
 
 function PlatformTab() {
+  const [githubToken, setGithubToken] = useState('');
+  const [githubRepo, setGithubRepo] = useState('');
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [ghLoading, setGhLoading] = useState(true);
+  const [ghMsg, setGhMsg] = useState('');
+  const [ghSaving, setGhSaving] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/admin/platform-settings`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        setGithubConfigured(d.githubConfigured);
+        setGithubRepo(d.githubRepo || '');
+      })
+      .catch(() => {})
+      .finally(() => setGhLoading(false));
+  }, []);
+
+  async function saveGithubSettings(e) {
+    e.preventDefault();
+    setGhMsg('');
+    setGhSaving(true);
+    try {
+      const body = { githubRepo };
+      if (githubToken) body.githubToken = githubToken;
+      const res = await fetch(`${API_BASE}/api/admin/platform-settings`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setGithubConfigured(data.githubConfigured);
+      setGithubToken('');
+      setGhMsg(data.githubConfigured ? 'GitHub integration configured.' : 'Settings saved (incomplete — both token and repo are required).');
+    } catch (err) {
+      setGhMsg(err.message);
+    } finally {
+      setGhSaving(false);
+    }
+  }
+
+  async function clearGithubSettings() {
+    setGhMsg('');
+    setGhSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/platform-settings`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ githubToken: '', githubRepo: '' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setGithubConfigured(false);
+      setGithubRepo('');
+      setGithubToken('');
+      setGhMsg('GitHub integration removed.');
+    } catch (err) {
+      setGhMsg(err.message);
+    } finally {
+      setGhSaving(false);
+    }
+  }
+
   return (
     <div className="tab-content">
       <section className="section">
@@ -344,6 +408,57 @@ function PlatformTab() {
           <p className="admin-description" style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
             Email notifications — coming in a future phase.
           </p>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">GitHub issue reporting</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Let users report bugs and request features directly from the app. Issues are created in your GitHub repository.
+          </p>
+          <p className="admin-description" style={{ marginBottom: '1rem' }}>
+            Status: <strong>{ghLoading ? 'Loading…' : githubConfigured ? 'Configured' : 'Not configured'}</strong>
+          </p>
+
+          {ghMsg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{ghMsg}</p>}
+
+          <form onSubmit={saveGithubSettings} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label>
+              GitHub personal access token
+              <input
+                className="form-input"
+                type="password"
+                value={githubToken}
+                onChange={e => setGithubToken(e.target.value)}
+                placeholder={githubConfigured ? '••••••••  (leave blank to keep current)' : 'ghp_...'}
+                autoComplete="off"
+              />
+            </label>
+            <label>
+              Repository<span className="form-required">*</span>
+              <input
+                className="form-input"
+                type="text"
+                value={githubRepo}
+                onChange={e => setGithubRepo(e.target.value)}
+                placeholder="owner/repo"
+                required
+              />
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn-primary" disabled={ghSaving || !githubRepo.trim()}>
+                {ghSaving ? 'Saving…' : 'Save'}
+              </button>
+              {githubConfigured && (
+                <button type="button" className="btn-secondary" onClick={clearGithubSettings} disabled={ghSaving}>
+                  Remove integration
+                </button>
+              )}
+            </div>
+          </form>
         </div>
       </section>
     </div>

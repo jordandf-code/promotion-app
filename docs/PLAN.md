@@ -46,10 +46,9 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 ## Completion status
 
-**Phases 1–19, 21**: Complete. Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
+**Phases 1–22, 7c**: Complete (all of Phase 19 including 19c/g/h/i). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
 
 **Uncompleted items in "done" phases**:
-- Phase 7c — People `relationshipStatus` field: not built (separate backlog item)
 - Phase 14 — Email notification on feedback: deferred to Phase 23
 - Phase 16 — AI usage log in Admin: deferred (add to future phase)
 
@@ -59,44 +58,26 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 | Phase | Depends on (unbuilt) | Can start now? |
 |---|---|---|
-| 7c — People: relationship status | — | ✅ |
-| 17 — Learning tab | — | ✅ |
-| 18 — Roles and access control | — | ✅ |
-| 19a/b/d/e/f — Mobile core | — | ✅ |
-| 21 — Readiness score | — | ✅ |
-| 22 — Eminence tracker | 21 | After 21 |
-| 19c/g/h/i — Mobile tables + views | 18 | After 18 |
-| 23 — Notifications | 18 | After 18 |
-| 24 — Bulk import/export | 17, 22 | After 17 + 22 |
-| 25 — LinkedIn import | 7c | After 7c |
-| 20 — PowerPoint deck export | 17, 22 | After 17 + 22 |
-| 26a–e — Structured 360 feedback | 21, 23 | After 21 + 23 |
-| 26g — Sponsor view | 18, 21 | After 18 + 21 |
-| 26h — Peer benchmarking | 18, 21 | After 18 + 21 |
+| 23 — Notifications | — | ✅ |
+| 24 — Bulk import/export | — | ✅ |
+| 25 — LinkedIn import | — | ✅ |
+| 20 — PowerPoint deck export | — | ✅ |
+| 26a–e — Structured 360 feedback | 23 | After 23 |
+| 26g — Sponsor view | — | ✅ |
+| 26h — Peer benchmarking | — | ✅ |
 
 ### Recommended priority
 
-**Wave 1 — independent foundations** (any order):
-1. **Phase 21** — Readiness score. Pure frontend, no deps, high dashboard value, unblocks most downstream work.
-2. **Phase 18** — Roles and access control. Largest item, unlocks the most other work.
-3. **Phase 17** — Learning tab. Self-contained new domain.
-4. **Phase 7c** — People relationship status. Tiny scope, immediate value.
-5. **Phase 19a/b/d/e/f** — Mobile core (PWA, bottom tab bar, bottom sheets, touch targets).
+**All remaining phases are unblocked** (except 26a–e which needs 23 first):
+1. **Phase 23** — Notifications. High value, enables 26a–e.
+2. **Phase 20** — PowerPoint deck export. All deps met.
+3. **Phase 24** — Bulk import/export. All deps met.
+4. **Phase 25** — LinkedIn import. All deps met.
+5. **Phase 26g** — Sponsor view. All deps met.
+6. **Phase 26h** — Peer benchmarking. All deps met.
+7. **Phase 26a–e** — Structured 360 feedback (after 23).
 
-**Wave 2** (start as deps complete):
-6. Phase 22 — Eminence tracker (after 21)
-7. Phase 25 — LinkedIn import (after 7c)
-8. Phase 23 — Notifications (after 18)
-9. Phase 19c/g/h/i — Mobile tables/views (after 18)
-
-**Wave 3** (builds on Wave 2):
-10. Phase 20 — PowerPoint deck export (after 17 + 22)
-11. Phase 24 — Bulk import/export (after 17 + 22)
-12. Phase 26a–e — Structured 360 feedback (after 21 + 23)
-13. Phase 26g — Sponsor view (after 18 + 21)
-14. Phase 26h — Peer benchmarking architecture (after 18 + 21)
-
-**If starting one thing today**: Phase 21 (readiness score).
+**If starting one thing today**: Phase 23 (notifications).
 
 ### Deferred items (no phase assigned)
 - AI usage log in Admin (originally Phase 16, deferred)

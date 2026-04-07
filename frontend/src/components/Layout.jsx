@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 import BottomTabBar, { useBottomTabRoutes, STAR_ELIGIBLE } from './BottomTabBar.jsx';
+import ReportIssueModal from './ReportIssueModal.jsx';
 
 const ALL_NAV_ITEMS = [
   { to: '/',          label: 'Dashboard',   end: true },
@@ -37,6 +38,7 @@ export default function Layout() {
   const { currency, setCurrency } = useSettings();
   const { navOrder, bottomBarTabs, setBottomBarTabs } = useAdminData();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
 
   // Filter nav items by role
   let baseItems;
@@ -173,6 +175,10 @@ export default function Layout() {
           </div>
           <div className="sidebar-user-name">{user.name}</div>
           <div className="sidebar-user-role">{roleLabel}</div>
+          <button className="sidebar-report-btn" onClick={() => { setShowIssueModal(true); closeMenu(); }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Report issue
+          </button>
           <button className="sidebar-logout" onClick={logout}>Sign out</button>
         </div>
       </aside>
@@ -181,7 +187,9 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <BottomTabBar />
+      <BottomTabBar onReportIssue={() => setShowIssueModal(true)} />
+
+      {showIssueModal && <ReportIssueModal onClose={() => setShowIssueModal(false)} />}
     </div>
   );
 }

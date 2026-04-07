@@ -56,11 +56,13 @@ const SHORT_LABELS = {
 
 function getActiveRoutes(bottomBarTabs) {
   const custom = bottomBarTabs ?? [];
-  if (custom.length > 0) return custom.filter(r => ICONS[r]).slice(0, 5);
-  return DEFAULT_PRIMARY;
+  if (custom.length > 0) return custom.filter(r => ICONS[r]).slice(0, 4);
+  return DEFAULT_PRIMARY.slice(0, 4);
 }
 
-export default function BottomTabBar() {
+const REPORT_ICON = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+
+export default function BottomTabBar({ onReportIssue }) {
   const { user } = useAuth();
   const { bottomBarTabs } = useAdminData();
 
@@ -70,11 +72,12 @@ export default function BottomTabBar() {
         {VIEWER_PRIMARY.map(route => (
           <TabItem key={route} to={route} />
         ))}
+        <ReportButton onClick={onReportIssue} />
       </nav>
     );
   }
 
-  const routes = getActiveRoutes(bottomBarTabs);
+  const routes = getActiveRoutes(bottomBarTabs).slice(0, 4);
 
   if (routes.length === 0) return null;
 
@@ -83,7 +86,17 @@ export default function BottomTabBar() {
       {routes.map(route => (
         <TabItem key={route} to={route} end={route === '/'} />
       ))}
+      <ReportButton onClick={onReportIssue} />
     </nav>
+  );
+}
+
+function ReportButton({ onClick }) {
+  return (
+    <button className="bottom-tab" onClick={onClick}>
+      <span className="bottom-tab-icon">{REPORT_ICON}</span>
+      <span className="bottom-tab-label">Report</span>
+    </button>
   );
 }
 

@@ -171,6 +171,56 @@ to understand what was built and how. For current data model schemas, see `DATA_
 - [x] Bug fixes: modal backdrop click prevention, admin data race condition guard
 - [ ] AI usage log in Admin (deferred — unassigned)
 
+## Phase 17 — Learning tab ✅
+
+- [x] `learning` domain with certifications and courses arrays
+- [x] `useLearningData` hook following standard data-hook pattern
+- [x] Add/edit/delete certifications with status tracking (Earned, In progress, Planned, Expired)
+- [x] Add/edit/delete courses with completion tracking
+- [x] Domain added to backend allowed domains list and `buildContext.js`
+- [x] Learning tab in sidebar with route and RoleGuard
+
+## Phase 18 — Roles and access control ✅
+
+- [x] **18a** — `migration_phase18.sql`: role column (superuser/user/viewer) with NOT NULL + CHECK, security_question + security_answer_hash columns, must_change_password flag, app_settings table, viewer_access table. First user auto-promoted to superuser.
+- [x] **18b** — Registration invite code gate: checked against bcrypt hash in app_settings; open if no code set (handles first-user bootstrap).
+- [x] **18c** — Security question on registration: free-text question + bcrypt-hashed answer (case-insensitive, whitespace-normalised).
+- [x] **18d** — Super Admin panel (`SuperAdmin.jsx`): Users sub-tab (table, role dropdown, reset password modal, delete confirmation), Invite code sub-tab (set/clear/status), Platform sub-tab (placeholder).
+- [x] **18e** — Forgot password flow (`ForgotPassword.jsx`): two-step (email → security question → new password), fake question for non-existent emails to prevent enumeration, "Back to login" link on every step.
+- [x] **18f** — User profile in Admin tab: name (editable), email (read-only), role (display), change password (re-auth), update security question (re-auth). Sections save independently.
+- [x] **18g** — View others tab: PeerAccessSection in Sharing (grant by email, revoke), ViewOthers page (peer list → read-only PeerDashboard + PeerNarrative), backend peers.js with access verification via viewer_access table.
+- [x] **18h** — Sidebar + routing: viewer sees only View others + Admin, Super Admin always last for superuser, RoleGuard on all data routes, Layout filters nav items by role.
+
+## Phase 19 — Mobile UX ✅
+
+- [x] **19a** — PWA manifest + service worker (vite-plugin-pwa), safe-area-inset padding
+- [x] **19b** — Bottom tab bar with star system (up to 5 customisable tabs)
+- [x] **19c** — Tables → cards on mobile (data tables, super admin, scorecard, pursuits, utilization)
+- [x] **19d** — Mobile hamburger menu + sidebar with backdrop, mobile header with currency toggle
+- [x] **19e** — Touch-friendly targets (44px minimum)
+- [x] **19f** — Form input improvements (inputmode, type=date, textarea min-heights)
+- [x] **19g** — Dashboard mobile layout (stat cards stacking, FAB quick-add, scorecard collapse)
+- [x] **19h** — Public share and feedback pages mobile (scorecard cards, 48px star targets, full-width submit)
+- [x] **19i** — View others mobile (sticky viewing banner, 44px peer cards, responsive grid)
+
+## Phase 21 — Readiness score ✅
+
+- [x] Readiness scoring engine with weighted criteria
+- [x] Dashboard readiness widget with progress visualisation
+- [x] Readiness weights configurable in Admin → User settings
+
+## Phase 22 — Eminence tracker ✅
+
+- [x] `eminence` domain with activities array (type, date, venue, audience, reach, tags, year)
+- [x] `useEminenceData` hook following standard pattern
+- [x] Eminence tab with add/edit/delete activities
+- [x] Domain added to backend and buildContext.js
+
+## Phase 7c — People relationship status ✅
+
+- [x] `relationshipStatus` field added to people data model (established / in-progress)
+- [x] Status shown in People tab UI with filter support
+
 ---
 
 ## Progress log
@@ -180,3 +230,5 @@ to understand what was built and how. For current data model schemas, see `DATA_
 | 2026-04-05 | Phases 1–15 completed in a single build session |
 | 2026-04-05 | All out-of-phase additions (calendar, pursuits, currency, tab ordering, etc.) |
 | 2026-04-06 | Phase 16 complete — AI prompt engineering, buildContext.js, Narrative + Gaps redesign |
+| 2026-04-06 | Phases 17, 18, 19a/b/d/e/f, 21, 22, 7c complete — Learning, Roles/access control, Mobile core, Readiness, Eminence, People relationship status |
+| 2026-04-07 | In-app GitHub issue reporting: sidebar + mobile bottom bar button, Super Admin config, modal form, backend proxy to GitHub API |
