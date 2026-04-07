@@ -30,7 +30,7 @@ export default function PublicSummary() {
   if (state === 'notfound') return <PublicShell><p className="public-error">This share link is no longer active.</p></PublicShell>;
   if (state === 'error')    return <PublicShell><p className="public-error">Something went wrong — please try again.</p></PublicShell>;
 
-  const { owner, wins, narrative, scorecard, readiness, certifications } = data;
+  const { owner, wins, narrative, scorecard, readiness, certifications, eminence } = data;
 
   return (
     <PublicShell>
@@ -125,6 +125,30 @@ export default function PublicSummary() {
                   <div className="public-win-tags">
                     {win.tags.map(t => <span key={t} className="public-win-tag">{t}</span>)}
                   </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {eminence && eminence.length > 0 && (
+        <section className="public-section">
+          <h2 className="public-section-title">Eminence</h2>
+          <div className="public-wins">
+            {eminence.map((a, i) => (
+              <div key={i} className="public-win-card">
+                <div className="public-win-header">
+                  <span className="public-win-title">{a.title}</span>
+                  <span className="public-win-date">{fmtDate(a.date)}</span>
+                </div>
+                <div className="public-win-tags">
+                  <span className="public-win-tag">{a.typeLabel ?? a.type}</span>
+                  {a.venue && <span className="public-win-tag">{a.venue}</span>}
+                </div>
+                {a.url && (
+                  <a href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="learning-badge-link" style={{ marginTop: '0.35rem' }}>View</a>
                 )}
               </div>
             ))}

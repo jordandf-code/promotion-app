@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { usePeopleData, daysSinceContact } from '../hooks/usePeopleData.js';
+import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS } from '../hooks/usePeopleData.js';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import PersonCard from '../components/people/PersonCard.jsx';
 
-const EMPTY_FORM = { name: '', title: '', org: '', type: '', email: '', phone: '', need: '' };
+const EMPTY_FORM = { name: '', title: '', org: '', type: '', relationshipStatus: 'in-progress', email: '', phone: '', need: '' };
 
 export default function People() {
   const {
@@ -18,13 +18,15 @@ export default function People() {
   const { relationshipTypes } = useAdminData();
   const { actions, addAction, toggleDone } = useActionsData();
 
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter,   setTypeFilter]   = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modal,      setModal]      = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
   const filtered = people
     .filter(p => typeFilter === 'all' || p.type === typeFilter)
+    .filter(p => statusFilter === 'all' || p.relationshipStatus === statusFilter)
     .filter(p => !filterStale || daysSinceContact(p) > 30)
     .sort((a, b) => daysSinceContact(b) - daysSinceContact(a));
 
@@ -64,9 +66,17 @@ export default function People() {
             <option value="all">All types</option>
             {relationshipTypes.map(t => <option key={t.label} value={t.label}>{t.label}</option>)}
           </select>
+          <div className="seg-group">
+            <button className={`seg-btn ${statusFilter === 'all' ? 'seg-btn--active' : ''}`} onClick={() => setStatusFilter('all')}>All</button>
+            {RELATIONSHIP_STATUSES.map(s => (
+              <button key={s} className={`seg-btn ${statusFilter === s ? 'seg-btn--active' : ''}`} onClick={() => setStatusFilter(s)}>
+                {RELATIONSHIP_STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
         </div>
         {staleCount > 0 && (
-          <span className="stale-count-badge">{staleCount} contact{staleCount !== 1 ? 's' : ''} need follow-up</span>
+          <span className="stale-count-badge">{staleCount} contact{staleCount !== 1 ? 's' : ''} {staleCount === 1 ? 'needs' : 'need'} follow-up</span>
         )}
       </div>
 
@@ -78,6 +88,7 @@ export default function People() {
             relationshipTypes={relationshipTypes}
             onEdit={() => openEdit(p)}
             onDelete={() => handleDelete(p.id)}
+            onUpdatePerson={updatePerson}
             onAddTouchpoint={addTouchpoint}
             onRemoveTouchpoint={removeTouchpoint}
             onAddPlannedTouchpoint={addPlannedTouchpoint}
@@ -130,6 +141,11 @@ function PersonModal({ mode, initial, relationshipTypes, onSave, onClose }) {
             </label>
           </div>
           <div className="form-row">
+            <label>Status
+              <select className="form-input" value={form.relationshipStatus ?? 'in-progress'} onChange={e => setField('relationshipStatus', e.target.value)}>
+                {RELATIONSHIP_STATUSES.map(s => <option key={s} value={s}>{RELATIONSHIP_STATUS_LABELS[s]}</option>)}
+              </select>
+            </label>
             <label>Job title
               <input className="form-input" value={form.title ?? ''}
                 onChange={e => setField('title', e.target.value)} />

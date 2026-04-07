@@ -29,11 +29,13 @@ export default function Pursuits() {
   const [stageFilter, setStageFilter] = useState('all');
   const [modal, setModal] = useState(null);
 
-  // Active pursuits = open opportunities (not won/lost)
+  // Active + lost pursuits (not won)
   const pursuits = scorecard.opportunities
-    .filter(o => o.status === 'open')
+    .filter(o => o.status === 'open' || o.status === 'lost')
     .filter(o => stageFilter === 'all' || o.stage === stageFilter)
     .sort((a, b) => {
+      // Open first, lost at the bottom
+      if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
       const si = STAGES.indexOf(b.stage ?? '') - STAGES.indexOf(a.stage ?? '');
       return si !== 0 ? si : (Number(b.signingsValue) || 0) - (Number(a.signingsValue) || 0);
     });
@@ -154,8 +156,8 @@ export default function Pursuits() {
                 </td>
               </tr>
             ) : pursuits.map(opp => (
-              <tr key={opp.id}>
-                <td className="td-primary">{opp.name}</td>
+              <tr key={opp.id} className={opp.status === 'lost' ? 'tr--lost' : ''}>
+                <td className="td-primary">{opp.status === 'lost' ? <s>{opp.name}</s> : opp.name}</td>
                 <td>{opp.client}</td>
                 <td><StagePip stage={opp.stage} /></td>
                 <td className="num-col">

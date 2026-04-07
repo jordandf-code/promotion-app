@@ -7,6 +7,7 @@ import { useScorecardData } from './useScorecardData.js';
 import { useGoalsData } from './useGoalsData.js';
 import { useWinsData } from './useWinsData.js';
 import { useStoryData } from './useStoryData.js';
+import { useEminenceData } from './useEminenceData.js';
 import { useAdminData } from './useAdminData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 
@@ -49,6 +50,7 @@ const ACTION_PROMPTS = {
 export function computeReadinessScore({
   salesStats, revenueStats, gpStats, utilStats,
   opportunities, goals, wins, gapAnalysis,
+  eminenceActivities,
   weights, qualifyingYear,
 }) {
   const warnings = [];
@@ -121,7 +123,12 @@ export function computeReadinessScore({
   const eminenceWins = qyWins.filter(win =>
     (win.tags ?? []).some(t => t === 'Internal eminence' || t === 'External eminence')
   ).length;
-  const eminenceScore = eminenceWins >= 2 ? 100 : eminenceWins === 1 ? 50 : 0;
+  const qyEminenceActivities = (eminenceActivities ?? []).filter(a => {
+    const d = new Date(a.date);
+    return !isNaN(d) && d.getFullYear() === qualifyingYear;
+  }).length;
+  const totalEminence = eminenceWins + qyEminenceActivities;
+  const eminenceScore = totalEminence >= 2 ? 100 : totalEminence === 1 ? 50 : 0;
   const winsScore = (countScore + eminenceScore) / 2;
 
   // ── Weighted average ──
@@ -165,6 +172,7 @@ export function useReadinessScore() {
   const scorecard = useScorecardData();
   const { goals } = useGoalsData();
   const { wins } = useWinsData();
+  const { activities: eminenceActivities } = useEminenceData();
   const { story } = useStoryData();
   const adminData = useAdminData();
 
@@ -178,11 +186,12 @@ export function useReadinessScore() {
       salesStats, revenueStats, gpStats, utilStats,
       opportunities: scorecard.opportunities,
       goals, wins,
+      eminenceActivities,
       gapAnalysis: story?.gap_analysis?.data ?? [],
       weights: adminData?.readinessWeights ?? DEFAULT_WEIGHTS,
       qualifyingYear,
     });
-  }, [scorecard, goals, wins, story, adminData?.readinessWeights, qualifyingYear]);
+  }, [scorecard, goals, wins, eminenceActivities, story, adminData?.readinessWeights, qualifyingYear]);
 }
 
 export { ACTION_PROMPTS };

@@ -650,6 +650,7 @@
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  min-height: 3.2rem;
 }
 
 .sc-th--qual    { background: var(--qual-bg); color: var(--qual); }
@@ -1337,16 +1338,16 @@ tr:last-child .sc-td { border-bottom: none; }
 
 .tp-log-btn {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-med);
   border-radius: 4px;
   padding: 0.15rem 0.45rem;
   cursor: pointer;
   white-space: nowrap;
 }
-.tp-log-btn:hover { opacity: 0.8; }
+.tp-log-btn:hover { background: var(--hover-bg); }
 
 .planned-action-modes {
   display: flex;
@@ -2455,6 +2456,7 @@ tr:last-child .sc-td { border-bottom: none; }
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  margin-bottom: 0.5rem;
 }
 .tab-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
@@ -2467,6 +2469,63 @@ tr:last-child .sc-td { border-bottom: none; }
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+}
+
+.seg-group {
+  display: inline-flex;
+  border: 1px solid var(--border-med);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.seg-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: inherit;
+  border: none;
+  border-right: 1px solid var(--border-med);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { background: var(--hover-bg); }
+.seg-btn--active {
+  background: var(--brand);
+  color: #fff;
+}
+.seg-btn--active:hover { background: var(--brand); }
+
+/* Summary strip (generic) */
+.summary-strip {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.summary-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.875rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+  flex: 1;
+  min-width: 120px;
+}
+.summary-stat-value { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.summary-stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Eminence pills */
+.eminence-pill--external {
+  background: var(--green-bg) !important;
+  color: var(--green) !important;
+  border: 1px solid var(--green-border) !important;
+}
+.eminence-pill--internal {
+  background: var(--brand-light) !important;
+  color: var(--brand) !important;
+  border: 1px solid rgba(0,64,160,0.2) !important;
 }
 
 /* Buttons */
@@ -2521,6 +2580,7 @@ tr:last-child .sc-td { border-bottom: none; }
 
 /* Data table */
 .data-table-wrap { overflow-x: auto; }
+.tr--lost td { color: var(--text-muted); }
 .data-table {
   width: 100%;
   border-collapse: collapse;

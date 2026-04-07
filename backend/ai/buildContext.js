@@ -76,7 +76,7 @@ function getUtilStats(utilization, targets, year) {
 async function buildContext(userId) {
   const result = await db.query(
     `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-    [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning']]
+    [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence']]
   );
   const byDomain = Object.fromEntries(result.rows.map(r => [r.domain, r.data]));
 
@@ -86,7 +86,8 @@ async function buildContext(userId) {
   const rawWins  = byDomain.wins     ?? [];
   const rawGoals = byDomain.goals    ?? [];
   const rawPeople   = byDomain.people   ?? [];
-  const rawLearning = byDomain.learning ?? { certifications: [], courses: [] };
+  const rawLearning  = byDomain.learning  ?? { certifications: [], courses: [] };
+  const rawEminence  = byDomain.eminence  ?? { activities: [] };
 
   // Validate required config
   const anthropicKey = admin.anthropicKey;
@@ -205,11 +206,12 @@ async function buildContext(userId) {
   const people = rawPeople.map(p => {
     const lastTp = (p.touchpoints ?? []).sort((a, b) => b.date.localeCompare(a.date))[0];
     return {
-      name:              p.name,
-      title:             p.title ?? null,
-      org:               p.org ?? null,
-      relationship_type: p.type ?? null,
-      last_touchpoint:   lastTp?.date ?? null,
+      name:                p.name,
+      title:               p.title ?? null,
+      org:                 p.org ?? null,
+      relationship_type:   p.type ?? null,
+      relationship_status: p.relationshipStatus ?? null,
+      last_touchpoint:     lastTp?.date ?? null,
     };
   });
 
@@ -255,6 +257,19 @@ async function buildContext(userId) {
   if (wins.length)          context.wins = wins;
   if (goals.length)         context.goals = goals;
   if (people.length)        context.people = people;
+
+  // ── eminence (20 most recent) ──
+  const eminenceActivities = [...(rawEminence.activities ?? [])]
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, 20)
+    .map(e => ({
+      title:    e.title,
+      type:     e.type ?? null,
+      date:     e.date ?? null,
+      audience: e.audience ?? null,
+      venue:    e.venue ?? null,
+    }));
+  if (eminenceActivities.length) context.eminence = eminenceActivities;
 
   // ── learning (all earned/completed + up to 5 planned) ──
   const rawCerts   = rawLearning.certifications ?? [];

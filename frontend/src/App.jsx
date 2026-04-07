@@ -20,6 +20,7 @@ import Sharing from './pages/Sharing';
 import Calendar from './pages/Calendar';
 import Pursuits from './pages/Pursuits';
 import Learning from './pages/Learning';
+import Eminence from './pages/Eminence';
 import SuperAdmin from './pages/SuperAdmin';
 import ViewOthers from './pages/ViewOthers';
 import PublicSummary from './pages/PublicSummary';
@@ -62,7 +63,8 @@ export default function App() {
             <Route path="sharing"    element={<RoleGuard allowed={['superuser','user']}><Sharing /></RoleGuard>} />
             <Route path="calendar"   element={<RoleGuard allowed={['superuser','user']}><Calendar /></RoleGuard>} />
             <Route path="pursuits"   element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
-            <Route path="learning"  element={<RoleGuard allowed={['superuser','user']}><Learning /></RoleGuard>} />
+            <Route path="learning"   element={<RoleGuard allowed={['superuser','user']}><Learning /></RoleGuard>} />
+            <Route path="eminence"   element={<RoleGuard allowed={['superuser','user']}><Eminence /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />
             <Route path="view-others" element={<ViewOthers />} />
             <Route path="super-admin" element={<RoleGuard allowed={['superuser']}><SuperAdmin /></RoleGuard>} />

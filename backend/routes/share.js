@@ -142,7 +142,7 @@ router.get('/view/:token', async (req, res) => {
 
     const dataResult = await db.query(
       `SELECT domain, data FROM user_data
-       WHERE user_id = $1 AND domain IN ('sharing', 'wins', 'story', 'scorecard', 'settings', 'learning')`,
+       WHERE user_id = $1 AND domain IN ('sharing', 'wins', 'story', 'scorecard', 'settings', 'learning', 'eminence')`,
       [userId]
     );
 
@@ -160,6 +160,13 @@ router.get('/view/:token', async (req, res) => {
           .map(c => ({ name: c.name, issuer: c.issuer, dateEarned: c.dateEarned }))
       : null;
 
+    const eminenceActivities = sharing.showEminence && byDomain.eminence
+      ? (byDomain.eminence.activities ?? [])
+          .filter(a => a.audience === 'external')
+          .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+          .map(a => ({ title: a.title, type: a.type, date: a.date, venue: a.venue, url: a.url }))
+      : null;
+
     res.json({
       owner:          { name },
       settings:       sharing,
@@ -167,6 +174,7 @@ router.get('/view/:token', async (req, res) => {
       narrative:      sharing.showNarrative ? (byDomain.story?.narrative ?? null) : null,
       scorecard:      scorecardSummary,
       certifications: earnedCerts,
+      eminence:       eminenceActivities,
     });
   } catch (err) {
     console.error('share view error:', err.message);

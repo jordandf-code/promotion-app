@@ -11,7 +11,7 @@ export const COLOR_PALETTE = [
 ];
 
 export const DEFAULT_NAV_ORDER = [
-  '/', '/scorecard', '/pursuits', '/goals', '/people', '/wins',
+  '/', '/scorecard', '/pursuits', '/goals', '/people', '/wins', '/eminence',
   '/actions', '/learning', '/story', '/calendar', '/sharing', '/admin',
 ];
 
@@ -48,6 +48,17 @@ export const DEFAULT_ORIGIN_TYPES = [
   { value: 'existing-client', label: 'Existing client' },
 ];
 
+export const DEFAULT_EMINENCE_TYPES = [
+  { value: 'speaking',     label: 'Speaking' },
+  { value: 'publication',  label: 'Publication' },
+  { value: 'media',        label: 'Media' },
+  { value: 'panel',        label: 'Panel' },
+  { value: 'award',        label: 'Award' },
+  { value: 'internal-ibm', label: 'Internal IBM' },
+  { value: 'community',    label: 'Community' },
+  { value: 'other',        label: 'Other' },
+];
+
 export const DEFAULT_PIPELINE_STAGES = [
   { label: 'Identified', color: '#64748b' },
   { label: 'Qualified',  color: '#2563eb' },
@@ -62,6 +73,7 @@ const DEFAULTS = {
   dealTypes:         DEFAULT_DEAL_TYPES,
   logoTypes:         DEFAULT_LOGO_TYPES,
   originTypes:       DEFAULT_ORIGIN_TYPES,
+  eminenceTypes:     DEFAULT_EMINENCE_TYPES,
   pipelineStages:    DEFAULT_PIPELINE_STAGES,
   ibmCriteria:       '',
   careerHistory:     '',
@@ -136,6 +148,7 @@ export function AdminDataProvider({ children }) {
   function setDealTypes(types)          { setAdminData(d => ({ ...d, dealTypes: types })); }
   function setLogoTypes(types)          { setAdminData(d => ({ ...d, logoTypes: types })); }
   function setOriginTypes(types)        { setAdminData(d => ({ ...d, originTypes: types })); }
+  function setEminenceTypes(types)      { setAdminData(d => ({ ...d, eminenceTypes: types })); }
   function setPipelineStages(stages)    { setAdminData(d => ({ ...d, pipelineStages: stages })); }
   function setIbmCriteria(text)         { setAdminData(d => ({ ...d, ibmCriteria: text })); }
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
@@ -147,7 +160,7 @@ export function AdminDataProvider({ children }) {
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
-      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setPipelineStages,
+      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
       setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
     }}>
       {children}
