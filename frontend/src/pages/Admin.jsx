@@ -218,7 +218,177 @@ function ProfileTab() {
           </form>
         </div>
       </section>
+
+      <NotificationPrefsSection />
     </div>
+  );
+}
+
+// ── Notification preferences (shown in My Profile, all roles) ───────────────
+
+const DAYS_OF_WEEK = [
+  { value: 'monday',    label: 'Monday' },
+  { value: 'tuesday',   label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday',  label: 'Thursday' },
+  { value: 'friday',    label: 'Friday' },
+  { value: 'saturday',  label: 'Saturday' },
+  { value: 'sunday',    label: 'Sunday' },
+];
+
+const HOURS_UTC = Array.from({ length: 24 }, (_, i) => ({
+  value: i,
+  label: `${i.toString().padStart(2, '0')}:00 UTC`,
+}));
+
+function NotificationPrefsSection() {
+  const [prefs, setPrefs] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [testMsg, setTestMsg] = useState('');
+  const [history, setHistory] = useState([]);
+  const initialized = useRef(false);
+
+  const loadPrefs = useCallback(async () => {
+    try {
+      const [prefsRes, histRes] = await Promise.all([
+        fetch(`${API_BASE}/api/notifications/prefs`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/notifications/history`, { headers: authHeaders() }),
+      ]);
+      const prefsData = await prefsRes.json();
+      const histData = await histRes.json();
+      setPrefs(prefsData.prefs || {});
+      setHistory(histData.notifications || []);
+      initialized.current = true;
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadPrefs(); }, [loadPrefs]);
+
+  async function savePrefs(updated) {
+    setPrefs(updated);
+    setSaving(true);
+    setMsg('');
+    try {
+      const res = await fetch(`${API_BASE}/api/notifications/prefs`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ prefs: updated }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMsg('Saved');
+      setTimeout(() => setMsg(''), 2000);
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggle(key) {
+    const updated = { ...prefs, [key]: prefs[key] === false ? true : false };
+    // If turning off 'paused', default to true (re-enable)
+    if (key === 'paused') updated.paused = !prefs.paused;
+    savePrefs(updated);
+  }
+
+  function setDigestDay(day) { savePrefs({ ...prefs, digestDay: day }); }
+  function setDigestHour(hour) { savePrefs({ ...prefs, digestHour: Number(hour) }); }
+
+  async function sendTestDigest() {
+    setTestMsg('Sending…');
+    try {
+      const res = await fetch(`${API_BASE}/api/notifications/test-digest`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      setTestMsg(data.ok ? 'Test digest sent — check your email!' : data.message || 'Failed to send');
+    } catch (err) {
+      setTestMsg(err.message);
+    }
+  }
+
+  if (loading) return null;
+  if (!prefs) return null;
+
+  const paused = !!prefs.paused;
+  const digestEnabled = prefs.weeklyDigest !== false;
+  const feedbackEnabled = prefs.feedbackReceived !== false;
+
+  return (
+    <section className="section">
+      <div className="section-header"><h2 className="section-title">Notifications</h2></div>
+      <div className="card admin-card">
+        {msg && <p className="muted" style={{ marginBottom: '0.5rem' }}>{msg}</p>}
+
+        <label className="sharing-toggle" style={{ marginBottom: '1rem' }}>
+          <input type="checkbox" checked={!paused} onChange={() => toggle('paused')} />
+          <strong>Email notifications</strong>
+        </label>
+
+        {!paused && (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={digestEnabled}
+                  onChange={() => savePrefs({ ...prefs, weeklyDigest: !digestEnabled })} />
+                Weekly digest
+              </label>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={feedbackEnabled}
+                  onChange={() => savePrefs({ ...prefs, feedbackReceived: !feedbackEnabled })} />
+                Feedback received
+              </label>
+            </div>
+
+            {digestEnabled && (
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                <label>
+                  Digest day
+                  <select className="form-input" value={prefs.digestDay || 'monday'}
+                    onChange={e => setDigestDay(e.target.value)} style={{ width: 'auto' }}>
+                    {DAYS_OF_WEEK.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Digest time
+                  <select className="form-input" value={prefs.digestHour != null ? prefs.digestHour : 12}
+                    onChange={e => setDigestHour(e.target.value)} style={{ width: 'auto' }}>
+                    {HOURS_UTC.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem' }}>
+              <button className="btn-secondary" onClick={sendTestDigest}>Send test digest</button>
+              {testMsg && <span className="muted">{testMsg}</span>}
+            </div>
+          </>
+        )}
+
+        {history.length > 0 && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="admin-description" style={{ marginBottom: '0.5rem' }}><strong>Recent notifications</strong></p>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {history.slice(0, 10).map(n => (
+                <div key={n.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>{n.type === 'weekly_digest' ? 'Weekly digest' : n.type === 'feedback_received' ? 'Feedback received' : n.type}</span>
+                  <span>{new Date(n.sent_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

@@ -221,6 +221,17 @@ to understand what was built and how. For current data model schemas, see `DATA_
 - [x] `relationshipStatus` field added to people data model (established / in-progress)
 - [x] Status shown in People tab UI with filter support
 
+## Phase 23 — Notifications (digest + feedback) ✅
+
+- [x] **23a** — `migration_phase23.sql`: `notification_prefs` JSONB column on users, `notifications` send log table with index
+- [x] **23b** — Two notification types implemented: `weekly_digest` and `feedback_received` (other 4 deferred)
+- [x] **23c** — Backend: `notifications/send.js` (core sender with prefs/dedup/Resend API), `notifications/digest.js` (full weekly summary email with readiness, scorecard, overdue actions, stale contacts, goals, wins), `notifications/readiness.js` (server-side port of readiness score), `notifications/scheduler.js` (hourly node-cron check, per-user day+hour config)
+- [x] **23d** — Admin → My profile: notification toggles (global pause, per-type), digest day/hour schedule, test digest button, notification history
+- [x] **23e** — Feedback notification: inline fire-and-forget email on `POST /api/share/feedback/:token` with reviewer name, stars, comment preview
+- [x] Super Admin → Platform: Resend API key status, configurable from-address (stored in `app_settings`)
+- [x] Health endpoint moved above CORS for external keep-alive pings
+- [x] DEPLOY.md updated with Resend setup and cron-job.org keep-alive instructions
+
 ---
 
 ## Progress log
@@ -232,3 +243,4 @@ to understand what was built and how. For current data model schemas, see `DATA_
 | 2026-04-06 | Phase 16 complete — AI prompt engineering, buildContext.js, Narrative + Gaps redesign |
 | 2026-04-06 | Phases 17, 18, 19a/b/d/e/f, 21, 22, 7c complete — Learning, Roles/access control, Mobile core, Readiness, Eminence, People relationship status |
 | 2026-04-07 | In-app GitHub issue reporting: sidebar + mobile bottom bar button, Super Admin config, modal form, backend proxy to GitHub API |
+| 2026-04-07 | Phase 23: Email notifications — weekly digest + feedback received, Resend integration, node-cron scheduler, per-user schedule config |

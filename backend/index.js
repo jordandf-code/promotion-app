@@ -18,4 +18,12 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
+
+  // Initialize notification scheduler (non-blocking)
+  try {
+    const { initScheduler } = require('./notifications/scheduler');
+    initScheduler();
+  } catch (err) {
+    console.error('Failed to initialize notification scheduler:', err.message);
+  }
 });

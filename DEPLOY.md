@@ -96,6 +96,8 @@ When a phase adds new tables or columns:
 |---|---|
 | `DATABASE_URL` | Prod Supabase connection string (URI format) |
 | `JWT_SECRET` | Long random string — same value used locally in `backend/.env` |
+| `RESEND_API_KEY` | Resend API key for email notifications (optional — notifications disabled without it) |
+| `APP_URL` | Your app's public URL, e.g. `https://partner.jordandf.com` (used in email CTA buttons) |
 
 ### Vercel (frontend)
 | Variable | Value |
@@ -104,3 +106,29 @@ When a phase adds new tables or columns:
 
 The Anthropic API key is **not** an environment variable in either platform.
 Each user sets their own key in the Admin tab after logging in.
+
+---
+
+## Email notifications (Phase 23)
+
+### Resend setup
+1. Sign up at [resend.com](https://resend.com) and create an API key
+2. Add `RESEND_API_KEY` to your Render environment variables
+3. (Optional) Verify your custom domain in Resend → Domains to send from your own address
+4. In the app: Super Admin → Platform → set the "From address" (e.g. `Promotion Tracker <notifications@partner.jordandf.com>`)
+
+### Keeping the server awake for scheduled notifications
+Render's free tier sleeps the server after 15 minutes of inactivity. The weekly digest uses `node-cron` which only fires when the server is running.
+
+To ensure reliable delivery:
+1. Go to [cron-job.org](https://cron-job.org) and create a free account
+2. Create a new job: URL = `https://your-app.onrender.com/api/health`, interval = every 14 minutes
+3. This keeps the server awake so cron jobs fire on schedule
+
+Without the keep-alive ping, digest emails will only send when someone next opens the app.
+
+### Notification types
+| Type | Schedule | Configurable by user |
+|---|---|---|
+| Weekly digest | User-selected day + hour (default: Monday 12pm UTC) | Yes |
+| Feedback received | Immediately when feedback is submitted | Yes |

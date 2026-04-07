@@ -20,18 +20,20 @@ app.use(express.json({ limit: '2mb' }));
 // Trust proxy headers (Render, Vercel, etc.) so express-rate-limit sees real client IPs
 app.set('trust proxy', 1);
 
+// Health check — no CORS restriction, no auth (used by keep-alive pings)
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running' });
+});
+
 // --- ROUTES ---
 app.use('/api/auth',   require('./routes/auth'));
 app.use('/api/ai',     require('./routes/ai'));
 app.use('/api/data',   require('./routes/data'));
 app.use('/api/share',  require('./routes/share'));
 app.use('/api/admin',  require('./routes/admin'));
-app.use('/api/issues', require('./routes/issues'));
+app.use('/api/issues',        require('./routes/issues'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api',        require('./routes/peers'));
-
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running' });
-});
 
 // --- GLOBAL ERROR HANDLER ---
 app.use((err, _req, res, _next) => {

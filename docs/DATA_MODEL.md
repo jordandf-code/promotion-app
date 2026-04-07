@@ -156,6 +156,7 @@ CREATE TABLE users (
   security_question     TEXT,                 -- Phase 18
   security_answer_hash  TEXT,                 -- Phase 18 (bcrypt)
   must_change_password  BOOLEAN NOT NULL DEFAULT FALSE,  -- Phase 18
+  notification_prefs    JSONB NOT NULL DEFAULT '{}',    -- Phase 23
   created_at            TIMESTAMPTZ DEFAULT now()
 );
 ```
@@ -203,6 +204,31 @@ CREATE TABLE viewer_access (
 );
 ```
 Tracks which users have granted peer viewing access to other users. Used by the "View others" tab.
+
+### `notifications` (Phase 23)
+```sql
+CREATE TABLE notifications (
+  id        SERIAL PRIMARY KEY,
+  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type      TEXT NOT NULL,
+  payload   JSONB,
+  sent_at   TIMESTAMPTZ DEFAULT NOW(),
+  opened_at TIMESTAMPTZ
+);
+CREATE INDEX idx_notifications_user_sent ON notifications(user_id, sent_at DESC);
+```
+Send log for email notifications. Types: `weekly_digest`, `feedback_received`. Used for dedup and history display.
+
+`notification_prefs` JSONB on `users` table stores per-user preferences:
+```json
+{
+  "paused": false,
+  "weeklyDigest": true,
+  "feedbackReceived": true,
+  "digestDay": "monday",
+  "digestHour": 12
+}
+```
 
 ## Scorecard year structure
 
