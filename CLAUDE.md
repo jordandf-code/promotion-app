@@ -37,7 +37,9 @@ cd frontend && npm run dev   # port 5173
 # Git workflow
 git checkout dev             # all work on dev branch
 git add -A && git commit -m "description"
-git push origin dev          # then PR to main for auto-deploy
+git push origin dev          # then PR to main
+gh pr create --base main --head dev --title "title" --body "body"
+gh pr merge --merge          # merge PR to main for auto-deploy
 ```
 
 ## Key conventions
