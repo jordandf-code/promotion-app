@@ -81,6 +81,9 @@ const DEFAULTS = {
   navOrder:          DEFAULT_NAV_ORDER,
   bottomBarTabs:     null,
   readinessWeights:  null,
+  deckTemplate:           '',
+  deckTemplateFilename:   '',
+  deckContentInstructions: '',
 };
 
 function migrateFromV1(v1data) {
@@ -156,12 +159,15 @@ export function AdminDataProvider({ children }) {
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
   function setBottomBarTabs(tabs)       { setAdminData(d => ({ ...d, bottomBarTabs: tabs })); }
   function setReadinessWeights(weights) { setAdminData(d => ({ ...d, readinessWeights: weights })); }
+  function setDeckTemplate(base64, filename) { setAdminData(d => ({ ...d, deckTemplate: base64, deckTemplateFilename: filename })); }
+  function setDeckContentInstructions(text) { setAdminData(d => ({ ...d, deckContentInstructions: text })); }
 
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
       setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
+      setDeckTemplate, setDeckContentInstructions,
     }}>
       {children}
     </AdminDataContext.Provider>

@@ -395,7 +395,11 @@ function NotificationPrefsSection() {
 // ── Tab 1: GenAI ────────────────────────────────────────────────────────────
 
 function GenAITab() {
-  const { ibmCriteria, setIbmCriteria, careerHistory, setCareerHistory, anthropicKey, setAnthropicKey, readinessWeights, setReadinessWeights } = useAdminData();
+  const {
+    ibmCriteria, setIbmCriteria, careerHistory, setCareerHistory,
+    anthropicKey, setAnthropicKey, readinessWeights, setReadinessWeights,
+    deckTemplate, deckTemplateFilename, setDeckTemplate, deckContentInstructions, setDeckContentInstructions,
+  } = useAdminData();
 
   return (
     <div className="tab-content">
@@ -437,6 +441,38 @@ function GenAITab() {
           </p>
           <TextSection value={careerHistory} onSave={setCareerHistory}
             placeholder="e.g. 12 years at IBM Canada. Started as a consultant, promoted to Senior Consultant (2017), Manager (2019), Associate Partner (2022). Focus on federal public sector IT transformation..." rows={7} />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Deck template</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Upload a .pptx template to customise the look of your promotion deck.
+            If none is uploaded, the built-in default is used.
+          </p>
+          <DeckTemplateSection
+            templateFilename={deckTemplateFilename}
+            hasTemplate={!!deckTemplate}
+            onUpload={setDeckTemplate}
+            onRemove={() => setDeckTemplate('', '')}
+          />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Deck content instructions</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Plain English instructions Claude uses when filling your deck (e.g. tone, which criteria
+            to emphasise, how to handle thin data). If empty, built-in defaults are used.
+          </p>
+          <TextSection value={deckContentInstructions} onSave={setDeckContentInstructions}
+            placeholder="e.g. Emphasise net-new logo wins. Use confident, executive tone. Prioritise client relationship and commercial criteria..." rows={5} />
         </div>
       </section>
 
@@ -913,6 +949,72 @@ function EditableValueList({ items, onChange }) {
 }
 
 // ── Large text sections ──────────────────────────────────────────────────────
+
+function DeckTemplateSection({ templateFilename, hasTemplate, onUpload, onRemove }) {
+  const fileRef = useRef(null);
+  const [error, setError] = useState('');
+
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    if (!file.name.endsWith('.pptx')) { setError('Only .pptx files are accepted.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('File exceeds 5MB limit.'); return; }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1]; // strip data:...;base64, prefix
+      onUpload(base64, file.name);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // reset so same file can be re-uploaded
+  }
+
+  return (
+    <div>
+      {hasTemplate ? (
+        <div className="admin-save-row" style={{ marginBottom: '0.75rem' }}>
+          <span className="muted">Current: {templateFilename || 'Custom template'}</span>
+          <button className="btn-secondary btn-sm" onClick={onRemove}>Remove</button>
+        </div>
+      ) : (
+        <p className="muted" style={{ marginBottom: '0.75rem' }}>No custom template — using built-in default.</p>
+      )}
+      <input ref={fileRef} type="file" accept=".pptx" style={{ display: 'none' }} onChange={handleFile} />
+      <button className="btn-primary" onClick={() => fileRef.current?.click()}>Upload .pptx template</button>
+      <span className="muted" style={{ marginLeft: '0.75rem' }}>Max 5MB</span>
+      {error && <p className="form-error" style={{ marginTop: '0.5rem' }}>{error}</p>}
+
+      <details style={{ marginTop: '1rem' }}>
+        <summary className="muted" style={{ cursor: 'pointer' }}>Template requirements</summary>
+        <pre className="admin-textarea" style={{ marginTop: '0.5rem', fontSize: '0.8rem', whiteSpace: 'pre-wrap', maxHeight: '300px', overflow: 'auto' }}>{`Your template must contain these exact placeholder strings — the app replaces them with your live data when you generate a deck.
+
+Slide 1 (scorecard + wins + pipeline):
+  [Candidate Name]
+  [Associate Partner – Band 10]     ← your current role
+  [Client Partner – Band D]         ← your target role
+  [Public Sector / Canadian Federal] ← your practice/market
+  [2025]                            ← qualifying year
+  $XXM  (×4 — signings, revenue, pursuit A/B/C values)
+  vs $XXM target  (×2 — signings and revenue targets)
+  XX%   (×2 — gross profit and utilization values)
+  vs XX% target  (×2 — gross profit and utilization targets)
+  [Win 1 – one sentence describing the win, client, and value]
+  [Win 2 – ...]  [Win 3 – ...]  [Win 4 – ...]
+  [Pursuit A – brief description]
+  [Pursuit B – ...]  [Pursuit C – ...]
+  [e.g., Proposal Submitted]  (×3 — one per pursuit)
+
+Slide 2 (criteria + the ask):
+  [e.g., Client Relationship & Trust]  (×6)
+  ★★★★★ or ★★★★☆  (×6 — strength ratings)
+  [Jordan is the trusted advisor...]   (×6 — one-line assessments)
+  [Bullet 1 – e.g., Own and grow...]
+  [Bullet 2 – ...]  [Bullet 3 – ...]`}</pre>
+      </details>
+    </div>
+  );
+}
 
 function TextSection({ value, onSave, placeholder, rows }) {
   const [draft, setDraft] = useState(value);

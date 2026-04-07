@@ -22,6 +22,9 @@ export default function MyStory() {
   const readiness = useReadinessScore();
   const [loading, setLoading] = useState({});
   const [errors,  setErrors]  = useState({});
+  const [deckLoading, setDeckLoading] = useState(false);
+  const [deckError,   setDeckError]   = useState(null);
+  const [deckUsage,   setDeckUsage]   = useState(null);
 
   const configured = !!(anthropicKey && ibmCriteria);
 
@@ -81,6 +84,42 @@ export default function MyStory() {
     const a    = document.createElement('a');
     a.href = url; a.download = 'promotion-story.txt'; a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function generateDeck() {
+    setDeckLoading(true);
+    setDeckError(null);
+    setDeckUsage(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/deck`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
+      if (!res.ok) {
+        const ct = res.headers.get('Content-Type') || '';
+        if (ct.includes('application/json')) {
+          const errData = await res.json();
+          const err = new Error(errData.error);
+          err.code = errData.code;
+          throw err;
+        }
+        throw new Error(`Server returned ${res.status}`);
+      }
+      const usageHeader = res.headers.get('X-Token-Usage');
+      if (usageHeader) setDeckUsage(JSON.parse(usageHeader));
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'PromotionCase.pptx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDeckError(mapAiError(err.code, err.message));
+    } finally {
+      setDeckLoading(false);
+    }
   }
 
   // ── Setup required ──
@@ -175,6 +214,35 @@ export default function MyStory() {
           </div>
         )}
       </StorySection>
+
+      {/* ── Export Deck ── */}
+      <section className="section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Export deck <span className="muted" style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(testing only)</span></h2>
+            <span className="section-sub">Download a populated .pptx promotion case deck</span>
+          </div>
+        </div>
+        <div className="card">
+          <button className="btn-primary btn-ai" onClick={generateDeck} disabled={deckLoading}>
+            {deckLoading ? 'Generating deck…' : 'Generate deck (.pptx)'}
+          </button>
+          {deckLoading && (
+            <div className="story-loading-card" style={{ marginTop: '1rem' }}>
+              <div className="story-spinner">✦</div>
+              <p>Generating deck…</p>
+            </div>
+          )}
+          {deckError && !deckLoading && (
+            <div className="story-error" style={{ marginTop: '0.75rem' }}>{deckError}</div>
+          )}
+          {deckUsage && !deckLoading && (
+            <p className="story-token-usage">
+              {deckUsage.input_tokens} input tokens · {deckUsage.output_tokens} output tokens
+            </p>
+          )}
+        </div>
+      </section>
 
     </div>
   );
