@@ -3928,7 +3928,9 @@ tr:last-child .sc-td { border-bottom: none; }
   .main-content {
     margin-left: 0;
     padding-top: 3.25rem;
+    overflow-x: hidden;
   }
+  .app-shell { overflow-x: hidden; }
 
   /* ── Page layout ── */
   .page { padding: 1rem; }
