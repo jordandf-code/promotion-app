@@ -1,13 +1,26 @@
 // components/admin/WipeSection.jsx
-// Wipes all transactional data (wins, goals, actions, people, scorecard targets/opps/projects).
+// Wipes all transactional data (wins, goals, actions, people, scorecard, eminence, learning, story).
 // Admin settings (categories, relationship types, IBM criteria, API key) are preserved.
 // A backup is saved before wiping and can be restored with one click.
 
 import { useState, useEffect } from 'react';
-import { apiGet, apiPut } from '../../utils/api.js';
+import { API_BASE, authHeaders, apiGet } from '../../utils/api.js';
 
 const EMPTY_SCORECARD = { targets: {}, opportunities: [], projects: [], utilization: {} };
-const WIPE_DOMAINS    = ['wins', 'goals', 'actions', 'people', 'scorecard'];
+const EMPTY_LEARNING  = { certifications: [], courses: [] };
+const EMPTY_EMINENCE  = { activities: [] };
+
+const WIPE_DOMAINS = ['wins', 'goals', 'actions', 'people', 'scorecard', 'eminence', 'learning'];
+
+// Direct PUT that bypasses debounce — needed before reload
+async function directPut(domain, data) {
+  const res = await fetch(`${API_BASE}/api/data/${domain}`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`PUT ${domain} failed`);
+}
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleString('en-CA', {
@@ -30,7 +43,7 @@ export default function WipeSection() {
 
   async function wipeData() {
     if (!window.confirm(
-      'This will clear all your goals, wins, action items, people, and scorecard data.\n\n' +
+      'This will clear all your goals, wins, action items, people, scorecard, eminence, learning, and AI-generated content.\n\n' +
       'Your admin settings (categories, API key, IBM criteria) are kept.\n\n' +
       'A backup will be saved and can be restored. Continue?'
     )) return;
@@ -38,19 +51,19 @@ export default function WipeSection() {
     setWiping(true);
     setError('');
     try {
-      const [wins, goals, actions, people, scorecard] = await Promise.all(
-        WIPE_DOMAINS.map(d => apiGet(d))
-      );
+      const results = await Promise.all(WIPE_DOMAINS.map(d => apiGet(d)));
 
       const backupPayload = {
         createdAt: new Date().toISOString(),
-        wins:      wins      ?? [],
-        goals:     goals     ?? [],
-        actions:   actions   ?? [],
-        people:    people    ?? [],
-        scorecard: scorecard ?? EMPTY_SCORECARD,
+        wins:      results[0] ?? [],
+        goals:     results[1] ?? [],
+        actions:   results[2] ?? [],
+        people:    results[3] ?? [],
+        scorecard: results[4] ?? EMPTY_SCORECARD,
+        eminence:  results[5] ?? EMPTY_EMINENCE,
+        learning:  results[6] ?? EMPTY_LEARNING,
       };
-      await apiPut('backup', backupPayload);
+      await directPut('backup', backupPayload);
 
       // Verify the backup was actually saved before wiping
       const saved = await apiGet('backup');
@@ -61,11 +74,14 @@ export default function WipeSection() {
       }
 
       await Promise.all([
-        apiPut('wins',      []),
-        apiPut('goals',     []),
-        apiPut('actions',   []),
-        apiPut('people',    []),
-        apiPut('scorecard', EMPTY_SCORECARD),
+        directPut('wins',      []),
+        directPut('goals',     []),
+        directPut('actions',   []),
+        directPut('people',    []),
+        directPut('scorecard', EMPTY_SCORECARD),
+        directPut('eminence',  EMPTY_EMINENCE),
+        directPut('learning',  EMPTY_LEARNING),
+        directPut('story',     null),
       ]);
 
       window.location.reload();
@@ -87,11 +103,13 @@ export default function WipeSection() {
       if (!b) { setError('No backup found.'); setRestoring(false); return; }
 
       await Promise.all([
-        apiPut('wins',      b.wins      ?? []),
-        apiPut('goals',     b.goals     ?? []),
-        apiPut('actions',   b.actions   ?? []),
-        apiPut('people',    b.people    ?? []),
-        apiPut('scorecard', b.scorecard ?? EMPTY_SCORECARD),
+        directPut('wins',      b.wins      ?? []),
+        directPut('goals',     b.goals     ?? []),
+        directPut('actions',   b.actions   ?? []),
+        directPut('people',    b.people    ?? []),
+        directPut('scorecard', b.scorecard ?? EMPTY_SCORECARD),
+        directPut('eminence',  b.eminence  ?? EMPTY_EMINENCE),
+        directPut('learning',  b.learning  ?? EMPTY_LEARNING),
       ]);
 
       window.location.reload();
@@ -118,7 +136,7 @@ export default function WipeSection() {
           {wiping ? 'Clearing…' : 'Clear all account data'}
         </button>
         <span className="wipe-hint">
-          Clears wins, goals, actions, people, and scorecard. Admin settings are kept. A backup is saved automatically.
+          Clears wins, goals, actions, people, scorecard, eminence, learning, and AI content. Admin settings are kept. A backup is saved automatically.
         </span>
       </div>
       {error && <p className="wipe-error">{error}</p>}

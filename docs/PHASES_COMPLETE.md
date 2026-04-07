@@ -244,3 +244,5 @@ to understand what was built and how. For current data model schemas, see `DATA_
 | 2026-04-06 | Phases 17, 18, 19a/b/d/e/f, 21, 22, 7c complete — Learning, Roles/access control, Mobile core, Readiness, Eminence, People relationship status |
 | 2026-04-07 | In-app GitHub issue reporting: sidebar + mobile bottom bar button, Super Admin config, modal form, backend proxy to GitHub API |
 | 2026-04-07 | Phase 23: Email notifications — weekly digest + feedback received, Resend integration, node-cron scheduler, per-user schedule config |
+| 2026-04-07 | Phase 20: PowerPoint deck export (testing only) — AI-powered .pptx generation, deck prompt, template renderer with run-merging, Admin template upload/instructions UI |
+| 2026-04-07 | Demo data & onboarding: seed data for all 7 domains (scorecard, wins, goals, actions, people, eminence, learning), demoMode flag, Dashboard banner, "Start your promotion journey" in Admin |

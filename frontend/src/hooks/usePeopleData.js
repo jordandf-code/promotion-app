@@ -97,7 +97,7 @@ export function usePeopleData() {
   const skipSync                      = useRef(false);
 
   useEffect(() => {
-    const local = loadLocal() ?? [];
+    const local = loadLocal() ?? SEED_PEOPLE;
     apiGet('people')
       .then(serverData => {
         if (serverData !== null) {

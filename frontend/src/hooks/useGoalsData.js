@@ -74,7 +74,7 @@ export function useGoalsData() {
   const skipSync                      = useRef(false);
 
   useEffect(() => {
-    const local = loadLocal() ?? [];
+    const local = loadLocal() ?? SEED_GOALS;
     apiGet('goals')
       .then(serverData => {
         if (serverData !== null) {

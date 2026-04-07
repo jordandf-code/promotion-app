@@ -5,12 +5,54 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAdminData, COLOR_PALETTE, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
+import { useSettings } from '../context/SettingsContext.jsx';
 import WipeSection from '../components/admin/WipeSection.jsx';
 import { DEFAULT_WEIGHTS } from '../hooks/useReadinessScore.js';
 
 export default function Admin() {
   const { user } = useAuth();
   const isViewer = user?.role === 'viewer';
+  const { demoMode, setDemoMode } = useSettings();
+  const [journeyLoading, setJourneyLoading] = useState(false);
+
+  async function directPut(domain, data) {
+    const res = await fetch(`${API_BASE}/api/data/${domain}`, {
+      method: 'PUT',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ data }),
+    });
+    if (!res.ok) throw new Error(`PUT ${domain} failed`);
+  }
+
+  async function startJourney() {
+    if (!window.confirm(
+      'This will clear all sample data so you can start entering your real promotion data.\n\n' +
+      'Your admin settings (categories, API key, IBM criteria) are kept.\n\nContinue?'
+    )) return;
+
+    setJourneyLoading(true);
+    try {
+      await Promise.all([
+        directPut('wins',      []),
+        directPut('goals',     []),
+        directPut('actions',   []),
+        directPut('people',    []),
+        directPut('scorecard', { targets: {}, opportunities: [], projects: [], utilization: {} }),
+        directPut('eminence',  { activities: [] }),
+        directPut('learning',  { certifications: [], courses: [] }),
+        directPut('story',     null),
+      ]);
+      // Write demoMode: false directly to bypass debounce
+      const settingsRes = await fetch(`${API_BASE}/api/data/settings`, {
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const currentSettings = (await settingsRes.json()).data ?? {};
+      await directPut('settings', { ...currentSettings, demoMode: false });
+      window.location.reload();
+    } catch {
+      setJourneyLoading(false);
+    }
+  }
 
   const TABS = [
     { id: 'profile',    label: 'My profile'    },
@@ -28,6 +70,19 @@ export default function Admin() {
       <div className="page-header">
         <h1 className="page-title">Admin</h1>
       </div>
+
+      {demoMode && (
+        <div className="card" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1.25rem', marginBottom: '1rem' }}>
+          <h3 style={{ margin: '0 0 0.5rem', color: '#1e40af' }}>Ready to use your real data?</h3>
+          <p className="muted" style={{ margin: '0 0 1rem' }}>
+            You're currently viewing sample data. Click below to clear it and start tracking your real promotion journey.
+            Your admin settings (categories, API key, IBM criteria) will be kept.
+          </p>
+          <button className="btn-primary" onClick={startJourney} disabled={journeyLoading}>
+            {journeyLoading ? 'Clearing sample data…' : 'Start your promotion journey'}
+          </button>
+        </div>
+      )}
 
       <div className="sc-tabs">
         {TABS.map(t => (

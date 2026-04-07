@@ -32,7 +32,7 @@ export function useActionsData() {
   const skipSync                      = useRef(false);
 
   useEffect(() => {
-    const local = loadLocal() ?? [];
+    const local = loadLocal() ?? SEED_ACTIONS;
     apiGet('actions')
       .then(serverData => {
         if (serverData !== null) {
