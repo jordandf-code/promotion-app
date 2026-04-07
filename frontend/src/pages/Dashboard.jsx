@@ -19,7 +19,7 @@ import { useReadinessScore } from '../hooks/useReadinessScore.js';
 const TODAY = new Date();
 
 export default function Dashboard() {
-  const { qualifyingYear } = useSettings();
+  const { qualifyingYear, scorecardYears } = useSettings();
   const scorecard = useScorecardData();
   const { actions, toggleDone, addAction } = useActionsData();
   const { wins, addWin } = useWinsData();
@@ -80,7 +80,7 @@ export default function Dashboard() {
           <Link to="/scorecard" className="section-link">Full scorecard →</Link>
         </div>
         <div className="card card--flush">
-          <ScorecardTable scorecard={scorecard} qualifyingYear={qualifyingYear} />
+          <ScorecardTable scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
         </div>
       </section>
 
@@ -136,6 +136,11 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* FAB for mobile — positioned above bottom tab bar */}
+      <button className="fab-quick-add" onClick={() => setShowQuickAdd(true)} aria-label="Quick add">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
 
       {showQuickAdd && (
         <QuickAddModal

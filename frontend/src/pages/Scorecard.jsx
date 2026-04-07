@@ -1,7 +1,7 @@
 // pages/Scorecard.jsx
 // Sub-tabs: Overview · Opportunities · Projects · Utilization
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useScorecardData, METRIC_KEYS, METRIC_LABELS } from '../hooks/useScorecardData.js';
 import StackedCell      from '../components/scorecard/StackedCell.jsx';
@@ -43,23 +43,38 @@ function yearCellClass(year, promotionYear) {
 
 const WINDOW_SIZE = 3;
 
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return mobile;
+}
+
 // ── Overview grid ──────────────────────────────────────────────────────────
 
 function ScorecardOverview({ scorecard, scorecardYears, promotionYear }) {
-  // Default window centred on current year (prev · current · next)
+  const isMobile = useIsMobile();
+  const windowSize = isMobile ? 1 : WINDOW_SIZE;
+
+  // Default window: on mobile show current year, on desktop centre on current year
+  const currentIdx = scorecardYears.indexOf(CURRENT_YEAR);
   const defaultStart = Math.max(0, Math.min(
-    scorecardYears.indexOf(CURRENT_YEAR) - 1,
-    scorecardYears.length - WINDOW_SIZE,
+    isMobile ? currentIdx : currentIdx - 1,
+    scorecardYears.length - windowSize,
   ));
   const [windowStart, setWindowStart] = useState(defaultStart < 0 ? 0 : defaultStart);
   const [expanded,    setExpanded]    = useState(false);
 
   const visibleYears = expanded
     ? scorecardYears
-    : scorecardYears.slice(windowStart, windowStart + WINDOW_SIZE);
+    : scorecardYears.slice(windowStart, windowStart + windowSize);
 
   const canGoLeft  = !expanded && windowStart > 0;
-  const canGoRight = !expanded && windowStart + WINDOW_SIZE < scorecardYears.length;
+  const canGoRight = !expanded && windowStart + windowSize < scorecardYears.length;
 
   function getStatsForCell(year, metric) {
     if (metric === 'sales')       return scorecard.getSalesStats(year);
@@ -77,14 +92,20 @@ function ScorecardOverview({ scorecard, scorecardYears, promotionYear }) {
       <div className="sc-overview-toolbar">
         <div className="sc-year-nav">
           <button
-            className="sc-nav-btn"
+            className={`sc-nav-btn ${isMobile ? 'sc-nav-btn--mobile' : ''}`}
             onClick={() => setWindowStart(s => Math.max(0, s - 1))}
             disabled={!canGoLeft}
             title="Earlier years"
           >‹</button>
+          {isMobile && visibleYears.length === 1 && (
+            <span className="sc-year-current-label">
+              {visibleYears[0]}
+              {visibleYears[0] === promotionYear - 1 && <span className="sc-year-star"> ★</span>}
+            </span>
+          )}
           <button
-            className="sc-nav-btn"
-            onClick={() => setWindowStart(s => Math.min(scorecardYears.length - WINDOW_SIZE, s + 1))}
+            className={`sc-nav-btn ${isMobile ? 'sc-nav-btn--mobile' : ''}`}
+            onClick={() => setWindowStart(s => Math.min(scorecardYears.length - windowSize, s + 1))}
             disabled={!canGoRight}
             title="Later years"
           >›</button>
@@ -100,17 +121,19 @@ function ScorecardOverview({ scorecard, scorecardYears, promotionYear }) {
 
       <div className={`sc-table-wrap ${expanded ? 'sc-table-wrap--expanded' : ''}`}>
         <table className="sc-table">
-          <thead>
-            <tr>
-              <th className="sc-th sc-th--metric">Metric</th>
-              {visibleYears.map(yr => (
-                <th key={yr} className={`sc-th sc-th--year ${yearColumnClass(yr, promotionYear)}`}>
-                  <span className="sc-th-year">{yr}</span>
-                  {yr === CURRENT_YEAR && <span className="sc-current-star">★</span>}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          {!isMobile && (
+            <thead>
+              <tr>
+                <th className="sc-th sc-th--metric">Metric</th>
+                {visibleYears.map(yr => (
+                  <th key={yr} className={`sc-th sc-th--year ${yearColumnClass(yr, promotionYear)}`}>
+                    <span className="sc-th-year">{yr}</span>
+                    {yr === CURRENT_YEAR && <span className="sc-current-star">★</span>}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )}
           <tbody>
             {METRIC_KEYS.map(metric => (
               <tr key={metric}>
@@ -168,7 +191,8 @@ export default function Scorecard() {
         <span className="sc-legend-item sc-legend-item--partner">Partner ({promotionYear})</span>
       </div>
 
-      <div className="sc-tabs">
+      {/* Desktop: tab bar */}
+      <div className="sc-tabs sc-tabs--desktop">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -178,6 +202,19 @@ export default function Scorecard() {
             {t.label}
           </button>
         ))}
+      </div>
+
+      {/* Mobile: dropdown */}
+      <div className="sc-tabs--mobile">
+        <select
+          className="form-input sc-tab-select"
+          value={tab}
+          onChange={e => setTab(e.target.value)}
+        >
+          {TABS.map(t => (
+            <option key={t.id} value={t.id}>{t.label}</option>
+          ))}
+        </select>
       </div>
 
       {tab === 'overview'      && <ScorecardOverview scorecard={scorecard} scorecardYears={scorecardYears} promotionYear={promotionYear} />}

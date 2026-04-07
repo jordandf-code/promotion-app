@@ -2,6 +2,7 @@
 // Multi-year scorecard summary table for the Dashboard.
 // Past years: compact (value + forecast + target). Qualifying year: full detail with status badge.
 
+import { useState, useEffect } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
 
 const TODAY         = new Date();
@@ -54,10 +55,30 @@ function fmtPct(value, target) {
 
 // ── ScorecardTable ────────────────────────────────────────────────────────────
 
-export default function ScorecardTable({ scorecard, qualifyingYear }) {
-  const { fmtCurrency } = useSettings();
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return mobile;
+}
 
-  const years = [qualifyingYear - 2, qualifyingYear - 1, qualifyingYear];
+export default function ScorecardTable({ scorecard, qualifyingYear, scorecardYears }) {
+  const { fmtCurrency } = useSettings();
+  const isMobile = useIsMobile();
+
+  const desktopYears = [qualifyingYear - 2, qualifyingYear - 1, qualifyingYear];
+  // On mobile: navigate all scorecard years; on desktop: show 3-year window
+  const mobileYears = scorecardYears ?? desktopYears;
+  const currentIdx = mobileYears.indexOf(CURRENT_YEAR);
+  const [windowStart, setWindowStart] = useState(Math.max(0, currentIdx >= 0 ? currentIdx : mobileYears.length - 1));
+  const years = isMobile ? [mobileYears[windowStart]] : desktopYears;
+
+  const canGoLeft  = isMobile && windowStart > 0;
+  const canGoRight = isMobile && windowStart < mobileYears.length - 1;
 
   const rows = [
     {
@@ -104,20 +125,44 @@ export default function ScorecardTable({ scorecard, qualifyingYear }) {
 
   return (
     <div className="sc-table-wrap">
+      {isMobile && (
+        <div className="sc-overview-toolbar">
+          <div className="sc-year-nav">
+            <button
+              className="sc-nav-btn sc-nav-btn--mobile"
+              onClick={() => setWindowStart(s => Math.max(0, s - 1))}
+              disabled={!canGoLeft}
+              title="Earlier year"
+            >‹</button>
+            <span className="sc-year-current-label">
+              {years[0]}
+              {years[0] === qualifyingYear && <span className="sc-year-star"> ★</span>}
+            </span>
+            <button
+              className="sc-nav-btn sc-nav-btn--mobile"
+              onClick={() => setWindowStart(s => Math.min(mobileYears.length - 1, s + 1))}
+              disabled={!canGoRight}
+              title="Later year"
+            >›</button>
+          </div>
+        </div>
+      )}
       <table className="sc-table">
-        <thead>
-          <tr>
-            <th className="sc-th sc-th--label" />
-            {years.map(year => {
-              const isQual = year === qualifyingYear;
-              return (
-                <th key={year} className={`sc-th ${isQual ? 'sc-th--qual' : ''}`}>
-                  {year}{isQual && <span className="sc-qual-star"> ★</span>}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
+        {!isMobile && (
+          <thead>
+            <tr>
+              <th className="sc-th sc-th--label" />
+              {years.map(year => {
+                const isQual = year === qualifyingYear;
+                return (
+                  <th key={year} className={`sc-th ${isQual ? 'sc-th--qual' : ''}`}>
+                    {year}{isQual && <span className="sc-qual-star"> ★</span>}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+        )}
         <tbody>
           {rows.map(row => (
             <tr key={row.label} className="sc-row">
