@@ -100,6 +100,28 @@ Pass it as the `user` message content, serialized as JSON.
     }
   ],
 
+  "learning": {
+    "certifications": [
+      {
+        "name": "string — certification name",
+        "issuer": "string — e.g. IBM, AWS, Kubernetes.io",
+        "status": "planned | in_progress | earned | expired",
+        "date_earned": "YYYY-MM-DD | null",
+        "expiry_date": "YYYY-MM-DD | null"
+      }
+    ],
+    "courses": [
+      {
+        "title": "string — course name",
+        "provider": "string | null",
+        "status": "planned | in_progress | completed",
+        "date_completed": "YYYY-MM-DD | null",
+        "hours": 0
+      }
+    ],
+    "total_training_hours": 0
+  },
+
   "narrative_mode": "gap_analysis | polished_narrative | plan_2027"
 }
 ```

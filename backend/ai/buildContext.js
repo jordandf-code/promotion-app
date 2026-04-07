@@ -76,7 +76,7 @@ function getUtilStats(utilization, targets, year) {
 async function buildContext(userId) {
   const result = await db.query(
     `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-    [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people']]
+    [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning']]
   );
   const byDomain = Object.fromEntries(result.rows.map(r => [r.domain, r.data]));
 
@@ -85,7 +85,8 @@ async function buildContext(userId) {
   const sc       = byDomain.scorecard ?? { targets: {}, opportunities: [], projects: [], utilization: {} };
   const rawWins  = byDomain.wins     ?? [];
   const rawGoals = byDomain.goals    ?? [];
-  const rawPeople = byDomain.people  ?? [];
+  const rawPeople   = byDomain.people   ?? [];
+  const rawLearning = byDomain.learning ?? { certifications: [], courses: [] };
 
   // Validate required config
   const anthropicKey = admin.anthropicKey;
@@ -254,6 +255,40 @@ async function buildContext(userId) {
   if (wins.length)          context.wins = wins;
   if (goals.length)         context.goals = goals;
   if (people.length)        context.people = people;
+
+  // ── learning (all earned/completed + up to 5 planned) ──
+  const rawCerts   = rawLearning.certifications ?? [];
+  const rawCourses = rawLearning.courses ?? [];
+
+  const earnedCerts  = rawCerts.filter(c => c.status === 'earned' || c.status === 'expired');
+  const plannedCerts = rawCerts.filter(c => c.status === 'planned' || c.status === 'in_progress').slice(0, 5);
+  const aiCerts = [...earnedCerts, ...plannedCerts].map(c => ({
+    name:        c.name,
+    issuer:      c.issuer ?? null,
+    status:      c.status,
+    date_earned: c.dateEarned ?? null,
+    expiry_date: c.expiryDate ?? null,
+  }));
+
+  const completedCourses = rawCourses.filter(c => c.status === 'completed');
+  const plannedCourses   = rawCourses.filter(c => c.status === 'planned' || c.status === 'in_progress').slice(0, 5);
+  const aiCourses = [...completedCourses, ...plannedCourses].map(c => ({
+    title:          c.title,
+    provider:       c.provider ?? null,
+    status:         c.status,
+    date_completed: c.dateCompleted ?? null,
+    hours:          c.hours ? Number(c.hours) : null,
+  }));
+
+  const totalTrainingHours = completedCourses.reduce((s, c) => s + (Number(c.hours) || 0), 0);
+
+  if (aiCerts.length || aiCourses.length) {
+    context.learning = {
+      certifications:       aiCerts,
+      courses:              aiCourses,
+      total_training_hours: totalTrainingHours,
+    };
+  }
 
   return removeNulls(context);
 }

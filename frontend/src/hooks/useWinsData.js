@@ -5,7 +5,7 @@
 // Persisted to PostgreSQL via /api/data/wins; migrates from winsData_v2/v1 automatically.
 
 import { useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -77,6 +77,7 @@ export function useWinsData() {
       .then(serverData => {
         if (serverData !== null) {
           skipSync.current = true;
+          apiPutMarkClean('wins', serverData);
           setWins(serverData);
         } else {
           setWins(local);

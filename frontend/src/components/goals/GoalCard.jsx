@@ -4,8 +4,11 @@
 // availableActions — actions not yet linked to this goal (for the "link existing" dropdown)
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { STATUS_LABELS, nextStatus } from '../../hooks/useGoalsData.js';
 import { fmtDate } from '../../data/sampleData.js';
+
+const LEARNING_RE = /training|certification/i;
 
 export default function GoalCard({ goal, linkedActions, availableActions, onEdit, onDelete, onCycle, onAddAction, onLinkAction, onUnlinkAction, onToggleActionDone }) {
   const [showNewForm,   setShowNewForm]   = useState(false);
@@ -41,6 +44,9 @@ export default function GoalCard({ goal, linkedActions, availableActions, onEdit
           {goal.isGate && <span className="milestone-badge">IBM milestone</span>}
           <h3 className="goal-card-title">{goal.title}</h3>
           {goal.notes && <p className="goal-card-notes">{goal.notes}</p>}
+          {goal.isGate && LEARNING_RE.test(goal.title) && (
+            <Link to="/learning" className="goal-learning-link">View in Learning →</Link>
+          )}
         </div>
         <div className="goal-card-right">
           <button

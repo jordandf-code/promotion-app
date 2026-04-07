@@ -3,7 +3,7 @@
 // Replaces the per-component hook instances so changes in Admin reflect in the sidebar instantly.
 
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 export const COLOR_PALETTE = [
   '#1d4ed8', '#15803d', '#b45309', '#b91c1c',
@@ -12,7 +12,7 @@ export const COLOR_PALETTE = [
 
 export const DEFAULT_NAV_ORDER = [
   '/', '/scorecard', '/pursuits', '/goals', '/people', '/wins',
-  '/actions', '/story', '/calendar', '/sharing', '/admin',
+  '/actions', '/learning', '/story', '/calendar', '/sharing', '/admin',
 ];
 
 const DEFAULT_RELATIONSHIP_TYPES = [
@@ -67,6 +67,7 @@ const DEFAULTS = {
   careerHistory:     '',
   anthropicKey:      '',
   navOrder:          DEFAULT_NAV_ORDER,
+  bottomBarTabs:     null,
   readinessWeights:  null,
 };
 
@@ -105,7 +106,9 @@ export function AdminDataProvider({ children }) {
         serverLoaded.current = true;
         if (serverData !== null) {
           skipSync.current = true;
-          setAdminData({ ...DEFAULTS, ...serverData });
+          const merged = { ...DEFAULTS, ...serverData };
+          apiPutMarkClean('admin', merged);
+          setAdminData(merged);
         } else {
           setAdminData(local);
           apiPut('admin', local);
@@ -138,13 +141,14 @@ export function AdminDataProvider({ children }) {
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
+  function setBottomBarTabs(tabs)       { setAdminData(d => ({ ...d, bottomBarTabs: tabs })); }
   function setReadinessWeights(weights) { setAdminData(d => ({ ...d, readinessWeights: weights })); }
 
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setPipelineStages,
-      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setReadinessWeights,
+      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
     }}>
       {children}
     </AdminDataContext.Provider>

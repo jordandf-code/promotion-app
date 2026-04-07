@@ -3,10 +3,11 @@
 // Child pages render via <Outlet />.
 
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
+import BottomTabBar, { useBottomTabRoutes, STAR_ELIGIBLE } from './BottomTabBar.jsx';
 
 const ALL_NAV_ITEMS = [
   { to: '/',          label: 'Dashboard',   end: true },
@@ -16,6 +17,7 @@ const ALL_NAV_ITEMS = [
   { to: '/people',    label: 'People'                },
   { to: '/wins',      label: 'Wins'                  },
   { to: '/actions',   label: 'Action items'          },
+  { to: '/learning',  label: 'Learning'              },
   { to: '/story',     label: 'Narrative + Gaps'       },
   { to: '/calendar',  label: 'Calendar'              },
   { to: '/sharing',   label: 'Sharing'               },
@@ -32,7 +34,7 @@ const NON_REORDERABLE = new Set(['/view-others', '/super-admin']);
 export default function Layout() {
   const { user, logout } = useAuth();
   const { currency, setCurrency } = useSettings();
-  const { navOrder } = useAdminData();
+  const { navOrder, bottomBarTabs, setBottomBarTabs } = useAdminData();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Filter nav items by role
@@ -65,6 +67,22 @@ export default function Layout() {
     : user.role === 'viewer' ? 'Viewer'
     : user.company || 'User';
 
+  const location = useLocation();
+  const currentTabLabel = navItems.find(n =>
+    n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to)
+  )?.label ?? '';
+
+  const bottomTabRoutes = useBottomTabRoutes();
+
+  function toggleBottomBar(route) {
+    const current = bottomBarTabs ?? [];
+    if (current.includes(route)) {
+      setBottomBarTabs(current.filter(r => r !== route));
+    } else if (current.length < 5) {
+      setBottomBarTabs([...current, route]);
+    }
+  }
+
   function closeMenu() { setMenuOpen(false); }
 
   return (
@@ -75,6 +93,7 @@ export default function Layout() {
           <span /><span /><span />
         </button>
         <span className="mobile-header-title">Promotion Tracker</span>
+        {currentTabLabel && <span className="mobile-header-tab">— {currentTabLabel}</span>}
       </header>
 
       {/* Backdrop */}
@@ -88,17 +107,34 @@ export default function Layout() {
           </div>
 
           <nav className="sidebar-nav">
-            {navItems.map(({ to, label, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) => 'nav-item' + (isActive ? ' nav-item--active' : '')}
-                onClick={closeMenu}
-              >
-                {label}
-              </NavLink>
-            ))}
+            {navItems.map(({ to, label, end }) => {
+              const canStar = STAR_ELIGIBLE.has(to);
+              const isStarred = bottomTabRoutes.has(to);
+              return (
+                <div key={to} className="nav-item-row">
+                  <NavLink
+                    to={to}
+                    end={end}
+                    className={({ isActive }) =>
+                      'nav-item' + (isActive ? ' nav-item--active' : '')
+                    }
+                    onClick={closeMenu}
+                  >
+                    {label}
+                  </NavLink>
+                  {canStar && (
+                    <button
+                      className={`nav-star ${isStarred ? 'nav-star--active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); toggleBottomBar(to); }}
+                      title={isStarred ? 'Remove from quick access' : 'Add to quick access'}
+                      aria-label={isStarred ? 'Remove from quick access' : 'Add to quick access'}
+                    >
+                      {isStarred ? '★' : '☆'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </nav>
         </div>
 
@@ -126,6 +162,8 @@ export default function Layout() {
       <main className="main-content">
         <Outlet />
       </main>
+
+      <BottomTabBar />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 // Persisted to PostgreSQL via /api/data/settings; migrates from localStorage automatically.
 
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 const SettingsContext = createContext(null);
 
@@ -47,7 +47,9 @@ export function SettingsProvider({ children }) {
       .then(serverData => {
         if (serverData !== null) {
           skipSync.current = true;
-          setSettings({ ...DEFAULTS, ...serverData });
+          const merged = { ...DEFAULTS, ...serverData };
+          apiPutMarkClean('settings', merged);
+          setSettings(merged);
         } else {
           setSettings(local);
           apiPut('settings', local);
