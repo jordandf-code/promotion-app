@@ -1,11 +1,22 @@
 // components/scorecard/TargetsTab.jsx
 // Editable targets table — one row per metric, one column per scorecard year.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { METRIC_KEYS, METRIC_LABELS } from '../../hooks/useScorecardData.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return mobile;
+}
 
 const METRIC_UNIT = {
   sales:       'currency',
@@ -58,6 +69,7 @@ function TargetCell({ value, unit, onSave }) {
       <input
         className="targets-cell-input"
         type="number"
+        inputMode="decimal"
         autoFocus
         value={draft}
         placeholder={unit === 'hours' ? 'hrs' : currencySymbol}
@@ -80,17 +92,52 @@ function TargetCell({ value, unit, onSave }) {
 
 export default function TargetsTab({ scorecard, scorecardYears, promotionYear }) {
   const { currencySymbol } = useSettings();
+  const isMobile = useIsMobile();
+
+  const currentIdx = scorecardYears.indexOf(CURRENT_YEAR);
+  const [windowStart, setWindowStart] = useState(Math.max(0, currentIdx));
+
+  const windowSize = isMobile ? 1 : scorecardYears.length;
+  const visibleYears = isMobile
+    ? scorecardYears.slice(windowStart, windowStart + 1)
+    : scorecardYears;
+
+  const canGoLeft  = isMobile && windowStart > 0;
+  const canGoRight = isMobile && windowStart < scorecardYears.length - 1;
+
   return (
     <div className="card scorecard-card">
       <p className="targets-hint">
         Click any cell to set a target. Press Enter or click away to save.
       </p>
+
+      {isMobile && (
+        <div className="sc-overview-toolbar">
+          <button
+            className="sc-nav-btn sc-nav-btn--mobile"
+            onClick={() => setWindowStart(s => Math.max(0, s - 1))}
+            disabled={!canGoLeft}
+            title="Earlier year"
+          >‹</button>
+          <span className="sc-year-current-label">
+            {visibleYears[0]}
+            {visibleYears[0] === promotionYear - 1 && <span className="sc-year-star"> ★</span>}
+          </span>
+          <button
+            className="sc-nav-btn sc-nav-btn--mobile"
+            onClick={() => setWindowStart(s => Math.min(scorecardYears.length - 1, s + 1))}
+            disabled={!canGoRight}
+            title="Later year"
+          >›</button>
+        </div>
+      )}
+
       <div className="sc-table-wrap">
         <table className="sc-table">
           <thead>
             <tr>
               <th className="sc-th sc-th--metric">Metric</th>
-              {scorecardYears.map(yr => (
+              {visibleYears.map(yr => (
                 <th key={yr} className={`sc-th sc-th--year ${yearColumnClass(yr, promotionYear)}`}>
                   <span className="sc-th-year">{yr}</span>
                   {yr === CURRENT_YEAR && <span className="sc-current-dot" />}
@@ -107,7 +154,7 @@ export default function TargetsTab({ scorecard, scorecardYears, promotionYear })
                     {METRIC_UNIT[metric] === 'hours' ? ' (hrs)' : ` (${currencySymbol})`}
                   </span>
                 </td>
-                {scorecardYears.map(yr => (
+                {visibleYears.map(yr => (
                   <td key={yr} className={`sc-td ${yearCellClass(yr, promotionYear)}`}>
                     <TargetCell
                       value={scorecard.getTarget(yr, metric)}

@@ -2442,6 +2442,10 @@ tr:last-child .sc-td { border-bottom: none; }
 .sc-tab:hover { color: var(--text); }
 .sc-tab--active { color: var(--brand); font-weight: 600; border-bottom-color: var(--brand); }
 
+/* Mobile: dropdown replaces tab bar */
+.sc-tabs--mobile { display: none; }
+.sc-tab-select { font-weight: 600; }
+
 /* Tab content wrapper */
 .tab-content { display: flex; flex-direction: column; gap: 1rem; }
 
@@ -3743,6 +3747,144 @@ tr:last-child .sc-td { border-bottom: none; }
    RESPONSIVE — MOBILE (≤768px)
 ═══════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM TAB BAR (Phase 19 — mobile only)
+═══════════════════════════════════════════════════════════ */
+
+.bottom-tab-bar {
+  display: none; /* Hidden on desktop */
+}
+
+/* Nav star toggles — hidden on desktop */
+.nav-item-row { display: contents; }
+.nav-star { display: none; }
+
+/* FAB quick-add — hidden on desktop, visible on mobile */
+.fab-quick-add {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bottom-tab-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+
+  .bottom-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 500;
+    gap: 2px;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: color 0.15s;
+  }
+  .bottom-tab:active {
+    opacity: 0.7;
+  }
+  .bottom-tab--active {
+    color: var(--brand);
+  }
+  .bottom-tab--active .bottom-tab-icon svg {
+    stroke: var(--brand);
+  }
+
+  .bottom-tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+  .bottom-tab-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .bottom-tab-label {
+    line-height: 1;
+  }
+
+  /* Sidebar nav: show star toggles on mobile */
+  .nav-item-row {
+    display: flex;
+    align-items: center;
+  }
+  .nav-item-row .nav-item {
+    flex: 1;
+  }
+  .nav-star {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.15s, transform 0.1s;
+    -webkit-text-stroke: 0.5px rgba(255,255,255,0.9);
+  }
+  .nav-star:active { transform: scale(1.2); }
+  .nav-star--active {
+    color: #f59e0b;
+    -webkit-text-stroke: 0;
+  }
+
+  /* Add bottom padding to main content to clear tab bar */
+  .main-content {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* FAB quick-add — above bottom tab bar */
+  .fab-quick-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px);
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,64,160,0.35);
+    z-index: 99;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .fab-quick-add:active {
+    transform: scale(0.93);
+    opacity: 0.9;
+  }
+
+  /* Hide the header quick-add button on mobile (FAB replaces it) */
+  .page-header-actions .btn-primary {
+    /* Only hide on Dashboard — use parent specificity */
+  }
+}
+
 @media (max-width: 768px) {
   /* ── Mobile header ── */
   .mobile-header {
@@ -3765,12 +3907,14 @@ tr:last-child .sc-td { border-bottom: none; }
     display: block; width: 20px; height: 2px; background: #fff; border-radius: 1px;
   }
   .mobile-header-title { font-weight: 700; font-size: 0.95rem; }
+  .mobile-header-tab { font-weight: 400; font-size: 0.85rem; opacity: 0.75; margin-left: 0.3rem; }
 
   /* ── Sidebar as overlay ── */
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     z-index: 300;
+    padding-top: 2.5rem; /* clear mobile header with compact spacing */
   }
   .sidebar--open { transform: translateX(0); }
 
@@ -3790,8 +3934,48 @@ tr:last-child .sc-td { border-bottom: none; }
   .page { padding: 1rem; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 
-  /* ── Tables scroll horizontally ── */
-  .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* ── Tables → stacked cards on mobile ── */
+  .data-table-wrap { overflow-x: visible; }
+  .data-table { border-collapse: separate; border-spacing: 0 0.75rem; }
+  .data-table thead { display: none; }
+  .data-table tfoot { display: none; }
+  .data-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    padding: 0.875rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    align-items: center;
+  }
+  .data-table td {
+    border: none;
+    padding: 0;
+    font-size: 0.825rem;
+  }
+  .data-table .td-primary {
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+  .data-table .num-col {
+    font-size: 0.9rem;
+  }
+  .data-table .action-col {
+    width: 100%;
+    display: flex;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--border);
+  }
+  .data-table .table-empty {
+    width: 100%;
+    text-align: center;
+  }
 
   /* ── Form rows stack on small screens ── */
   .form-row { grid-template-columns: 1fr; }
@@ -3807,9 +3991,253 @@ tr:last-child .sc-td { border-bottom: none; }
   .pursuits-funnel { flex-wrap: wrap; }
   .pursuits-funnel-stage { min-width: calc(33% - 0.35rem); }
 
-  /* ── Modals ── */
-  .modal-backdrop { padding: 0.5rem; }
-  .modal, .modal--wide { max-width: 100%; }
+  /* ── Dashboard: two-col stacks ── */
+  .two-col { grid-template-columns: 1fr; }
+  .snapshot-grid { grid-template-columns: 1fr 1fr; }
+
+  /* ── Hide sidebar brand on mobile (header already shows it) ── */
+  .sidebar-brand { display: none; }
+
+  /* ── Admin: prevent horizontal overflow ── */
+  .admin-card { max-width: 100%; overflow-x: hidden; }
+  .admin-list-row { flex-wrap: wrap; }
+  .admin-list-add { flex-wrap: wrap; }
+  .admin-list-add--dual { flex-wrap: wrap; }
+  .admin-list-edit-input--short { max-width: none; }
+  .form-input, .form-textarea { max-width: 100%; box-sizing: border-box; }
+  .admin-key-row { flex-wrap: wrap; }
+  .readiness-weight-label { width: auto; flex-shrink: 1; min-width: 0; }
+  .readiness-weight-row { flex-wrap: wrap; }
+  .sidebar-footer {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── Scorecard tabs → dropdown on mobile ── */
+  .sc-tabs--desktop { display: none; }
+  .sc-tabs--mobile { display: block; margin-bottom: 1rem; }
+  .sc-tab-select { width: 100%; min-height: 44px; }
+
+  /* ── Scorecard tables: remove min-widths, allow shrink ── */
+  .sc-td { min-width: 0; padding: 0.5rem 0.5rem; }
+  .sc-cell { min-width: 0; }
+  .sc-th { padding: 0.5rem; font-size: 0.7rem; }
+  .sc-th--label, .sc-th--metric { min-width: 0; }
+  .card--flush .sc-table-wrap { overflow-x: visible; }
+  .sc-table { font-size: 0.8rem; }
+  .sc-cell-actual { font-size: 0.85rem; }
+  .sc-cell-forecast { font-size: 0.75rem; }
+
+  /* Single-year view: no colored backgrounds, centre year header */
+  .sc-th--qual, .sc-th--partner, .sc-th--current { background: var(--bg); color: var(--text); }
+  .sc-td--qual, .sc-td--partner, .sc-td--current { background: var(--surface); outline: none; }
+  .sc-th { text-align: center; }
+  .sc-qual-star { display: none; }
+
+  /* ── Scorecard nav arrows: bigger on mobile, spread to edges ── */
+  .sc-overview-toolbar {
+    justify-content: space-between;
+    padding: 0.5rem 0;
+  }
+  .sc-year-nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sc-nav-btn--mobile {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--text-muted);
+  }
+  .sc-nav-btn--mobile:active:not(:disabled) {
+    background: var(--border);
+  }
+  .sc-year-current-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .sc-year-star {
+    color: var(--amber);
+  }
+  .sc-expand-btn { display: none; }
+
+  /* Scorecard: expanded scrolls, show-all-years link */
+  .sc-table-wrap--expanded { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sc-show-all-years {
+    display: block;
+    width: 100%;
+    padding: 0.6rem;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--brand);
+    font-size: 0.825rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* ── Opportunity/Project summary strip: allow wrap ── */
+  .opp-summary-stat { min-width: calc(50% - 0.75rem); }
+
+  /* ── Utilization inputs: shrink ── */
+  /* ── Utilization: larger inputs, stats below table ── */
+  .util-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .util-grid-wrap {
+    width: 100%;
+    order: 0;
+  }
+  .util-stats-panel {
+    order: 1;
+  }
+  .util-grid-table {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+  .util-td-month {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  .util-td-num {
+    padding: 0.45rem 0.5rem;
+  }
+  .util-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .util-th {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* ── Touch targets (44px minimum) ── */
+  .row-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+  }
+  .status-badge--btn {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .goal-action-check,
+  .goal-action-unlink {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn-primary, .btn-secondary, .btn-danger-ghost {
+    min-height: 44px;
+  }
+  .filter-select {
+    min-height: 44px;
+  }
+  .win-tag--pick {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+  .nav-order-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .currency-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* ── Form inputs: textarea min-height ── */
+  .form-textarea {
+    min-height: 80px;
+  }
+
+  /* ── Modals → top sheets on mobile ── */
+  .modal-backdrop {
+    padding: 0;
+    padding-top: 3.25rem;
+    align-items: flex-start;
+  }
+  .modal, .modal--wide {
+    max-width: 100%;
+    border-radius: 0 0 16px 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: sheet-slide-down 300ms ease-out;
+  }
+  .modal-form {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-actions {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Super Admin table → cards ── */
+  .super-admin-table thead { display: none; }
+  .super-admin-table,
+  .super-admin-table tbody { display: flex; flex-direction: column; gap: 0.75rem; }
+  .super-admin-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    padding: 0.875rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    align-items: center;
+  }
+  .super-admin-table td {
+    border: none;
+    padding: 0;
+  }
+
+  /* (utilization mobile rules moved to earlier in this query) */
+
+  /* ── Feedback form: large star tap targets ── */
+  .feedback-star {
+    font-size: 2.5rem;
+    min-width: 48px;
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .feedback-stars { gap: 0.1rem; }
+
+  /* ── Public pages: readiness bars label ── */
+  .public-readiness-label { width: 120px; font-size: 0.8rem; }
+  .public-readiness-row { gap: 0.5rem; }
+
+  /* ── View others: peer list ── */
+  .peer-card {
+    min-height: 44px;
+  }
+  .peer-viewing-banner {
+    position: sticky;
+    top: 3.25rem; /* below mobile header */
+    z-index: 50;
+  }
+}
+
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheet-slide-down {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -4150,3 +4578,186 @@ tr:last-child .sc-td { border-bottom: none; }
   border-bottom: 1px solid var(--border);
 }
 .peer-win-item:last-child { border-bottom: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   LEARNING TAB (Phase 17)
+═══════════════════════════════════════════════════════════ */
+
+.learning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.learning-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.learning-card-header { margin-bottom: 0.5rem; }
+
+.learning-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.learning-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.learning-card-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.learning-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.learning-card-issuer {
+  font-size: 0.825rem;
+  color: var(--text-muted);
+}
+
+.learning-card-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.learning-card-detail {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.learning-card-notes {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.learning-badge-link {
+  font-size: 0.8rem;
+  color: var(--brand);
+  text-decoration: none;
+}
+.learning-badge-link:hover { text-decoration: underline; }
+
+/* Learning status pills — extend shared status-badge */
+.status-badge--planned {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.status-badge--earned {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.status-badge--completed {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+
+.status-badge--expired {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+/* Expiry badges */
+.learning-expiring-badge {
+  color: var(--amber);
+  font-weight: 600;
+  font-size: 0.825rem;
+}
+
+.learning-expiry-warning {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--amber-bg);
+  color: var(--amber);
+  border: 1px solid var(--amber-border);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+}
+
+.learning-expiry-expired {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+}
+
+/* Section header right side (summary + button) */
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Goals tab → Learning link */
+.goal-learning-link {
+  font-size: 0.8rem;
+  color: var(--brand);
+  text-decoration: none;
+  margin-top: 0.25rem;
+  display: inline-block;
+}
+.goal-learning-link:hover { text-decoration: underline; }
+
+/* ── Public page certifications ── */
+
+.public-certs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.public-cert-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.public-cert-item:last-child { border-bottom: none; }
+
+.public-cert-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.public-cert-issuer {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.public-cert-date {
+  color: var(--text-muted);
+  font-size: 0.825rem;
+  white-space: nowrap;
+}

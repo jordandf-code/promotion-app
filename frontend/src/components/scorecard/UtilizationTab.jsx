@@ -49,6 +49,7 @@ export default function UtilizationTab({ scorecard, scorecardYears }) {
               className="form-input util-target-input"
               type="number"
               min="0"
+              inputMode="numeric"
               value={targetInput}
               placeholder="e.g. 1820"
               onChange={e => setTargetInput(e.target.value)}
@@ -83,6 +84,7 @@ export default function UtilizationTab({ scorecard, scorecardYears }) {
                           className="util-input"
                           type="number"
                           min="0"
+                          inputMode="numeric"
                           placeholder="—"
                           value={month.actual ?? ''}
                           onChange={e => scorecard.setMonthField(selectedYear, key, 'actual', e.target.value)}
@@ -93,6 +95,7 @@ export default function UtilizationTab({ scorecard, scorecardYears }) {
                           className="util-input"
                           type="number"
                           min="0"
+                          inputMode="numeric"
                           placeholder="—"
                           value={month.forecast ?? ''}
                           onChange={e => scorecard.setMonthField(selectedYear, key, 'forecast', e.target.value)}

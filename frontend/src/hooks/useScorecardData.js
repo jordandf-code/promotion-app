@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { uid, emptyMonths, emptyQuarters } from './scorecard/constants.js';
 import { SEED_TARGETS, SEED_OPPORTUNITIES, SEED_PROJECTS, SEED_UTILIZATION } from './scorecard/seedData.js';
 import { getSalesStats, getRevenueStats, getGPStats, getUtilStats } from './scorecard/statsHelpers.js';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 // Re-export constants so existing imports from 'useScorecardData' keep working.
 export { METRIC_KEYS, METRIC_LABELS, MONTH_KEYS, MONTH_LABELS, QUARTER_KEYS, QUARTER_LABELS,
@@ -49,6 +49,7 @@ export function useScorecardData() {
       .then(serverData => {
         if (serverData !== null) {
           skipSync.current = true;
+          apiPutMarkClean('scorecard', serverData);
           setData(serverData);
         } else {
           setData(local);

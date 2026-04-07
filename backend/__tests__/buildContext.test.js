@@ -188,4 +188,57 @@ describe('buildContext', () => {
     const ctx = await buildContext(1);
     expect(ctx).not.toHaveProperty('career_history');
   });
+
+  test('includes learning data with earned certs and completed courses', async () => {
+    mockDomains({
+      admin: MINIMAL_ADMIN,
+      learning: {
+        certifications: [
+          { name: 'AWS SA Pro', issuer: 'AWS', status: 'earned', dateEarned: '2025-06-01', expiryDate: '2028-06-01' },
+          { name: 'Azure Fund', issuer: 'Microsoft', status: 'planned', dateEarned: null },
+        ],
+        courses: [
+          { title: 'AI Foundations', provider: 'IBM', status: 'completed', dateCompleted: '2025-03-01', hours: '8' },
+          { title: 'Leadership', provider: 'Coursera', status: 'in_progress', hours: '4' },
+        ],
+      },
+    });
+
+    const ctx = await buildContext(1);
+    expect(ctx.learning).toBeDefined();
+    expect(ctx.learning.certifications).toHaveLength(2);
+    expect(ctx.learning.certifications[0].name).toBe('AWS SA Pro');
+    expect(ctx.learning.certifications[0].date_earned).toBe('2025-06-01');
+    expect(ctx.learning.courses).toHaveLength(2);
+    expect(ctx.learning.courses[0].title).toBe('AI Foundations');
+    expect(ctx.learning.courses[0].hours).toBe(8);
+    expect(ctx.learning.total_training_hours).toBe(8);
+  });
+
+  test('caps planned certs and courses at 5', async () => {
+    const planned = Array.from({ length: 8 }, (_, i) => ({
+      name: `Cert ${i}`, issuer: 'Test', status: 'planned',
+    }));
+    const plannedCourses = Array.from({ length: 8 }, (_, i) => ({
+      title: `Course ${i}`, status: 'planned',
+    }));
+    mockDomains({
+      admin: MINIMAL_ADMIN,
+      learning: { certifications: planned, courses: plannedCourses },
+    });
+
+    const ctx = await buildContext(1);
+    expect(ctx.learning.certifications).toHaveLength(5);
+    expect(ctx.learning.courses).toHaveLength(5);
+  });
+
+  test('excludes learning when no certs or courses', async () => {
+    mockDomains({
+      admin: MINIMAL_ADMIN,
+      learning: { certifications: [], courses: [] },
+    });
+
+    const ctx = await buildContext(1);
+    expect(ctx).not.toHaveProperty('learning');
+  });
 });

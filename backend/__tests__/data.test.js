@@ -84,7 +84,7 @@ describe('GET /api/data/:domain', () => {
   });
 
   test('accepts all allowed domains', async () => {
-    const domains = ['scorecard', 'wins', 'actions', 'goals', 'people', 'admin', 'story', 'settings', 'sharing', 'backup'];
+    const domains = ['scorecard', 'wins', 'actions', 'goals', 'people', 'admin', 'story', 'settings', 'sharing', 'backup', 'learning'];
     for (const domain of domains) {
       mockRoleAndData({ rows: [] });
       const res = await request(app)

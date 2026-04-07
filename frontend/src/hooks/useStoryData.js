@@ -3,7 +3,7 @@
 // Each section is cached independently with its own generated_at timestamp.
 
 import { useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 function loadLocal() {
   try {
@@ -34,6 +34,7 @@ export function useStoryData() {
         const migrated = migrateOldFormat(serverData);
         if (migrated !== null) {
           skipSync.current = true;
+          apiPutMarkClean('story', migrated);
           setStory(migrated);
         } else if (local !== null) {
           setStory(local);

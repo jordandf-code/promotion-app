@@ -4,7 +4,7 @@
 // Persisted to PostgreSQL via /api/data/goals.
 
 import { useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -79,6 +79,7 @@ export function useGoalsData() {
       .then(serverData => {
         if (serverData !== null) {
           skipSync.current = true;
+          apiPutMarkClean('goals', serverData);
           setGoals(serverData);
         } else {
           setGoals(local);

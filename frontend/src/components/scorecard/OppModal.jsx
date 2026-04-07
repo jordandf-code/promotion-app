@@ -92,6 +92,7 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
             </label>
             <label>Probability<span className="form-unit">%</span>
               <input className="form-input" type="number" min="0" max="100"
+                inputMode="numeric"
                 value={form.probability ?? ''}
                 onChange={e => setField('probability', e.target.value)}
                 placeholder="e.g. 60" />
@@ -113,11 +114,13 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
           <div className="form-section-label">Value</div>
           <div className="form-row">
             <label>Total deal value<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
-              <input className="form-input" type="number" min="0" value={form.totalValue}
+              <input className="form-input" type="number" min="0" inputMode="decimal"
+                value={form.totalValue}
                 onChange={e => setField('totalValue', e.target.value)} required />
             </label>
             <label>Signings value<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
-              <input className="form-input" type="number" min="0" value={form.signingsValue}
+              <input className="form-input" type="number" min="0" inputMode="decimal"
+                value={form.signingsValue}
                 onChange={e => setField('signingsValue', e.target.value)}
                 required placeholder="Your credited portion" />
             </label>

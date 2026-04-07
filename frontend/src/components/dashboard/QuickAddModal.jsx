@@ -244,7 +244,7 @@ export default function QuickAddModal({ onAddWin, onAddAction, onAddGoal, onAddP
                 </label>
               </div>
               <label>Signings value<span className="form-unit">{currencySymbol}</span>
-                <input className="form-input" type="number" min="0" value={opp.signingsValue}
+                <input className="form-input" type="number" min="0" inputMode="decimal" value={opp.signingsValue}
                   onChange={e => setOpp(o => ({ ...o, signingsValue: e.target.value }))}
                   placeholder="0" />
               </label>

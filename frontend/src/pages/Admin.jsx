@@ -430,7 +430,7 @@ function SettingsTab() {
 
   const NAV_LABELS = {
     '/': 'Dashboard', '/scorecard': 'Scorecard', '/pursuits': 'Pursuits', '/goals': 'Goals',
-    '/people': 'People', '/wins': 'Wins', '/actions': 'Action items',
+    '/people': 'People', '/wins': 'Wins', '/actions': 'Action items', '/learning': 'Learning',
     '/story': 'Narrative + Gaps', '/calendar': 'Calendar', '/sharing': 'Sharing', '/admin': 'Admin',
   };
 

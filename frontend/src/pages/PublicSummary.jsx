@@ -30,7 +30,7 @@ export default function PublicSummary() {
   if (state === 'notfound') return <PublicShell><p className="public-error">This share link is no longer active.</p></PublicShell>;
   if (state === 'error')    return <PublicShell><p className="public-error">Something went wrong — please try again.</p></PublicShell>;
 
-  const { owner, wins, narrative, scorecard, readiness } = data;
+  const { owner, wins, narrative, scorecard, readiness, certifications } = data;
 
   return (
     <PublicShell>
@@ -126,6 +126,21 @@ export default function PublicSummary() {
                     {win.tags.map(t => <span key={t} className="public-win-tag">{t}</span>)}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {certifications && certifications.length > 0 && (
+        <section className="public-section">
+          <h2 className="public-section-title">Certifications</h2>
+          <div className="public-certs">
+            {certifications.map((cert, i) => (
+              <div key={i} className="public-cert-item">
+                <span className="public-cert-name">{cert.name}</span>
+                <span className="public-cert-issuer">{cert.issuer}</span>
+                {cert.dateEarned && <span className="public-cert-date">{fmtDate(cert.dateEarned)}</span>}
               </div>
             ))}
           </div>
