@@ -131,4 +131,67 @@ router.put('/invite-code', async (req, res) => {
   }
 });
 
+// GET /api/admin/platform-settings — check GitHub issue reporting config
+router.get('/platform-settings', async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo')"
+    );
+    const settings = {};
+    for (const row of result.rows) settings[row.key] = row.value;
+    res.json({
+      githubConfigured: !!(settings.github_token && settings.github_repo),
+      githubRepo: settings.github_repo || '',
+    });
+  } catch (err) {
+    console.error('admin/platform-settings get error:', err.message);
+    res.status(500).json({ error: 'Failed to load platform settings' });
+  }
+});
+
+// PUT /api/admin/platform-settings — save GitHub issue reporting config
+router.put('/platform-settings', async (req, res) => {
+  const { githubToken, githubRepo } = req.body;
+
+  try {
+    if (githubToken !== undefined) {
+      if (githubToken) {
+        await db.query(
+          `INSERT INTO app_settings (key, value) VALUES ('github_token', $1)
+           ON CONFLICT (key) DO UPDATE SET value = $1`,
+          [githubToken]
+        );
+      } else {
+        await db.query("DELETE FROM app_settings WHERE key = 'github_token'");
+      }
+    }
+    if (githubRepo !== undefined) {
+      if (githubRepo) {
+        await db.query(
+          `INSERT INTO app_settings (key, value) VALUES ('github_repo', $1)
+           ON CONFLICT (key) DO UPDATE SET value = $1`,
+          [githubRepo]
+        );
+      } else {
+        await db.query("DELETE FROM app_settings WHERE key = 'github_repo'");
+      }
+    }
+
+    // Return updated status
+    const result = await db.query(
+      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo')"
+    );
+    const settings = {};
+    for (const row of result.rows) settings[row.key] = row.value;
+    res.json({
+      ok: true,
+      githubConfigured: !!(settings.github_token && settings.github_repo),
+      githubRepo: settings.github_repo || '',
+    });
+  } catch (err) {
+    console.error('admin/platform-settings put error:', err.message);
+    res.status(500).json({ error: 'Failed to save platform settings' });
+  }
+});
+
 module.exports = router;

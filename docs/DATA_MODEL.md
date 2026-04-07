@@ -143,7 +143,22 @@ Cached AI outputs. `gap_analysis.data` is a JSON array of `{ criterion, evidence
 ## Database tables
 
 ### `users`
-Standard auth table: id, name, email, password_hash. Also holds `share_token` and `feedback_token` (Phase 12).
+```sql
+CREATE TABLE users (
+  id                    SERIAL PRIMARY KEY,
+  email                 TEXT UNIQUE NOT NULL,
+  password              TEXT NOT NULL,
+  name                  TEXT,
+  role                  TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('superuser', 'user', 'viewer')),
+  company               TEXT,
+  share_token           TEXT UNIQUE,          -- Phase 12
+  feedback_token        TEXT UNIQUE,          -- Phase 12
+  security_question     TEXT,                 -- Phase 18
+  security_answer_hash  TEXT,                 -- Phase 18 (bcrypt)
+  must_change_password  BOOLEAN NOT NULL DEFAULT FALSE,  -- Phase 18
+  created_at            TIMESTAMPTZ DEFAULT now()
+);
+```
 
 ### `user_data`
 ```sql
@@ -167,6 +182,27 @@ CREATE TABLE feedback (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 ```
+
+### `app_settings` (Phase 18)
+```sql
+CREATE TABLE app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+```
+Currently stores `invite_code_hash` (bcrypt hash of registration invite code).
+
+### `viewer_access` (Phase 18)
+```sql
+CREATE TABLE viewer_access (
+  id         SERIAL PRIMARY KEY,
+  owner_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  viewer_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  granted_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (owner_id, viewer_id)
+);
+```
+Tracks which users have granted peer viewing access to other users. Used by the "View others" tab.
 
 ## Scorecard year structure
 
