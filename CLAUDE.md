@@ -43,7 +43,7 @@ git push origin dev          # then PR to main for auto-deploy
 ## Key conventions
 
 ### Data persistence pattern
-All user data stored in PostgreSQL `user_data` table as JSONB, keyed by `(user_id, domain)`. Domains: `scorecard`, `wins`, `actions`, `goals`, `people`, `admin`, `story`, `settings`. Each domain has a React hook (`useXxxData`) that follows the same optimistic-update pattern: state updates instantly in React, then fires a background PUT to `/api/data/:domain`.
+All user data stored in PostgreSQL `user_data` table as JSONB, keyed by `(user_id, domain)`. Domains: `scorecard`, `wins`, `actions`, `goals`, `people`, `admin`, `story`, `settings`, `sharing`, `backup`, `learning`. Each domain has a React hook (`useXxxData`) that follows the same optimistic-update pattern: state updates instantly in React, then fires a debounced background PUT to `/api/data/:domain` (300ms debounce + per-domain deduplication in `api.js`).
 
 ### Currency
 ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `SettingsContext` provides `toInputValue()`, `fromInputValue()`, and `currencySymbol` — use these in all currency inputs and displays.
@@ -60,16 +60,19 @@ ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `S
 ### Form UX
 Required fields: red `*` via `<span className="form-required">*</span>`. Optional fields: no marker at all — never write "(optional)". Units: `<span className="form-unit">%</span>` inline after label. Full spec in `docs/FORM_UX.md`.
 
+### Mobile UX
+**Every UI change must work on both desktop and mobile (375px viewport).** Test at the 768px breakpoint. No horizontal scrolling allowed. Key patterns: top-anchored modals, 44px touch targets, tables convert to cards, sub-tabs become dropdowns, scorecard uses single-year arrow navigation. Full spec in `docs/MOBILE_UX.md`.
+
 ### Adding a new data domain
 Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (copy any existing one), add domain to `GET/PUT /api/data/:domain` whitelist in backend, add to `buildContext.js` if AI needs it. No migration needed — `user_data` table handles arbitrary domain strings.
 
 ## Current status
 
-Phases 1–16, 21, and 18 complete. Phase 7c (people relationship status) is a small backlog item. Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
+Phases 1–19 and 21 complete (except Phase 7c — people relationship status, a small backlog item). Next up: see `docs/PLAN.md` for build sequence. Detailed specs in `docs/PHASE_XX.md` files.
 
 ## What to build next
 
-Priority order: Phase 17 (learning tab) → Phase 7c (people relationship status) → Phase 19 (mobile). See dependency map in `docs/PLAN.md`.
+Priority order: Phase 7c (people relationship status) → Phase 22 (eminence tracker) → Phase 23 (notifications). See dependency map in `docs/PLAN.md`.
 
 ## Important gotchas
 
@@ -96,5 +99,6 @@ When compacting, preserve: the current phase being worked on, which files have b
 - Form UX standards: `docs/FORM_UX.md`
 - AI prompt specs: `backend/ai/AIprompt.md`
 - Deployment workflow: `DEPLOY.md`
+- Mobile UX standards: `docs/MOBILE_UX.md`
 - Completed phase archive: `docs/PHASES_COMPLETE.md`
 - Individual phase specs: `docs/PHASE_17.md` through `docs/PHASE_26.md`
