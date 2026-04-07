@@ -3776,6 +3776,8 @@ tr:last-child .sc-td { border-bottom: none; }
     background: var(--surface);
     border-top: 1px solid var(--border);
     z-index: 100;
+    transform: translateZ(0); /* force GPU layer — prevents flicker during iOS scroll */
+    -webkit-backface-visibility: hidden;
   }
 
   .bottom-tab {
@@ -3890,24 +3892,67 @@ tr:last-child .sc-td { border-bottom: none; }
   .mobile-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;
     position: fixed;
     top: 0; left: 0; right: 0;
     height: 3.25rem;
     background: var(--brand);
     color: #fff;
-    padding: 0 1rem;
+    padding: 0 0.75rem;
     z-index: 310;
+  }
+  .mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .mobile-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
   .mobile-hamburger {
     background: none; border: none; cursor: pointer; padding: 0.25rem;
-    display: flex; flex-direction: column; gap: 4px;
+    display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
   }
   .mobile-hamburger span {
     display: block; width: 20px; height: 2px; background: #fff; border-radius: 1px;
   }
-  .mobile-header-title { font-weight: 700; font-size: 0.95rem; }
-  .mobile-header-tab { font-weight: 400; font-size: 0.85rem; opacity: 0.75; margin-left: 0.3rem; }
+  .mobile-header-title { font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+  .mobile-header-tab { font-weight: 400; font-size: 0.8rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-currency-toggle {
+    display: flex;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .mobile-currency-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.2rem 0.4rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .mobile-currency-btn--active {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+  .mobile-signout {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+  }
+  .mobile-signout:active { opacity: 0.5; }
 
   /* ── Sidebar as overlay ── */
   .sidebar {
@@ -3999,6 +4044,7 @@ tr:last-child .sc-td { border-bottom: none; }
 
   /* ── Hide sidebar brand on mobile (header already shows it) ── */
   .sidebar-brand { display: none; }
+  .sidebar-footer { display: none; }
 
   /* ── Admin: prevent horizontal overflow ── */
   .admin-card { max-width: 100%; overflow-x: hidden; }
@@ -4010,9 +4056,7 @@ tr:last-child .sc-td { border-bottom: none; }
   .admin-key-row { flex-wrap: wrap; }
   .readiness-weight-label { width: auto; flex-shrink: 1; min-width: 0; }
   .readiness-weight-row { flex-wrap: wrap; }
-  .sidebar-footer {
-    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
-  }
+  /* (sidebar-footer hidden on mobile — moved to header) */
 
   /* ── Scorecard tabs → dropdown on mobile ── */
   .sc-tabs--desktop { display: none; }
