@@ -46,11 +46,11 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 ## Completion status
 
-**Phases 1–22, 7c**: Complete (all of Phase 19 including 19c/g/h/i). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
+**Phases 1–23, 7c**: Complete (all of Phase 19 including 19c/g/h/i). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
 
 **Uncompleted items in "done" phases**:
-- Phase 14 — Email notification on feedback: deferred to Phase 23
 - Phase 16 — AI usage log in Admin: deferred (add to future phase)
+- Phase 23 — Only weekly digest + feedback received implemented; overdue_action, stale_contact, goal_deadline, scorecard_at_risk notification types deferred
 
 ## Backlog and build sequence
 
@@ -58,26 +58,22 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 
 | Phase | Depends on (unbuilt) | Can start now? |
 |---|---|---|
-| 23 — Notifications | — | ✅ |
 | 24 — Bulk import/export | — | ✅ |
 | 25 — LinkedIn import | — | ✅ |
 | 20 — PowerPoint deck export | — | ✅ |
-| 26a–e — Structured 360 feedback | 23 | After 23 |
+| 26a–e — Structured 360 feedback | — | ✅ |
 | 26g — Sponsor view | — | ✅ |
 | 26h — Peer benchmarking | — | ✅ |
 
 ### Recommended priority
 
-**All remaining phases are unblocked** (except 26a–e which needs 23 first):
-1. **Phase 23** — Notifications. High value, enables 26a–e.
-2. **Phase 20** — PowerPoint deck export. All deps met.
-3. **Phase 24** — Bulk import/export. All deps met.
-4. **Phase 25** — LinkedIn import. All deps met.
-5. **Phase 26g** — Sponsor view. All deps met.
-6. **Phase 26h** — Peer benchmarking. All deps met.
-7. **Phase 26a–e** — Structured 360 feedback (after 23).
-
-**If starting one thing today**: Phase 23 (notifications).
+**All remaining phases are unblocked:**
+1. **Phase 20** — PowerPoint deck export.
+2. **Phase 24** — Bulk import/export.
+3. **Phase 25** — LinkedIn import.
+4. **Phase 26a–e** — Structured 360 feedback.
+5. **Phase 26g** — Sponsor view.
+6. **Phase 26h** — Peer benchmarking.
 
 ### Deferred items (no phase assigned)
 - AI usage log in Admin (originally Phase 16, deferred)

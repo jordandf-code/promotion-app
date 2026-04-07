@@ -339,6 +339,10 @@ function PlatformTab() {
   const [ghLoading, setGhLoading] = useState(true);
   const [ghMsg, setGhMsg] = useState('');
   const [ghSaving, setGhSaving] = useState(false);
+  const [emailFrom, setEmailFrom] = useState('');
+  const [resendConfigured, setResendConfigured] = useState(false);
+  const [emailMsg, setEmailMsg] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/platform-settings`, { headers: authHeaders() })
@@ -346,6 +350,8 @@ function PlatformTab() {
       .then(d => {
         setGithubConfigured(d.githubConfigured);
         setGithubRepo(d.githubRepo || '');
+        setEmailFrom(d.emailFrom || '');
+        setResendConfigured(d.resendConfigured || false);
       })
       .catch(() => {})
       .finally(() => setGhLoading(false));
@@ -406,7 +412,8 @@ function PlatformTab() {
         <div className="card admin-card">
           <p className="admin-description"><strong>App:</strong> Promotion Tracker</p>
           <p className="admin-description" style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
-            Email notifications — coming in a future phase.
+            Resend API key: <strong>{resendConfigured ? 'Configured (env var)' : 'Not configured'}</strong>
+            {!resendConfigured && <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '0.25rem' }}>Set RESEND_API_KEY in your server environment to enable email notifications.</span>}
           </p>
         </div>
       </section>
@@ -457,6 +464,58 @@ function PlatformTab() {
                   Remove integration
                 </button>
               )}
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Email notifications</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Configure the sender address for notification emails. Requires a verified domain on Resend.
+          </p>
+          <p className="admin-description" style={{ marginBottom: '1rem' }}>
+            Status: <strong>{resendConfigured ? 'Resend API key set' : 'Resend API key not set'}</strong>
+          </p>
+
+          {emailMsg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{emailMsg}</p>}
+
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            setEmailMsg('');
+            setEmailSaving(true);
+            try {
+              const res = await fetch(`${API_BASE}/api/admin/platform-settings`, {
+                method: 'PUT',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ emailFrom: emailFrom }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error);
+              setEmailMsg('From address saved.');
+            } catch (err) {
+              setEmailMsg(err.message);
+            } finally {
+              setEmailSaving(false);
+            }
+          }} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label>
+              From address
+              <input
+                className="form-input"
+                type="text"
+                value={emailFrom}
+                onChange={e => setEmailFrom(e.target.value)}
+                placeholder="Promotion Tracker <notifications@partner.jordandf.com>"
+              />
+            </label>
+            <div>
+              <button className="btn-primary" disabled={emailSaving}>
+                {emailSaving ? 'Saving…' : 'Save'}
+              </button>
             </div>
           </form>
         </div>

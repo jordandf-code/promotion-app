@@ -212,11 +212,39 @@ router.post('/feedback/:token', async (req, res) => {
     );
     if (!userResult.rows[0]) return res.status(404).json({ error: 'Feedback link not found' });
 
+    const userId = userResult.rows[0].id;
     await db.query(
       `INSERT INTO feedback (user_id, reviewer, rating, comments)
        VALUES ($1, $2, $3, $4)`,
-      [userResult.rows[0].id, reviewer.trim(), Number(rating), comments?.trim() || null]
+      [userId, reviewer.trim(), Number(rating), comments?.trim() || null]
     );
+
+    // Fire-and-forget feedback notification
+    try {
+      const { sendNotification } = require('../notifications/send');
+      const stars = '★'.repeat(Number(rating)) + '☆'.repeat(5 - Number(rating));
+      const preview = comments?.trim() ? comments.trim().slice(0, 200) : '';
+      const html = `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;">
+          <div style="background:#0040a0;color:#fff;padding:14px 20px;border-radius:8px 8px 0 0;text-align:center;">
+            <div style="font-size:16px;font-weight:700;">New Feedback Received</div>
+          </div>
+          <div style="background:#fff;padding:20px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;">
+            <p style="margin:0 0 8px;font-size:14px;"><strong>${reviewer.trim()}</strong> left feedback:</p>
+            <p style="margin:0 0 8px;font-size:20px;">${stars}</p>
+            ${preview ? `<p style="margin:0 0 12px;font-size:13px;color:#555;">"${preview}${comments.trim().length > 200 ? '…' : ''}"</p>` : ''}
+            <a href="${process.env.APP_URL || 'https://partner.jordandf.com'}/sharing" style="display:inline-block;background:#0040a0;color:#fff;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;">View in app</a>
+          </div>
+        </div>`;
+      sendNotification({
+        userId,
+        type: 'feedback_received',
+        subject: `New feedback from ${reviewer.trim()} — ${stars}`,
+        html,
+        payload: { reviewer: reviewer.trim(), rating: Number(rating) },
+      }).catch(() => {}); // swallow errors — don't fail the feedback submission
+    } catch { /* notification module not available — skip */ }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('submit feedback error:', err.message);

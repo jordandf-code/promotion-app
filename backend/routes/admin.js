@@ -135,13 +135,15 @@ router.put('/invite-code', async (req, res) => {
 router.get('/platform-settings', async (req, res) => {
   try {
     const result = await db.query(
-      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo')"
+      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo', 'email_from')"
     );
     const settings = {};
     for (const row of result.rows) settings[row.key] = row.value;
     res.json({
       githubConfigured: !!(settings.github_token && settings.github_repo),
       githubRepo: settings.github_repo || '',
+      emailFrom: settings.email_from || '',
+      resendConfigured: !!process.env.RESEND_API_KEY,
     });
   } catch (err) {
     console.error('admin/platform-settings get error:', err.message);
@@ -151,7 +153,7 @@ router.get('/platform-settings', async (req, res) => {
 
 // PUT /api/admin/platform-settings — save GitHub issue reporting config
 router.put('/platform-settings', async (req, res) => {
-  const { githubToken, githubRepo } = req.body;
+  const { githubToken, githubRepo, emailFrom } = req.body;
 
   try {
     if (githubToken !== undefined) {
@@ -177,9 +179,21 @@ router.put('/platform-settings', async (req, res) => {
       }
     }
 
+    if (emailFrom !== undefined) {
+      if (emailFrom) {
+        await db.query(
+          `INSERT INTO app_settings (key, value) VALUES ('email_from', $1)
+           ON CONFLICT (key) DO UPDATE SET value = $1`,
+          [emailFrom]
+        );
+      } else {
+        await db.query("DELETE FROM app_settings WHERE key = 'email_from'");
+      }
+    }
+
     // Return updated status
     const result = await db.query(
-      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo')"
+      "SELECT key, value FROM app_settings WHERE key IN ('github_token', 'github_repo', 'email_from')"
     );
     const settings = {};
     for (const row of result.rows) settings[row.key] = row.value;
@@ -187,6 +201,8 @@ router.put('/platform-settings', async (req, res) => {
       ok: true,
       githubConfigured: !!(settings.github_token && settings.github_repo),
       githubRepo: settings.github_repo || '',
+      emailFrom: settings.email_from || '',
+      resendConfigured: !!process.env.RESEND_API_KEY,
     });
   } catch (err) {
     console.error('admin/platform-settings put error:', err.message);
