@@ -25,6 +25,12 @@ import SuperAdmin from './pages/SuperAdmin';
 import ViewOthers from './pages/ViewOthers';
 import PublicSummary from './pages/PublicSummary';
 import FeedbackForm from './pages/FeedbackForm';
+import InfluenceMap from './pages/InfluenceMap';
+import BrandWorkspace from './pages/BrandWorkspace';
+import Sponsees from './pages/Sponsees';
+import MockPanel from './pages/MockPanel';
+import DocumentVault from './pages/DocumentVault';
+import ImportExport from './pages/ImportExport';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -65,6 +71,12 @@ export default function App() {
             <Route path="opportunities" element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
             <Route path="learning"   element={<RoleGuard allowed={['superuser','user']}><Learning /></RoleGuard>} />
             <Route path="eminence"   element={<RoleGuard allowed={['superuser','user']}><Eminence /></RoleGuard>} />
+            <Route path="influence-map" element={<RoleGuard allowed={['superuser','user']}><InfluenceMap /></RoleGuard>} />
+            <Route path="brand"      element={<RoleGuard allowed={['superuser','user']}><BrandWorkspace /></RoleGuard>} />
+            <Route path="sponsees"   element={<RoleGuard allowed={['superuser','user']}><Sponsees /></RoleGuard>} />
+            <Route path="mock-panel" element={<RoleGuard allowed={['superuser','user']}><MockPanel /></RoleGuard>} />
+            <Route path="vault"      element={<RoleGuard allowed={['superuser','user']}><DocumentVault /></RoleGuard>} />
+            <Route path="import-export" element={<RoleGuard allowed={['superuser','user']}><ImportExport /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />
             <Route path="view-others" element={<ViewOthers />} />
             <Route path="super-admin" element={<RoleGuard allowed={['superuser']}><SuperAdmin /></RoleGuard>} />

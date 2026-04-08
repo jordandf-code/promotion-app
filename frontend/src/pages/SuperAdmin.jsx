@@ -534,6 +534,101 @@ function ReadinessWeightsSection({ weights, onChange }) {
 
 // ── Platform tab ────────────────────────────────────────────────────────────
 
+function FirmConfigSection() {
+  const { firmConfig, setFirmConfig } = useAdminData();
+  const [draft, setDraft] = useState(firmConfig);
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setDraft(firmConfig), [firmConfig]);
+
+  function updateDraft(key, value) {
+    setDraft(prev => ({ ...prev, [key]: value }));
+  }
+  function updateMetricLabel(key, value) {
+    setDraft(prev => ({ ...prev, metricLabels: { ...prev.metricLabels, [key]: value } }));
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setMsg('');
+    setSaving(true);
+    try {
+      await setFirmConfig(draft);
+      setMsg('Firm configuration saved.');
+    } catch {
+      setMsg('Failed to save.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="section">
+      <div className="section-header">
+        <h2 className="section-title">Firm configuration</h2>
+      </div>
+      <div className="card admin-card">
+        <p className="admin-description">
+          Configure labels for your firm. These replace hardcoded references throughout the app and AI prompts.
+        </p>
+        {msg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{msg}</p>}
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <label>
+            Company name
+            <input className="form-input" value={draft.companyName} onChange={e => updateDraft('companyName', e.target.value)} />
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <label>
+              Current role label
+              <input className="form-input" value={draft.currentRoleLabel} onChange={e => updateDraft('currentRoleLabel', e.target.value)} />
+            </label>
+            <label>
+              Target role label
+              <input className="form-input" value={draft.targetRoleLabel} onChange={e => updateDraft('targetRoleLabel', e.target.value)} />
+            </label>
+          </div>
+          <label>
+            Market / practice description
+            <input className="form-input" value={draft.marketDescription} onChange={e => updateDraft('marketDescription', e.target.value)} />
+          </label>
+          <label>
+            Criteria label
+            <input className="form-input" value={draft.criteriaLabel} onChange={e => updateDraft('criteriaLabel', e.target.value)}
+              placeholder="e.g. Promotion criteria, IBM criteria" />
+          </label>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+            <legend style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.25rem' }}>Scorecard metric labels</legend>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <label>
+                Signings
+                <input className="form-input" value={draft.metricLabels?.signings ?? ''} onChange={e => updateMetricLabel('signings', e.target.value)} />
+              </label>
+              <label>
+                Revenue
+                <input className="form-input" value={draft.metricLabels?.revenue ?? ''} onChange={e => updateMetricLabel('revenue', e.target.value)} />
+              </label>
+              <label>
+                Gross profit
+                <input className="form-input" value={draft.metricLabels?.grossProfit ?? ''} onChange={e => updateMetricLabel('grossProfit', e.target.value)} />
+              </label>
+              <label>
+                Utilization
+                <input className="form-input" value={draft.metricLabels?.utilization ?? ''} onChange={e => updateMetricLabel('utilization', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
+          <div>
+            <button className="btn-primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save firm configuration'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 function PlatformTab() {
   const [githubToken, setGithubToken] = useState('');
   const [githubRepo, setGithubRepo] = useState('');
@@ -607,12 +702,14 @@ function PlatformTab() {
 
   return (
     <div className="tab-content">
+      <FirmConfigSection />
+
       <section className="section">
         <div className="section-header">
           <h2 className="section-title">Platform</h2>
         </div>
         <div className="card admin-card">
-          <p className="admin-description"><strong>App:</strong> Promotion Tracker</p>
+          <p className="admin-description"><strong>App:</strong> Career Command Center</p>
           <p className="admin-description" style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
             Resend API key: <strong>{resendConfigured ? 'Configured (env var)' : 'Not configured'}</strong>
             {!resendConfigured && <span style={{ display: 'block', fontSize: '0.8rem', marginTop: '0.25rem' }}>Set RESEND_API_KEY in your server environment to enable email notifications.</span>}

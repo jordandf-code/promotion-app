@@ -4,6 +4,7 @@
 
 const express        = require('express');
 const Anthropic      = require('@anthropic-ai/sdk');
+const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
@@ -13,6 +14,18 @@ const db = require('../db');
 
 const router = express.Router();
 router.use(authMiddleware);
+
+// Rate limit AI calls: 20 requests per 15 minutes per user
+// Keyed by userId (set by auth middleware which runs first via router.use above)
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => `user-${req.userId}`,
+  message: { ok: false, error: 'Too many AI requests — please try again in a few minutes', code: 'RATE_LIMITED' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+router.use(aiLimiter);
 
 // ── Helper: handle buildContext errors ──────────────────────────────────────
 

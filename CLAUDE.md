@@ -1,6 +1,6 @@
-# Promotion Tracker
+# Career Command Center
 
-Multi-user web app for IBM Canada Associate Partners tracking their path to Partner promotion. React frontend, Node.js/Express backend, PostgreSQL (Supabase). Deployed on Vercel (frontend) + Render (backend).
+Multi-user web app for professional services leaders managing their path to promotion and beyond. React frontend, Node.js/Express backend, PostgreSQL (Supabase). Deployed on Vercel (frontend) + Render (backend). Target: ~12 core users across firms (IBM, Big 4, Accenture), 100+ total accounts with sponsor/peer/reviewer access.
 
 ## Tech stack
 
@@ -77,11 +77,24 @@ Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (c
 
 ## Current status
 
-Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. 30 of 32 GitHub issues resolved (2026-04-07 triage). Key changes: pursuit→opportunity rename (route is now `/opportunities`), site-wide categories moved from Admin to Super Admin (new `/api/platform` endpoint), narrative page has 3 subtabs (AI Generated / DIY Prompts / Manual Input), recurring touchpoints with auto-actions, TCV field on opportunities, scorecard table redesigned. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
+Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. 30 of 32 GitHub issues resolved (2026-04-07 triage). Key changes: pursuit→opportunity rename (route is now `/opportunities`), site-wide categories moved from Admin to Super Admin (new `/api/platform` endpoint), narrative page has 3 subtabs (AI Generated / DIY Prompts / Manual Input), recurring touchpoints with auto-actions, TCV field on opportunities, scorecard table redesigned. See `docs/PHASES_COMPLETE.md` for full history.
+
+**Restructured as Career Command Center (2026-04-07)**: Old linear phase sequence replaced with a 4-layer dependency graph optimized for parallel agent execution. 22 features across Layers 0–3. See `docs/PLAN.md` for the full dependency roadmap.
+
+**Layer 0 complete (2026-04-07)**: Security hardening (0A), firm-agnostic config (0B), Dashboard widget scaffold (0C), navigation scaffold with 6 new placeholder routes (0D), role/permissions rework with `user_relationships` table (0E), email infrastructure (0F). Migration `migration_layer0e.sql` must be run in Supabase before deploying.
 
 ## What to build next
 
-Parked issues: #19 (View Others rework) and #24 (Viewer Access via email) — need a dedicated design session. All remaining phases are unblocked. Priority order: Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
+**Layer 0 is done. Layer 1 is fully unblocked** — up to 7 features can be built in parallel:
+- **1A** People tab enrichment (influence tier, coverage, strategic importance)
+- **1B** Readiness score snapshots + trend chart
+- **1C** Structured 360 feedback (5 questions + AI synthesis)
+- **1D** Sponsor view (Sponsees page)
+- **1E** Bulk import/export (CSV ZIP)
+- **1F** Remaining notification types + **1G** AI usage log
+- **1H** Super Admin tooling + **1I** Onboarding polish
+
+See `docs/PLAN.md` for dependencies and the full graph.
 
 ## Important gotchas
 
@@ -89,11 +102,14 @@ Parked issues: #19 (View Others rework) and #24 (Viewer Access via email) — ne
 - Anthropic API key is NEVER an env var — always per-user from DB
 - Never modify existing `migration*.sql` files — always create new ones
 - `adminData` sync has a `serverLoaded` guard to prevent race conditions — do not remove
-- Scorecard metric labels: "Signings" (not Sales), "Chargeable utilization" (not Utilization), "Gross profit" (not Gross Profit)
+- Scorecard metric labels are now configurable via firm config in Super Admin → Platform. Defaults: "Signings", "Revenue", "Gross profit", "Chargeable utilization"
 - Route is `/opportunities` (not `/pursuits`) — renamed in 2026-04-07 triage
 - Site-wide categories (win tags, relationship types, pipeline stages, etc.) are stored via `/api/platform` and managed in Super Admin — NOT per-user admin data
-- Platform data uses `app_settings` table (key: `platform_categories`), not `user_data`
+- Platform data uses `app_settings` table (keys: `platform_categories`, `firm_config`), not `user_data`
 - Narrative page has 3 subtabs with an "active source" toggle that controls which source feeds the readiness score's evidence dimension
+- User relationships use `user_relationships` table (sponsor/peer types). Old `viewer_access` table kept for backward compat — both are written to during transition
+- New pages (influence-map, brand, sponsees, mock-panel, vault, import-export) are registered in App.jsx and Layout.jsx but hidden in nav. When building these features, flip `hidden: false` in Layout.jsx `ALL_NAV_ITEMS`
+- Dashboard uses widget slot pattern — add new widgets as components in `components/dashboard/`, import and place them in Dashboard.jsx. Don't inline new sections.
 
 ## Session workflow
 

@@ -9,18 +9,22 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/platform — returns platform categories (all authenticated users)
+// GET /api/platform — returns platform categories + firm config (all authenticated users)
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(
-      "SELECT value FROM app_settings WHERE key = 'platform_categories'"
+      "SELECT key, value FROM app_settings WHERE key IN ('platform_categories', 'firm_config')"
     );
-    const raw = result.rows[0]?.value;
+    const byKey = Object.fromEntries(result.rows.map(r => [r.key, r.value]));
     let data = null;
-    if (raw) {
-      try { data = JSON.parse(raw); } catch { data = null; }
+    let firmConfig = null;
+    if (byKey.platform_categories) {
+      try { data = JSON.parse(byKey.platform_categories); } catch { data = null; }
     }
-    res.json({ data });
+    if (byKey.firm_config) {
+      try { firmConfig = JSON.parse(byKey.firm_config); } catch { firmConfig = null; }
+    }
+    res.json({ data, firmConfig });
   } catch (err) {
     console.error('GET platform error:', err.message);
     res.status(500).json({ error: 'Failed to load platform settings' });
@@ -42,6 +46,24 @@ router.put('/', authMiddleware, requireRole('superuser'), async (req, res) => {
   } catch (err) {
     console.error('PUT platform error:', err.message);
     res.status(500).json({ error: 'Failed to save platform settings' });
+  }
+});
+
+// PUT /api/platform/firm-config — upsert firm configuration (superuser only)
+router.put('/firm-config', authMiddleware, requireRole('superuser'), async (req, res) => {
+  const { firmConfig } = req.body;
+  if (firmConfig === undefined) return res.status(400).json({ error: 'firmConfig field required' });
+
+  try {
+    await db.query(
+      `INSERT INTO app_settings (key, value) VALUES ('firm_config', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [JSON.stringify(firmConfig)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT firm-config error:', err.message);
+    res.status(500).json({ error: 'Failed to save firm configuration' });
   }
 });
 

@@ -3,8 +3,7 @@
 
 const db = require('../db');
 const { computeReadinessScore, DEFAULT_WEIGHTS } = require('./readiness');
-
-const APP_URL = process.env.APP_URL || 'https://partner.jordandf.com';
+const { wrapEmail, APP_URL } = require('./emailTemplate');
 
 /**
  * Build weekly digest for a user.
@@ -133,7 +132,7 @@ async function buildDigest(userId) {
     sections.push(makeSection('All Clear', 'No overdue items, stale contacts, or upcoming deadlines. Keep up the momentum!'));
   }
 
-  const html = wrapEmail(sections.join(''));
+  const html = wrapEmail(sections.join(''), { subtitle: 'Weekly Digest' });
 
   return { subject, html };
 }
@@ -151,29 +150,5 @@ function fmtNum(n) {
   return Number(n).toLocaleString('en-CA', { maximumFractionDigits: 0 });
 }
 
-function wrapEmail(body) {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:560px;margin:0 auto;padding:24px 16px;">
-    <div style="background:#0040a0;color:#fff;padding:16px 24px;border-radius:8px 8px 0 0;text-align:center;">
-      <div style="font-size:18px;font-weight:700;">Promotion Tracker</div>
-      <div style="font-size:12px;opacity:0.8;margin-top:2px;">Weekly Digest</div>
-    </div>
-    <div style="background:#fff;padding:24px;border-radius:0 0 8px 8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      ${body}
-      <div style="text-align:center;margin-top:24px;">
-        <a href="${APP_URL}" style="display:inline-block;background:#0040a0;color:#fff;padding:10px 24px;border-radius:5px;text-decoration:none;font-size:14px;font-weight:600;">Open Promotion Tracker</a>
-      </div>
-    </div>
-    <div style="text-align:center;padding:16px;font-size:11px;color:#999;">
-      You're receiving this because email notifications are enabled in your account settings.
-    </div>
-  </div>
-</body>
-</html>`;
-}
 
 module.exports = { buildDigest };

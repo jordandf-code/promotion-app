@@ -8,6 +8,14 @@ if (!process.env.JWT_SECRET) {
   console.error('FATAL: JWT_SECRET environment variable is not set. Exiting.');
   process.exit(1);
 }
+if (process.env.JWT_SECRET.length < 32) {
+  console.warn('WARNING: JWT_SECRET is shorter than 32 characters. Generate a strong secret with:');
+  console.warn('  node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: Weak JWT_SECRET is not allowed in production. Exiting.');
+    process.exit(1);
+  }
+}
 if (!process.env.DATABASE_URL) {
   console.error('FATAL: DATABASE_URL environment variable is not set. Exiting.');
   process.exit(1);

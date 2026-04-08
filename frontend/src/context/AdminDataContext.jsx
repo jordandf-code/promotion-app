@@ -87,6 +87,20 @@ const USER_DEFAULTS = {
   autoFollowUp:      { enabled: true, intervalDays: 30 },
 };
 
+export const DEFAULT_FIRM_CONFIG = {
+  companyName:       'IBM Canada',
+  currentRoleLabel:  'Associate Partner',
+  targetRoleLabel:   'Partner',
+  marketDescription: 'Canadian public sector',
+  criteriaLabel:     'Promotion criteria',
+  metricLabels: {
+    signings:    'Signings',
+    revenue:     'Revenue',
+    grossProfit: 'Gross profit',
+    utilization: 'Chargeable utilization',
+  },
+};
+
 // Keys that belong to platform-wide data
 const PLATFORM_DEFAULTS = {
   relationshipTypes: DEFAULT_RELATIONSHIP_TYPES,
@@ -142,6 +156,7 @@ const AdminDataContext = createContext(null);
 
 export function AdminDataProvider({ children }) {
   const [adminData, setAdminData]       = useState(DEFAULTS);
+  const [firmConfig, setFirmConfigState] = useState(DEFAULT_FIRM_CONFIG);
   const [initialized, setInitialized]   = useState(false);
   const skipSync                        = useRef(false);
   const serverLoaded                    = useRef(false);
@@ -154,11 +169,11 @@ export function AdminDataProvider({ children }) {
   async function fetchPlatform() {
     try {
       const res = await fetch(`${API_BASE}/api/platform`, { headers: authHeaders() });
-      if (!res.ok) return null;
-      const { data } = await res.json();
-      return data;
+      if (!res.ok) return { data: null, firmConfig: null };
+      const json = await res.json();
+      return { data: json.data ?? null, firmConfig: json.firmConfig ?? null };
     } catch {
-      return null;
+      return { data: null, firmConfig: null };
     }
   }
 
@@ -189,9 +204,21 @@ export function AdminDataProvider({ children }) {
     Promise.all([
       apiGet('admin').catch(() => null),
       fetchPlatform(),
-    ]).then(([serverAdmin, serverPlatform]) => {
+    ]).then(([serverAdmin, platformResult]) => {
       serverLoaded.current = true;
       platformLoaded.current = true;
+
+      const serverPlatform = platformResult.data;
+      const serverFirmConfig = platformResult.firmConfig;
+
+      // Apply firm config if available (deep merge metricLabels to avoid losing defaults)
+      if (serverFirmConfig) {
+        setFirmConfigState({
+          ...DEFAULT_FIRM_CONFIG,
+          ...serverFirmConfig,
+          metricLabels: { ...DEFAULT_FIRM_CONFIG.metricLabels, ...(serverFirmConfig.metricLabels || {}) },
+        });
+      }
 
       let merged = { ...DEFAULTS };
 
@@ -298,6 +325,31 @@ export function AdminDataProvider({ children }) {
     };
   }
 
+  // ── Firm config setter (writes to /api/platform/firm-config) ──────────────
+  async function setFirmConfig(newConfig) {
+    if (!isSuperuser) return;
+    const merged = {
+      ...firmConfig,
+      ...newConfig,
+      metricLabels: { ...(firmConfig.metricLabels || {}), ...(newConfig.metricLabels || {}) },
+    };
+    setFirmConfigState(merged);
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/firm-config`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ firmConfig: merged }),
+      });
+      if (!res.ok) {
+        console.error(`Firm config save failed: ${res.status}`);
+        setFirmConfigState(firmConfig); // rollback
+      }
+    } catch (err) {
+      console.error('Failed to save firm config:', err.message);
+      setFirmConfigState(firmConfig); // rollback
+    }
+  }
+
   const setRelationshipTypes  = makePlatformSetter('relationshipTypes');
   const setWinTags            = makePlatformSetter('winTags');
   const setDealTypes          = makePlatformSetter('dealTypes');
@@ -312,6 +364,7 @@ export function AdminDataProvider({ children }) {
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
+      firmConfig, setFirmConfig,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
       setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setAutoFollowUp, setReadinessWeights,
       setDeckTemplate, setDeckContentInstructions,
