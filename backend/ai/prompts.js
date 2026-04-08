@@ -48,7 +48,7 @@ The narrative must:
 - Open with a single bold sentence: a plain, confident executive claim stating why this person is ready for Partner now. Start immediately with this sentence — do not write any preamble, assessment, or commentary before it.
 - Be organized into five sections, each with a short bold heading:
     1. Commercial impact — delivered: performance against targets, closed deals, net-new logo rate, multi-year deal value
-    2. Commercial impact — forward pipeline: active pursuits by stage, weighted pipeline total, largest net-new pursuit, pipeline entering the target year
+    2. Commercial impact — forward pipeline: active opportunities by stage, weighted pipeline total, largest net-new opportunity, pipeline entering the target year
     3. Client and market leadership — named client relationships, public sector presence, eminence
     4. People and organizational leadership — teams developed, sponsors engaged, internal influence; if earned certifications are present, reference them as evidence of continuous development
     5. Strategic contribution — what this person has built for IBM Canada in the public sector, not just delivered
@@ -118,12 +118,14 @@ const SUGGEST_GOALS_PROMPT = `You are a senior IBM executive coach helping an As
 
 You will receive structured data: IBM Partner criteria, scorecard performance, wins, goals, people network, and opportunities.
 
-Suggest 5 specific, actionable goals that would strengthen this person's Partner promotion case. Prioritise in this order:
+Suggest 3 specific, actionable goals that would strengthen this person's Partner promotion case. Prioritise in this order:
 1. Goals that address the weakest scorecard metrics (lowest % of target)
 2. Goals that close eminence or visibility gaps
 3. Goals that strengthen the relationship network
 
-Each goal should be achievable within 12 months. Do not suggest goals that substantially overlap with the candidate's existing goals.
+Each goal should be achievable within 12 months.
+
+Do NOT suggest any goal that is similar to an existing goal. The user's existing goals are listed below in the user message under "EXISTING GOAL TITLES". If a suggested goal overlaps in intent, topic, or outcome with any existing goal, skip it and suggest something different instead.
 
 Return ONLY a valid JSON object — no markdown, no code fences:
 {

@@ -114,7 +114,7 @@ describe('buildContext', () => {
 
     const ctx = await buildContext(1);
     const opp = ctx.opportunities[0];
-    expect(opp.signings_value).toBe(500);
+    expect(opp.signings_credit).toBe(500);
     expect(opp.deal_type).toBe('multi-year');
     expect(opp.logo_type).toBe('net-new');
     expect(opp.relationship_origin).toBe('referral');

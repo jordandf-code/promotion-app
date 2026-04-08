@@ -63,6 +63,7 @@ export default function ReadinessWidget({ readiness, daysLeft, qualifyingYear })
                 role="button"
                 tabIndex={0}
                 onKeyDown={e => e.key === 'Enter' && navigate(dim.route)}
+                title={dim.details}
               >
                 <span className="readiness-bar-label">{dim.label}</span>
                 <div className="readiness-bar-track">

@@ -11,6 +11,7 @@ const TODAY_STR = new Date().toISOString().slice(0, 10);
 export default function PersonCard({
   person,
   relationshipTypes,
+  autoFollowUp,
   onEdit,
   onDelete,
   onUpdatePerson,
@@ -30,9 +31,25 @@ export default function PersonCard({
 
   const typeColor = (relationshipTypes ?? []).find(t => t.label === person.type)?.color ?? '#64748b';
   const since    = daysSinceContact(person);
-  const stale    = since > 30;
   const lastDate = lastContactDate(person);
   const initials = person.name.split(' ').map(n => n[0]).join('').slice(0, 2);
+
+  // Issue #51: Adaptive follow-up threshold
+  const rec = person.recurrence;
+  const hasRecurrence = rec?.enabled && rec.intervalDays > 0;
+  const threshold = hasRecurrence ? rec.intervalDays : (autoFollowUp?.intervalDays || 30);
+  const stale = since > threshold;
+
+  // Recurrence badge text
+  let staleBadgeText = 'Follow up needed';
+  if (hasRecurrence) {
+    if (since >= rec.intervalDays) {
+      staleBadgeText = 'Recurring: overdue';
+    } else {
+      const daysLeft = rec.intervalDays - since;
+      staleBadgeText = `Due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+    }
+  }
 
   function handleAddTouchpoint(e) {
     e.preventDefault();
@@ -74,7 +91,8 @@ export default function PersonCard({
         >
           {RELATIONSHIP_STATUS_LABELS[person.relationshipStatus ?? 'in-progress']}
         </button>
-        {stale && <span className="stale-badge">Follow up needed</span>}
+        {stale && <span className="stale-badge">{staleBadgeText}</span>}
+        {hasRecurrence && !stale && <span className="stale-badge" style={{ background: '#dbeafe', color: '#1e40af', borderColor: '#93c5fd' }}>{staleBadgeText}</span>}
       </div>
 
       {/* ── Contact info ── */}
@@ -106,6 +124,36 @@ export default function PersonCard({
         onAddAction={onAddAction}
         onToggleActionDone={onToggleActionDone}
       />
+
+      {/* ── Recurring touchpoint settings ── */}
+      <div className="person-recurrence-section" style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!rec?.enabled}
+            onChange={e => onUpdatePerson(person.id, {
+              recurrence: { enabled: e.target.checked, intervalDays: rec?.intervalDays || 14 },
+            })}
+          />
+          Recurring follow-up
+        </label>
+        {rec?.enabled && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.35rem', marginLeft: '1.5rem' }}>
+            Every
+            <input
+              className="form-input"
+              type="number"
+              min={1}
+              value={rec.intervalDays || 14}
+              onChange={e => onUpdatePerson(person.id, {
+                recurrence: { ...rec, intervalDays: Math.max(1, parseInt(e.target.value) || 14) },
+              })}
+              style={{ width: '4rem', padding: '0.2rem 0.4rem', fontSize: '0.85rem' }}
+            />
+            days
+          </label>
+        )}
+      </div>
 
       {/* ── Past touchpoints ── */}
       <div className="person-log-section">

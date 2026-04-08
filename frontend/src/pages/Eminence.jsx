@@ -22,8 +22,13 @@ export default function Eminence() {
 
   /* ── Filtering ── */
   const years = useMemo(() => {
-    const s = new Set(activities.map(a => a.year).filter(Boolean));
-    return [...s].sort((a, b) => b - a);
+    const dataYears = activities.map(a => a.year).filter(Boolean);
+    const now = new Date().getFullYear();
+    const minYear = dataYears.length > 0 ? Math.min(...dataYears, now - 3) : now - 3;
+    const maxYear = dataYears.length > 0 ? Math.max(...dataYears, now) + 1 : now + 1;
+    const range = [];
+    for (let y = maxYear; y >= minYear; y--) range.push(y);
+    return range;
   }, [activities]);
 
   const filtered = useMemo(() => {

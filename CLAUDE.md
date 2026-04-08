@@ -38,10 +38,15 @@ cd frontend && npm run dev   # port 5173
 git checkout dev             # all work on dev branch
 # Before committing: update docs/PLAN.md, docs/PHASES_COMPLETE.md, and CLAUDE.md
 # to reflect what was built (completion status, dependency map, "what to build next")
-git add -A && git commit -m "description"
+git add -p                   # stage specific changes (prefer over git add -A)
+git commit -m "description"
 git push origin dev          # then PR to main
 gh pr create --base main --head dev --title "title" --body "body"
 gh pr merge --merge          # merge PR to main for auto-deploy
+
+# Verify deploy succeeded
+# Vercel: check dashboard or live site
+# Render: check dashboard Events tab or hit /api/health
 ```
 
 ## Key conventions
@@ -72,11 +77,11 @@ Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (c
 
 ## Current status
 
-Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
+Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. 30 of 32 GitHub issues resolved (2026-04-07 triage). Key changes: pursuit→opportunity rename (route is now `/opportunities`), site-wide categories moved from Admin to Super Admin (new `/api/platform` endpoint), narrative page has 3 subtabs (AI Generated / DIY Prompts / Manual Input), recurring touchpoints with auto-actions, TCV field on opportunities, scorecard table redesigned. See `docs/PLAN.md` for build sequence and `docs/PHASES_COMPLETE.md` for full history.
 
 ## What to build next
 
-All remaining phases are unblocked. Priority order: Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
+Parked issues: #19 (View Others rework) and #24 (Viewer Access via email) — need a dedicated design session. All remaining phases are unblocked. Priority order: Phase 24 (bulk import/export) → Phase 25 (LinkedIn import) → Phase 26 (structured 360 feedback). See `docs/PLAN.md`.
 
 ## Important gotchas
 
@@ -85,6 +90,10 @@ All remaining phases are unblocked. Priority order: Phase 24 (bulk import/export
 - Never modify existing `migration*.sql` files — always create new ones
 - `adminData` sync has a `serverLoaded` guard to prevent race conditions — do not remove
 - Scorecard metric labels: "Signings" (not Sales), "Chargeable utilization" (not Utilization), "Gross profit" (not Gross Profit)
+- Route is `/opportunities` (not `/pursuits`) — renamed in 2026-04-07 triage
+- Site-wide categories (win tags, relationship types, pipeline stages, etc.) are stored via `/api/platform` and managed in Super Admin — NOT per-user admin data
+- Platform data uses `app_settings` table (key: `platform_categories`), not `user_data`
+- Narrative page has 3 subtabs with an "active source" toggle that controls which source feeds the readiness score's evidence dimension
 
 ## Session workflow
 
@@ -98,6 +107,7 @@ When compacting, preserve: the current phase being worked on, which files have b
 
 ## Reference docs
 
+- Common language glossary: `docs/GLOSSARY.md`
 - Data model schemas: `docs/DATA_MODEL.md`
 - Form UX standards: `docs/FORM_UX.md`
 - AI prompt specs: `backend/ai/AIprompt.md`

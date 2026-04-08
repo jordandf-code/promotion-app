@@ -184,23 +184,20 @@ export default function ScorecardTable({ scorecard, qualifyingYear, scorecardYea
                 return (
                   <td key={year} className={`sc-td ${isQual ? 'sc-td--qual' : ''}`}>
 
-                    {/* Top row: status dot+label on left, actual value on right */}
+                    {/* Line 1: realized value + percentage of target */}
                     <div className="sc-top-row">
-                      {isQual && statusCfg ? (
-                        <span className="sc-status" style={{ color: statusCfg.color }}>
-                          <span className="sc-status-dot" style={{ background: statusCfg.color }} />
-                          {statusCfg.label}
-                        </span>
-                      ) : <span />}
                       <span className="sc-actual">
                         {row.format(realized)}
                         {isUtil && actualPct !== null && (
                           <span className="sc-util-pct"> ({actualPct}%)</span>
                         )}
+                        {!isUtil && actualPct !== null && (
+                          <span className="sc-actual-pct" style={{ color: pctColor(actualPct) }}> ({actualPct}%)</span>
+                        )}
                       </span>
                     </div>
 
-                    {/* Forecast line */}
+                    {/* Line 2: forecast */}
                     {hasForecast && (
                       <div className="sc-forecast-line">
                         fcst {row.format(projected)}
@@ -212,11 +209,21 @@ export default function ScorecardTable({ scorecard, qualifyingYear, scorecardYea
                       </div>
                     )}
 
-                    {/* Target line */}
+                    {/* Line 3: target */}
                     {target !== null
                       ? <div className="sc-target">target {row.format(target)}</div>
                       : <div className="sc-target sc-target--none">—</div>
                     }
+
+                    {/* Line 4: status badge (qualifying year only) */}
+                    {isQual && statusCfg && (
+                      <div className="sc-status-row">
+                        <span className="sc-status" style={{ color: statusCfg.color }}>
+                          <span className="sc-status-dot" style={{ background: statusCfg.color }} />
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                    )}
                   </td>
                 );
               })}

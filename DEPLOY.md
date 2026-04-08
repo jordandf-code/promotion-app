@@ -117,15 +117,17 @@ Each user sets their own key in the Admin tab after logging in.
 3. (Optional) Verify your custom domain in Resend → Domains to send from your own address
 4. In the app: Super Admin → Platform → set the "From address" (e.g. `Promotion Tracker <notifications@partner.jordandf.com>`)
 
-### Keeping the server awake for scheduled notifications
-Render's free tier sleeps the server after 15 minutes of inactivity. The weekly digest uses `node-cron` which only fires when the server is running.
+## Keeping the backend warm
 
-To ensure reliable delivery:
-1. Go to [cron-job.org](https://cron-job.org) and create a free account
-2. Create a new job: URL = `https://your-app.onrender.com/api/health`, interval = every 14 minutes
-3. This keeps the server awake so cron jobs fire on schedule
+Use **UptimeRobot** to keep the server awake:
+1. Sign up at [uptimerobot.com](https://uptimerobot.com) (free)
+2. Click **Add New Monitor**
+3. Set type to **HTTP(s)**
+4. Set the URL to `https://your-app.onrender.com/api/health`
+5. Set the interval to **5 minutes**
+6. Save — UptimeRobot will ping the endpoint every 5 minutes, keeping the server warm
 
-Without the keep-alive ping, digest emails will only send when someone next opens the app.
+UptimeRobot will also email you if the backend goes down (non-200 or timeout), which is useful independent of the keep-alive purpose.
 
 ### Notification types
 | Type | Schedule | Configurable by user |

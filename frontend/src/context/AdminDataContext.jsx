@@ -1,9 +1,19 @@
 // context/AdminDataContext.jsx
 // Single shared instance of admin data — shared across Layout, Admin, and all feature hooks.
 // Replaces the per-component hook instances so changes in Admin reflect in the sidebar instantly.
+//
+// Data is split into two sources:
+//   - Per-user admin data: navOrder, bottomBarTabs, ibmCriteria, careerHistory, anthropicKey
+//   - Platform data (site-wide): winTags, relationshipTypes, dealTypes, logoTypes, originTypes,
+//     eminenceTypes, pipelineStages, readinessWeights, deckTemplate, deckTemplateFilename,
+//     deckContentInstructions
+//
+// The exported context merges both, so all consumers keep working unchanged.
+// Only superusers can update platform fields (PUT /api/platform).
 
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
+import { apiGet, apiPut, apiPutMarkClean, API_BASE, authHeaders } from '../utils/api.js';
+import { useAuth } from '../context/AuthContext';
 
 export const COLOR_PALETTE = [
   '#1d4ed8', '#15803d', '#b45309', '#b91c1c',
@@ -11,7 +21,7 @@ export const COLOR_PALETTE = [
 ];
 
 export const DEFAULT_NAV_ORDER = [
-  '/', '/scorecard', '/pursuits', '/goals', '/people', '/wins', '/eminence',
+  '/', '/scorecard', '/opportunities', '/goals', '/people', '/wins', '/eminence',
   '/actions', '/learning', '/story', '/calendar', '/sharing', '/admin',
 ];
 
@@ -67,7 +77,18 @@ export const DEFAULT_PIPELINE_STAGES = [
   { label: 'Closed',     color: '#15803d' },
 ];
 
-const DEFAULTS = {
+// Keys that belong to per-user admin data
+const USER_DEFAULTS = {
+  ibmCriteria:       '',
+  careerHistory:     '',
+  anthropicKey:      '',
+  navOrder:          DEFAULT_NAV_ORDER,
+  bottomBarTabs:     null,
+  autoFollowUp:      { enabled: true, intervalDays: 30 },
+};
+
+// Keys that belong to platform-wide data
+const PLATFORM_DEFAULTS = {
   relationshipTypes: DEFAULT_RELATIONSHIP_TYPES,
   winTags:           DEFAULT_WIN_TAGS,
   dealTypes:         DEFAULT_DEAL_TYPES,
@@ -75,16 +96,16 @@ const DEFAULTS = {
   originTypes:       DEFAULT_ORIGIN_TYPES,
   eminenceTypes:     DEFAULT_EMINENCE_TYPES,
   pipelineStages:    DEFAULT_PIPELINE_STAGES,
-  ibmCriteria:       '',
-  careerHistory:     '',
-  anthropicKey:      '',
-  navOrder:          DEFAULT_NAV_ORDER,
-  bottomBarTabs:     null,
   readinessWeights:  null,
   deckTemplate:           '',
   deckTemplateFilename:   '',
   deckContentInstructions: '',
 };
+
+// Combined defaults (for backward compat with old merged admin data)
+const DEFAULTS = { ...USER_DEFAULTS, ...PLATFORM_DEFAULTS };
+
+const PLATFORM_KEYS = new Set(Object.keys(PLATFORM_DEFAULTS));
 
 function migrateFromV1(v1data) {
   const defaultColorMap = Object.fromEntries(DEFAULT_RELATIONSHIP_TYPES.map(t => [t.label, t.color]));
@@ -106,67 +127,193 @@ function loadLocal() {
   return null;
 }
 
+// Split a merged data object into user-only and platform-only parts
+function splitData(merged) {
+  const user = {};
+  const platform = {};
+  for (const [k, v] of Object.entries(merged)) {
+    if (PLATFORM_KEYS.has(k)) platform[k] = v;
+    else user[k] = v;
+  }
+  return { user, platform };
+}
+
 const AdminDataContext = createContext(null);
 
 export function AdminDataProvider({ children }) {
-  const [adminData, setAdminData]     = useState(DEFAULTS);
-  const [initialized, setInitialized] = useState(false);
-  const skipSync                      = useRef(false);
-  const serverLoaded                  = useRef(false);
+  const [adminData, setAdminData]       = useState(DEFAULTS);
+  const [initialized, setInitialized]   = useState(false);
+  const skipSync                        = useRef(false);
+  const serverLoaded                    = useRef(false);
+  const platformLoaded                  = useRef(false);
+  const skipPlatformSync                = useRef(false);
+  const { token, user } = useAuth();
+  const isSuperuser = user?.role === 'superuser';
 
+  // ── Fetch platform data ──────────────────────────────────────────────────
+  async function fetchPlatform() {
+    try {
+      const res = await fetch(`${API_BASE}/api/platform`, { headers: authHeaders() });
+      if (!res.ok) return null;
+      const { data } = await res.json();
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  const pendingPlatformSave = useRef(null);
+
+  async function savePlatform(data, rollback) {
+    try {
+      const res = await fetch(`${API_BASE}/api/platform`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ data }),
+      });
+      if (!res.ok) {
+        console.error(`Platform save failed: ${res.status}`);
+        if (rollback) setAdminData(rollback);
+      }
+    } catch (err) {
+      console.error('Failed to save platform data:', err.message);
+      if (rollback) setAdminData(rollback);
+    }
+  }
+
+  // ── Initial load: fetch both admin + platform data ───────────────────────
   useEffect(() => {
+    if (!token) { setInitialized(true); return; }
     const local = loadLocal() ?? DEFAULTS;
-    apiGet('admin')
-      .then(serverData => {
-        serverLoaded.current = true;
-        if (serverData !== null) {
-          skipSync.current = true;
-          const merged = { ...DEFAULTS, ...serverData };
-          apiPutMarkClean('admin', merged);
-          setAdminData(merged);
-        } else {
-          setAdminData(local);
-          apiPut('admin', local);
-        }
-        localStorage.removeItem('adminData_v2');
-        localStorage.removeItem('adminData_v1');
-      })
-      .catch(() => {
-        // Server unreachable — use local/defaults for display but do NOT sync
-        // back to the server, as that would overwrite real data with empty defaults.
-        setAdminData(local);
-      })
-      .finally(() => setInitialized(true));
-  }, []);
 
+    Promise.all([
+      apiGet('admin').catch(() => null),
+      fetchPlatform(),
+    ]).then(([serverAdmin, serverPlatform]) => {
+      serverLoaded.current = true;
+      platformLoaded.current = true;
+
+      let merged = { ...DEFAULTS };
+
+      // Handle per-user admin data
+      if (serverAdmin !== null) {
+        // Migrate: if server admin data contains platform keys (old format),
+        // those become fallbacks but platform data takes precedence
+        merged = { ...merged, ...serverAdmin };
+      } else {
+        // No server data — use local
+        merged = { ...merged, ...local };
+      }
+
+      // Overlay platform data on top (takes precedence for platform keys)
+      if (serverPlatform !== null) {
+        for (const k of PLATFORM_KEYS) {
+          if (serverPlatform[k] !== undefined) merged[k] = serverPlatform[k];
+        }
+      } else if (isSuperuser) {
+        // No platform data exists yet — superuser should seed it from current merged values
+        const platformSeed = {};
+        for (const k of PLATFORM_KEYS) {
+          platformSeed[k] = merged[k] !== undefined ? merged[k] : PLATFORM_DEFAULTS[k];
+        }
+        skipPlatformSync.current = true;
+        savePlatform(platformSeed);
+      }
+
+      // Migrate /pursuits → /opportunities in saved nav preferences
+      if (merged.navOrder) {
+        merged.navOrder = merged.navOrder.map(r => r === '/pursuits' ? '/opportunities' : r);
+      }
+      if (merged.bottomBarTabs) {
+        merged.bottomBarTabs = merged.bottomBarTabs.map(r => r === '/pursuits' ? '/opportunities' : r);
+      }
+
+      skipSync.current = true;
+      skipPlatformSync.current = true;
+
+      // Clean the per-user admin data: strip platform keys from it
+      const userOnly = {};
+      for (const [k, v] of Object.entries(serverAdmin ?? local)) {
+        if (!PLATFORM_KEYS.has(k)) userOnly[k] = v;
+      }
+      apiPutMarkClean('admin', userOnly);
+
+      setAdminData(merged);
+      localStorage.removeItem('adminData_v2');
+      localStorage.removeItem('adminData_v1');
+    }).catch(() => {
+      // Server unreachable — use local/defaults for display
+      setAdminData(local);
+    }).finally(() => setInitialized(true));
+  }, [token, isSuperuser]);
+
+  // ── Sync per-user admin data on change ───────────────────────────────────
+  const prevUserData = useRef(null);
   useEffect(() => {
     if (!initialized) return;
     if (skipSync.current) { skipSync.current = false; return; }
-    if (!serverLoaded.current) return; // never write defaults from a failed load
-    apiPut('admin', adminData);
+    if (!serverLoaded.current) return;
+    // Only save user-scoped keys, and only if they actually changed
+    const { user: userOnly } = splitData(adminData);
+    const serialized = JSON.stringify(userOnly);
+    if (prevUserData.current === serialized) return;
+    prevUserData.current = serialized;
+    apiPut('admin', userOnly);
   }, [adminData, initialized]);
 
-  function setRelationshipTypes(types)  { setAdminData(d => ({ ...d, relationshipTypes: types })); }
-  function setWinTags(tags)             { setAdminData(d => ({ ...d, winTags: tags })); }
-  function setDealTypes(types)          { setAdminData(d => ({ ...d, dealTypes: types })); }
-  function setLogoTypes(types)          { setAdminData(d => ({ ...d, logoTypes: types })); }
-  function setOriginTypes(types)        { setAdminData(d => ({ ...d, originTypes: types })); }
-  function setEminenceTypes(types)      { setAdminData(d => ({ ...d, eminenceTypes: types })); }
-  function setPipelineStages(stages)    { setAdminData(d => ({ ...d, pipelineStages: stages })); }
+  // ── Per-user admin setters ───────────────────────────────────────────────
   function setIbmCriteria(text)         { setAdminData(d => ({ ...d, ibmCriteria: text })); }
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
   function setBottomBarTabs(tabs)       { setAdminData(d => ({ ...d, bottomBarTabs: tabs })); }
-  function setReadinessWeights(weights) { setAdminData(d => ({ ...d, readinessWeights: weights })); }
-  function setDeckTemplate(base64, filename) { setAdminData(d => ({ ...d, deckTemplate: base64, deckTemplateFilename: filename })); }
-  function setDeckContentInstructions(text) { setAdminData(d => ({ ...d, deckContentInstructions: text })); }
+  function setAutoFollowUp(val)        { setAdminData(d => ({ ...d, autoFollowUp: val })); }
+
+  // ── Platform setters (write to /api/platform instead of /api/data/admin) ──
+  function savePlatformFromState(prevState, updates) {
+    if (!isSuperuser) return; // non-superusers cannot modify platform data
+    const platformData = {};
+    for (const k of PLATFORM_KEYS) {
+      platformData[k] = updates[k] !== undefined ? updates[k] : prevState[k];
+    }
+    savePlatform(platformData, prevState);
+  }
+
+  function makePlatformSetter(key) {
+    return (value) => {
+      setAdminData(prev => {
+        // Schedule platform save outside the state updater
+        setTimeout(() => savePlatformFromState(prev, { [key]: value }), 0);
+        return { ...prev, [key]: value };
+      });
+    };
+  }
+
+  function makePlatformDeckSetter() {
+    return (base64, filename) => {
+      setAdminData(prev => {
+        setTimeout(() => savePlatformFromState(prev, { deckTemplate: base64, deckTemplateFilename: filename }), 0);
+        return { ...prev, deckTemplate: base64, deckTemplateFilename: filename };
+      });
+    };
+  }
+
+  const setRelationshipTypes  = makePlatformSetter('relationshipTypes');
+  const setWinTags            = makePlatformSetter('winTags');
+  const setDealTypes          = makePlatformSetter('dealTypes');
+  const setLogoTypes          = makePlatformSetter('logoTypes');
+  const setOriginTypes        = makePlatformSetter('originTypes');
+  const setEminenceTypes      = makePlatformSetter('eminenceTypes');
+  const setPipelineStages     = makePlatformSetter('pipelineStages');
+  const setReadinessWeights   = makePlatformSetter('readinessWeights');
+  const setDeckContentInstructions = makePlatformSetter('deckContentInstructions');
+  const setDeckTemplate       = makePlatformDeckSetter();
 
   return (
     <AdminDataContext.Provider value={{
       ...adminData,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
-      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
+      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setAutoFollowUp, setReadinessWeights,
       setDeckTemplate, setDeckContentInstructions,
     }}>
       {children}

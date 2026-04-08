@@ -1,6 +1,6 @@
 // pages/People.jsx
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS } from '../hooks/usePeopleData.js';
 import { useAdminData } from '../hooks/useAdminData.js';
@@ -15,8 +15,39 @@ export default function People() {
     addTouchpoint, removeTouchpoint,
     addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint,
   } = usePeopleData();
-  const { relationshipTypes } = useAdminData();
-  const { actions, addAction, toggleDone } = useActionsData();
+  const { relationshipTypes, autoFollowUp } = useAdminData();
+  const { actions, initialized: actionsReady, addAction, toggleDone } = useActionsData();
+  const followUpRan = useRef(false);
+
+  // Auto-create follow-up actions on mount (Issues #49 + #38)
+  useEffect(() => {
+    if (followUpRan.current || people.length === 0 || !actionsReady) return;
+    followUpRan.current = true;
+    const today = new Date().toISOString().slice(0, 10);
+
+    people.forEach(person => {
+      const title = `Follow up with ${person.name}`;
+      const hasOpenAction = actions.some(a => a.title === title && !a.done);
+      if (hasOpenAction) return;
+
+      const days = daysSinceContact(person);
+      const rec = person.recurrence;
+
+      if (rec?.enabled && rec.intervalDays > 0) {
+        // Issue #49: Recurring touchpoint overdue
+        if (days >= rec.intervalDays) {
+          addAction({ title, dueDate: today });
+        }
+      } else {
+        // Issue #38: Global follow-up safety net (contacts without explicit recurrence)
+        const globalEnabled = autoFollowUp?.enabled !== false; // default enabled
+        const globalDays = autoFollowUp?.intervalDays || 30;
+        if (globalEnabled && days > globalDays) {
+          addAction({ title, dueDate: today });
+        }
+      }
+    });
+  }, [people, actions, autoFollowUp]);
 
   const [typeFilter,   setTypeFilter]   = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -24,13 +55,25 @@ export default function People() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
+  // Issue #51: Adaptive threshold per person
+  function getFollowUpThreshold(person) {
+    if (person.recurrence?.enabled && person.recurrence.intervalDays > 0) {
+      return person.recurrence.intervalDays;
+    }
+    return autoFollowUp?.intervalDays || 30;
+  }
+
+  function isStale(person) {
+    return daysSinceContact(person) > getFollowUpThreshold(person);
+  }
+
   const filtered = people
     .filter(p => typeFilter === 'all' || p.type === typeFilter)
     .filter(p => statusFilter === 'all' || p.relationshipStatus === statusFilter)
-    .filter(p => !filterStale || daysSinceContact(p) > 30)
+    .filter(p => !filterStale || isStale(p))
     .sort((a, b) => daysSinceContact(b) - daysSinceContact(a));
 
-  const staleCount = people.filter(p => daysSinceContact(p) > 30).length;
+  const staleCount = people.filter(p => isStale(p)).length;
 
   function openAdd()        { setModal({ mode: 'add',  data: { ...EMPTY_FORM, type: relationshipTypes[0]?.label || '' } }); }
   function openEdit(person) { setModal({ mode: 'edit', data: { ...person } }); }
@@ -86,6 +129,7 @@ export default function People() {
             key={p.id}
             person={p}
             relationshipTypes={relationshipTypes}
+            autoFollowUp={autoFollowUp}
             onEdit={() => openEdit(p)}
             onDelete={() => handleDelete(p.id)}
             onUpdatePerson={updatePerson}

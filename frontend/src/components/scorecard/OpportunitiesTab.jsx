@@ -8,6 +8,12 @@ import { useSettings } from '../../context/SettingsContext.jsx';
 import { useWinsData } from '../../hooks/useWinsData.js';
 import { useAdminData, DEFAULT_PIPELINE_STAGES } from '../../hooks/useAdminData.js';
 import OppModal from './OppModal.jsx';
+
+const STATUS_OPTIONS = [
+  { value: 'open', label: 'Open' },
+  { value: 'won',  label: 'Won' },
+  { value: 'lost', label: 'Lost' },
+];
 import WinFormModal from '../wins/WinFormModal.jsx';
 
 const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
@@ -16,7 +22,7 @@ const STATUSES = ['open', 'won', 'lost'];
 const EMPTY_FORM = {
   name: '', client: '', year: new Date().getFullYear(),
   status: 'open', winDate: '', totalValue: '', signingsValue: '',
-  stage: 'Qualified', probability: '', expectedClose: '',
+  stage: 'Qualified', probability: '',
   dealType: 'one-time', logoType: 'net-new',
   strategicNote: '', relationshipOrigin: '', iscId: '',
 };
@@ -24,6 +30,8 @@ const EMPTY_FORM = {
 export default function OpportunitiesTab({ scorecard, scorecardYears }) {
   const { fmtCurrency } = useSettings();
   const { wins, addWin, removeWin, hasWinForSource } = useWinsData();
+  const { pipelineStages } = useAdminData();
+  const stageList = pipelineStages ?? DEFAULT_PIPELINE_STAGES;
   const [yearFilter,   setYearFilter]   = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modal,        setModal]        = useState(null);
@@ -92,6 +100,37 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
     setWinPrompt(null);
   }
 
+  function handleInlineStage(opp, newStage) {
+    scorecard.updateOpportunity(opp.id, { stage: newStage });
+  }
+
+  function handleInlineStatus(opp, newStatus) {
+    const oldStatus = opp.status;
+    scorecard.updateOpportunity(opp.id, { status: newStatus });
+
+    // If leaving "won", offer to remove linked win
+    if (oldStatus === 'won' && newStatus !== 'won') {
+      const linkedWin = wins.find(w => w.sourceId === opp.id);
+      if (linkedWin && confirm('This opportunity has a linked win. Remove it?')) {
+        removeWin(linkedWin.id);
+      }
+    }
+
+    // If becoming "won", prompt to log a win
+    if (newStatus === 'won' && oldStatus !== 'won' && !hasWinForSource(opp.id)) {
+      setWinPrompt({
+        sourceType:  'opportunity',
+        sourceId:    opp.id,
+        sourceName:  opp.name,
+        title:       `${opp.name} — ${opp.client}`,
+        date:        opp.winDate || new Date().toISOString().slice(0, 10),
+        impact:      `Signed ${fmtCurrency(Number(opp.totalValue) || 0)} deal`,
+        description: '',
+        tags:        ['Revenue', 'Client relationship'],
+      });
+    }
+  }
+
   function handleDelete(id) {
     if (confirm('Remove this opportunity?')) scorecard.removeOpportunity(id);
   }
@@ -142,12 +181,28 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
               ? <tr><td colSpan={10} className="table-empty">No opportunities match the current filters.</td></tr>
               : opps.map(opp => (
                 <tr key={opp.id}>
-                  <td className="td-primary">{opp.name}</td>
+                  <td className="td-primary">
+                    <span className="td-primary-link" onClick={() => openEdit(opp)}>{opp.name}</span>
+                  </td>
                   <td>{opp.client}</td>
                   <td>{opp.year}</td>
-                  <td><StagePip stage={opp.stage} /></td>
                   <td>
-                    <span className={`status-pip status-pip--${opp.status}`}>{STATUS_LABELS[opp.status]}</span>
+                    <select
+                      className="inline-select"
+                      value={opp.stage || ''}
+                      onChange={e => handleInlineStage(opp, e.target.value)}
+                    >
+                      {stageList.map(s => <option key={s.label} value={s.label}>{s.label}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className="inline-select"
+                      value={opp.status}
+                      onChange={e => handleInlineStatus(opp, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
                     {opp.status !== 'lost' && wins.some(w => w.sourceId === opp.id) && (
                       <span className="opp-win-linked" title="Win logged">W</span>
                     )}
@@ -157,7 +212,6 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                   <td className="num-col">{fmtCurrency(Number(opp.totalValue) || 0)}</td>
                   <td className="num-col font-bold">{fmtCurrency(Number(opp.signingsValue) || 0)}</td>
                   <td className="action-col">
-                    <button className="row-btn" onClick={() => openEdit(opp)}>Edit</button>
                     <button className="row-btn row-btn--danger" onClick={() => handleDelete(opp.id)}>✕</button>
                   </td>
                 </tr>

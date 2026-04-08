@@ -215,4 +215,29 @@ router.post('/check-key', async (req, res) => {
   }
 });
 
+// ── POST /api/ai/preview-context ────────────────────────────────────────────
+// Returns the assembled AI context and system prompt WITHOUT calling Anthropic.
+// Body: { mode: 'gap_analysis' | 'polished_narrative' | 'plan_2027' }
+
+router.post('/preview-context', async (req, res) => {
+  const { mode: modeId } = req.body ?? {};
+  const mode = STORY_MODES[modeId || 'gap_analysis'];
+  if (!mode) {
+    return res.status(400).json({ ok: false, error: 'Invalid mode', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Strip the API key from the context before returning
+  const { anthropicKey, ...safeCtx } = ctx;
+
+  res.json({
+    ok: true,
+    context: safeCtx,
+    systemPrompt: mode.prompt,
+  });
+});
+
 module.exports = router;

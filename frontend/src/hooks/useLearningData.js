@@ -123,6 +123,18 @@ const SEED_LEARNING = {
 
 const EMPTY = { certifications: [], courses: [] };
 
+/* ── Seed ID cleanup (strip demo data that was accidentally saved to server) ── */
+
+const SEED_IDS = new Set(['cert-1', 'cert-2', 'cert-3', 'course-1', 'course-2', 'course-3']);
+
+function stripSeedItems(data) {
+  const certs   = (data.certifications || []).filter(c => !SEED_IDS.has(c.id));
+  const courses = (data.courses || []).filter(c => !SEED_IDS.has(c.id));
+  const changed = certs.length !== (data.certifications || []).length ||
+                  courses.length !== (data.courses || []).length;
+  return { cleaned: { certifications: certs, courses: courses }, changed };
+}
+
 /* ── Hook ── */
 
 export function useLearningData() {
@@ -136,11 +148,15 @@ export function useLearningData() {
         if (serverData !== null) {
           skipSync.current = true;
           const merged = { ...EMPTY, ...serverData };
-          apiPutMarkClean('learning', merged);
-          setData(merged);
+          const { cleaned, changed } = stripSeedItems(merged);
+          if (changed) apiPut('learning', cleaned);  // persist cleanup
+          apiPutMarkClean('learning', cleaned);
+          setData(cleaned);
         } else {
+          // New user: show seed data in-memory for demo experience
+          // but do NOT save to server — seed data stays ephemeral
+          skipSync.current = true;
           setData(SEED_LEARNING);
-          apiPut('learning', SEED_LEARNING);
         }
       })
       .catch(() => {})

@@ -43,6 +43,16 @@ const SEED_EMINENCE = {
 
 const EMPTY = { activities: [] };
 
+/* ── Seed ID cleanup (strip demo data that was accidentally saved to server) ── */
+
+const SEED_IDS = new Set(['em-1', 'em-2', 'em-3', 'em-4']);
+
+function stripSeedItems(data) {
+  const activities = (data.activities || []).filter(a => !SEED_IDS.has(a.id));
+  const changed = activities.length !== (data.activities || []).length;
+  return { cleaned: { activities }, changed };
+}
+
 export function useEminenceData() {
   const [data, setData]                = useState(EMPTY);
   const [initialized, setInitialized]  = useState(false);
@@ -54,11 +64,15 @@ export function useEminenceData() {
         if (serverData !== null) {
           skipSync.current = true;
           const merged = { ...EMPTY, ...serverData };
-          apiPutMarkClean('eminence', merged);
-          setData(merged);
+          const { cleaned, changed } = stripSeedItems(merged);
+          if (changed) apiPut('eminence', cleaned);  // persist cleanup
+          apiPutMarkClean('eminence', cleaned);
+          setData(cleaned);
         } else {
+          // New user: show seed data in-memory for demo experience
+          // but do NOT save to server — seed data stays ephemeral
+          skipSync.current = true;
           setData(SEED_EMINENCE);
-          apiPut('eminence', SEED_EMINENCE);
         }
       })
       .catch(() => {})
