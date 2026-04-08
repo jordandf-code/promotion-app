@@ -23,10 +23,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache API calls
+  // Never cache or intercept API calls
   if (url.pathname.startsWith('/api/')) return;
 
+  // Only handle same-origin navigation and asset requests
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then(cached => cached || caches.match('/'))
+    )
   );
 });

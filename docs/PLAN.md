@@ -32,7 +32,7 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 |---|---|---|
 | Dashboard | user | Scorecard snapshot, countdown, overdue items, quick-add |
 | Scorecard | user | Overview + Opportunities, Projects, Utilization, Targets sub-tabs |
-| Pursuits | user | CRM-style pipeline view of open opportunities |
+| Opportunities | user | CRM-style pipeline view of open opportunities |
 | Goals | user | Goal cards with IBM milestone (gate) flags |
 | People | user | Contacts, relationship types, touchpoint log |
 | Wins | user | Accomplishments with impact and eminence tags |
@@ -40,13 +40,16 @@ AI key is per-user (stored in DB via Admin tab), never an env var.
 | Narrative + Gaps | user | AI-generated promotion narrative and gap analysis |
 | Calendar | user | Aggregated key dates from all tabs |
 | Sharing | user | Public share link, feedback link |
-| Admin | user | GenAI settings, Categories, User settings |
+| Admin | user | GenAI settings, User settings (nav order, follow-up config) |
+| Super Admin | superuser | Categories, readiness weights, deck template, user management |
 | Public summary | anyone with link | Read-only selected data |
 | Feedback portal | invited reviewers | Structured feedback form |
 
 ## Completion status
 
 **Phases 1–23, 7c, 20**: Complete (all of Phase 19 including 19c/g/h/i; Phase 20 working but marked testing-only). Full specs and progress log archived in `docs/PHASES_COMPLETE.md`.
+
+**Issue triage (2026-04-07)**: Resolved 30 of 32 open GitHub issues. Key changes: pursuit→opportunity rename, site-wide categories moved to Super Admin (platform API), narrative subtabs (AI/DIY/Manual), recurring touchpoints with auto-actions, TCV field on opportunities, scorecard table redesign, mobile stability fixes, PWA install banner. Parked #19 (View Others) and #24 (Viewer Access) for future design pass.
 
 **Uncompleted items in "done" phases**:
 - Phase 16 — AI usage log in Admin: deferred (add to future phase)

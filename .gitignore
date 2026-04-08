@@ -38,6 +38,12 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/.auth-state.json
+frontend/blob-report/
+
 # Claude Code
 .claude/
 .agents/

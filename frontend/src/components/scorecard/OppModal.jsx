@@ -19,7 +19,6 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
   const [form, setForm] = useState(() => ({
     stage: 'Qualified',
     probability: '',
-    expectedClose: '',
     dealType: 'one-time',
     logoType: 'net-new',
     strategicNote: '',
@@ -97,10 +96,6 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
                 onChange={e => setField('probability', e.target.value)}
                 placeholder="e.g. 60" />
             </label>
-            <label>Expected close
-              <input className="form-input" type="date" value={form.expectedClose ?? ''}
-                onChange={e => setField('expectedClose', e.target.value)} />
-            </label>
           </div>
           <div className="form-row">
             <label>ISC Opportunity Link
@@ -113,12 +108,12 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
           {/* ── Values ── */}
           <div className="form-section-label">Value</div>
           <div className="form-row">
-            <label>Total deal value<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
+            <label>Total contract value (TCV)<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
               <input className="form-input" type="number" min="0" inputMode="decimal"
                 value={form.totalValue}
                 onChange={e => setField('totalValue', e.target.value)} required />
             </label>
-            <label>Signings value<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
+            <label>Signings credit<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
               <input className="form-input" type="number" min="0" inputMode="decimal"
                 value={form.signingsValue}
                 onChange={e => setField('signingsValue', e.target.value)}

@@ -89,5 +89,5 @@ export function useActionsData() {
     ));
   }
 
-  return { actions, addAction, updateAction, removeAction, toggleDone, linkToGoal, unlinkFromGoal };
+  return { actions, initialized, addAction, updateAction, removeAction, toggleDone, linkToGoal, unlinkFromGoal };
 }

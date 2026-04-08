@@ -4,6 +4,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { apiGet, apiPut, apiPutMarkClean } from '../utils/api.js';
+import { useAuth } from './AuthContext';
 
 const SettingsContext = createContext(null);
 
@@ -41,8 +42,10 @@ export function SettingsProvider({ children }) {
   const [settings, setSettings]       = useState(DEFAULTS);
   const [initialized, setInitialized] = useState(false);
   const skipSync                      = useRef(false);
+  const { token } = useAuth();
 
   useEffect(() => {
+    if (!token) { setInitialized(true); return; }
     const local = loadLocal() ?? DEFAULTS;
     apiGet('settings')
       .then(serverData => {
@@ -62,7 +65,7 @@ export function SettingsProvider({ children }) {
       })
       .catch(() => setSettings(local))
       .finally(() => setInitialized(true));
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!initialized) return;

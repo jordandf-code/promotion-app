@@ -110,9 +110,9 @@ function validateAndFill(data) {
     'signings_value', 'signings_target', 'revenue_value', 'revenue_target',
     'gp_value', 'gp_target', 'utilization_value', 'utilization_target',
     'win1', 'win2', 'win3', 'win4',
-    'pursuit_a_name', 'pursuit_a_stage', 'pursuit_a_value',
-    'pursuit_b_name', 'pursuit_b_stage', 'pursuit_b_value',
-    'pursuit_c_name', 'pursuit_c_stage', 'pursuit_c_value',
+    'opportunity_a_name', 'opportunity_a_stage', 'opportunity_a_value',
+    'opportunity_b_name', 'opportunity_b_stage', 'opportunity_b_value',
+    'opportunity_c_name', 'opportunity_c_stage', 'opportunity_c_value',
     'ask_1', 'ask_2', 'ask_3',
   ];
   for (const key of stringFields) {
@@ -188,20 +188,20 @@ async function renderDeck(aiData, templateBase64) {
     slide1 = slide1.replace(regex, escapeXml(val));
   }
 
-  // Pursuit name placeholders
-  const pursuitPlaceholders = [
-    ['[Pursuit A', data.pursuit_a_name],
-    ['[Pursuit B', data.pursuit_b_name],
-    ['[Pursuit C', data.pursuit_c_name],
+  // Opportunity name placeholders
+  const opportunityPlaceholders = [
+    ['[Pursuit A', data.opportunity_a_name],
+    ['[Pursuit B', data.opportunity_b_name],
+    ['[Pursuit C', data.opportunity_c_name],
   ];
-  for (const [prefix, val] of pursuitPlaceholders) {
+  for (const [prefix, val] of opportunityPlaceholders) {
     const regex = new RegExp(escapeRegex(prefix) + '[^\\]]*\\]');
     slide1 = slide1.replace(regex, escapeXml(val));
   }
 
-  // Pursuit stage placeholders — 3 sequential
+  // Opportunity stage placeholders — 3 sequential
   slide1 = replaceNth(slide1, '[e.g., Proposal Submitted]', [
-    data.pursuit_a_stage, data.pursuit_b_stage, data.pursuit_c_stage,
+    data.opportunity_a_stage, data.opportunity_b_stage, data.opportunity_c_stage,
   ]);
 
   // ── Slide 1: Positionally-ambiguous metric placeholders ────────────────
@@ -211,7 +211,7 @@ async function renderDeck(aiData, templateBase64) {
   slide1 = replaceNth(slide1, 'vs XX% target', [data.gp_target, data.utilization_target]);
   slide1 = replaceNth(slide1, '$XXM', [
     data.signings_value, data.revenue_value,
-    data.pursuit_a_value, data.pursuit_b_value, data.pursuit_c_value,
+    data.opportunity_a_value, data.opportunity_b_value, data.opportunity_c_value,
   ]);
   slide1 = replaceNth(slide1, 'XX%', [data.gp_value, data.utilization_value]);
 

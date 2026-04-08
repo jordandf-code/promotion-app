@@ -13,7 +13,7 @@ function buildDeckPrompt(customInstructions = '') {
 
   return `You are a senior IBM executive coach helping an Associate Partner build a 2-slide PowerPoint promotion case deck.
 
-CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Do not explain why data is thin. Do not offer alternatives. Output ONLY the JSON object — no preamble, no markdown fences, no keys omitted. If data is sparse for any field, write an honest placeholder (e.g. "Pipeline being built — no active pursuits yet") rather than returning null or refusing.
+CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Do not explain why data is thin. Do not offer alternatives. Output ONLY the JSON object — no preamble, no markdown fences, no keys omitted. If data is sparse for any field, write an honest placeholder (e.g. "Pipeline being built — no active opportunities yet") rather than returning null or refusing.
 
 You will receive structured data about the candidate: their IBM Partner criteria, scorecard performance, wins, opportunities, pipeline, people network, eminence activities, and learning.
 
@@ -43,15 +43,15 @@ Your task is to produce a JSON object that populates a 2-slide promotion deck. R
   "win3": "string",
   "win4": "string",
 
-  "pursuit_a_name": "string — top open opportunity by value",
-  "pursuit_a_stage": "string — e.g. Proposal Submitted",
-  "pursuit_a_value": "string — e.g. $3.2M",
-  "pursuit_b_name": "string",
-  "pursuit_b_stage": "string",
-  "pursuit_b_value": "string",
-  "pursuit_c_name": "string",
-  "pursuit_c_stage": "string",
-  "pursuit_c_value": "string",
+  "opportunity_a_name": "string — top open opportunity by value",
+  "opportunity_a_stage": "string — e.g. Proposal Submitted",
+  "opportunity_a_value": "string — e.g. $3.2M",
+  "opportunity_b_name": "string",
+  "opportunity_b_stage": "string",
+  "opportunity_b_value": "string",
+  "opportunity_c_name": "string",
+  "opportunity_c_stage": "string",
+  "opportunity_c_value": "string",
 
   "criteria": [
     {
@@ -70,7 +70,7 @@ RULES:
 - The "criteria" array MUST contain exactly 6 items. If IBM criteria list has more, consolidate the least important ones. If fewer, expand the most important ones.
 - Stars field: exactly 5 chars from ★ and ☆. Use ★★★★★ for Strong, ★★★★☆ for Partial, ★★★☆☆ for Missing/weak. Never go below 3 filled.
 - For wins: lead with net-new logo wins. If fewer than 4 wins exist, write honest placeholders.
-- For pursuits: rank by signings value descending. If fewer than 3 open pursuits, write honest placeholders.
+- For opportunities: rank by signings value descending. If fewer than 3 open opportunities, write honest placeholders.
 - Metric values: use the candidate's actual scorecard data. Format currency as $X.XM. Format percentages as XX%.
 - All text is concise, outcome-focused, IBM promotion committee language.
 - Return only valid JSON. No preamble, no markdown fences.`;

@@ -2,19 +2,20 @@
 // Fixed bottom navigation bar for mobile (≤ 768px).
 // Shows user-selected "starred" tabs (up to 5). Defaults to 5 primary tabs.
 
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 
 // Default 5 primary routes if user hasn't customized
-const DEFAULT_PRIMARY = ['/', '/scorecard', '/pursuits', '/wins', '/story'];
+const DEFAULT_PRIMARY = ['/', '/scorecard', '/opportunities', '/wins', '/story'];
 
 // Viewer role shows only this
 const VIEWER_PRIMARY = ['/view-others'];
 
 // Routes eligible for starring (excludes super-admin and view-others)
 export const STAR_ELIGIBLE = new Set([
-  '/', '/scorecard', '/pursuits', '/goals', '/people', '/wins', '/eminence',
+  '/', '/scorecard', '/opportunities', '/goals', '/people', '/wins', '/eminence',
   '/actions', '/learning', '/story', '/calendar', '/sharing', '/admin',
 ]);
 
@@ -22,7 +23,7 @@ export const STAR_ELIGIBLE = new Set([
 const ICONS = {
   '/':          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
   '/scorecard': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
-  '/pursuits':  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>,
+  '/opportunities': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>,
   '/goals':     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
   '/people':    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
   '/wins':      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
@@ -40,7 +41,7 @@ const ICONS = {
 const SHORT_LABELS = {
   '/':            'Home',
   '/scorecard':   'Scorecard',
-  '/pursuits':    'Pursuits',
+  '/opportunities': 'Opps',
   '/goals':       'Goals',
   '/people':      'People',
   '/wins':        'Wins',
@@ -56,7 +57,11 @@ const SHORT_LABELS = {
 
 function getActiveRoutes(bottomBarTabs) {
   const custom = bottomBarTabs ?? [];
-  if (custom.length > 0) return custom.filter(r => ICONS[r]).slice(0, 4);
+  if (custom.length > 0) {
+    // Dashboard is always pinned first — add it if not already present
+    const filtered = custom.filter(r => ICONS[r] && r !== '/');
+    return ['/', ...filtered].slice(0, 4);
+  }
   return DEFAULT_PRIMARY.slice(0, 4);
 }
 
@@ -65,6 +70,21 @@ const REPORT_ICON = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" 
 export default function BottomTabBar({ onReportIssue }) {
   const { user } = useAuth();
   const { bottomBarTabs } = useAdminData();
+
+  // Hide bottom bar when virtual keyboard is open (Issue #11c)
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    if (!window.visualViewport) return;
+    const vv = window.visualViewport;
+    const handler = () => {
+      const isKeyboard = vv.height < window.innerHeight * 0.75;
+      setKeyboardOpen(isKeyboard);
+    };
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, []);
+
+  if (keyboardOpen) return null;
 
   if (user.role === 'viewer') {
     return (

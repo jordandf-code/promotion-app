@@ -50,7 +50,21 @@ export default function PlannedContactSection({
     } else if (actionMode === 'link' && linkId) {
       actionId = linkId;
     }
-    onAdd(person.id, { date, note: note.trim(), actionId });
+    // Issue #50: Auto-create prep action 3 days before the planned touchpoint
+    let prepActionId = null;
+    if (actionMode !== 'none') {
+      const prepDate = new Date(date);
+      prepDate.setDate(prepDate.getDate() - 3);
+      const prepDateStr = prepDate.toISOString().slice(0, 10);
+      const today = new Date().toISOString().slice(0, 10);
+      prepActionId = onAddAction({
+        title: `Prepare for ${person.name} touchpoint — what's my goal?`,
+        dueDate: prepDateStr < today ? today : prepDateStr,
+      });
+    }
+
+    onAdd(person.id, { date, note: note.trim(), actionId, prepActionId });
+
     setShowForm(false);
   }
 

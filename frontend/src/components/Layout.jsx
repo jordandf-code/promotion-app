@@ -9,11 +9,12 @@ import { useSettings } from '../context/SettingsContext.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 import BottomTabBar, { useBottomTabRoutes, STAR_ELIGIBLE } from './BottomTabBar.jsx';
 import ReportIssueModal from './ReportIssueModal.jsx';
+import PWAInstallBanner from './PWAInstallBanner.jsx';
 
 const ALL_NAV_ITEMS = [
   { to: '/',          label: 'Dashboard',   end: true },
   { to: '/scorecard', label: 'Scorecard'             },
-  { to: '/pursuits',  label: 'Pursuits'              },
+  { to: '/opportunities', label: 'Opportunities'      },
   { to: '/goals',     label: 'Goals'                 },
   { to: '/people',    label: 'People'                },
   { to: '/wins',      label: 'Wins'                  },
@@ -78,7 +79,8 @@ export default function Layout() {
   const bottomTabRoutes = useBottomTabRoutes();
 
   function toggleBottomBar(route) {
-    const current = bottomBarTabs ?? [];
+    // When bottomBarTabs is null, the bottom bar shows defaults — initialize from those
+    const current = bottomBarTabs != null ? [...bottomBarTabs] : ['/', '/scorecard', '/opportunities', '/wins', '/story'];
     if (current.includes(route)) {
       setBottomBarTabs(current.filter(r => r !== route));
     } else if (current.length < 5) {
@@ -90,13 +92,14 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
+      <PWAInstallBanner />
       {/* Mobile top bar */}
       <header className="mobile-header">
         <div className="mobile-header-left">
           <button className="mobile-hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
             <span /><span /><span />
           </button>
-          <span className="mobile-header-title">Promotion Tracker</span>
+          <span className="mobile-header-title"><strong>Promotion</strong> Tracker</span>
           {currentTabLabel && <span className="mobile-header-tab">— {currentTabLabel}</span>}
         </div>
         <div className="mobile-header-right">
@@ -122,8 +125,11 @@ export default function Layout() {
       <aside className={`sidebar ${menuOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <span className="sidebar-brand-name">Promotion</span>
-            <span className="sidebar-brand-sub">Tracker</span>
+            <img src="/icon.svg" alt="" className="sidebar-brand-icon" />
+            <div>
+              <span className="sidebar-brand-name">Promotion</span>
+              <span className="sidebar-brand-sub">Tracker</span>
+            </div>
           </div>
 
           <nav className="sidebar-nav">
@@ -142,7 +148,7 @@ export default function Layout() {
                   >
                     {label}
                   </NavLink>
-                  {canStar && (
+                  {canStar && to !== '/' && (
                     <button
                       className={`nav-star ${isStarred ? 'nav-star--active' : ''}`}
                       onClick={(e) => { e.stopPropagation(); toggleBottomBar(to); }}

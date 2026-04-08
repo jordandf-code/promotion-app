@@ -62,7 +62,7 @@ export default function App() {
             <Route path="story"      element={<RoleGuard allowed={['superuser','user']}><MyStory /></RoleGuard>} />
             <Route path="sharing"    element={<RoleGuard allowed={['superuser','user']}><Sharing /></RoleGuard>} />
             <Route path="calendar"   element={<RoleGuard allowed={['superuser','user']}><Calendar /></RoleGuard>} />
-            <Route path="pursuits"   element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
+            <Route path="opportunities" element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
             <Route path="learning"   element={<RoleGuard allowed={['superuser','user']}><Learning /></RoleGuard>} />
             <Route path="eminence"   element={<RoleGuard allowed={['superuser','user']}><Eminence /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />

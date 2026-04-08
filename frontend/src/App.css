@@ -54,7 +54,7 @@
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-med);
   border-radius: 5px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: var(--text);
   background: var(--surface);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -137,6 +137,15 @@
   padding: 0 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.12);
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.sidebar-brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .sidebar-brand-name {
@@ -525,7 +534,9 @@
   flex-shrink: 0;
 }
 .sc-actual { font-weight: 700; color: var(--text); font-size: 0.925rem; }
+.sc-actual-pct { font-weight: 500; font-size: 0.8rem; margin-left: 2px; }
 .sc-util-pct { font-weight: 400; color: var(--text-muted); font-size: 0.8rem; }
+.sc-status-row { margin-top: 2px; }
 
 /* Forecast line */
 .sc-forecast-line {
@@ -925,7 +936,7 @@ tr:last-child .sc-td { border-bottom: none; }
 .btn-ai:hover { background: var(--brand-light); }
 
 /* Modal body (for info-only modals) */
-.modal-body { padding: 0 0 0.5rem; }
+.modal-body { padding: 1.25rem; }
 .suggest-info-text { font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); }
 .suggest-info-text strong { color: var(--text); }
 
@@ -2039,6 +2050,65 @@ tr:last-child .sc-td { border-bottom: none; }
   margin-top: 0.15rem;
 }
 
+/* ── DIY Prompts ── */
+.diy-controls { margin-bottom: 1rem; }
+.diy-controls-row { display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem; }
+.diy-section { margin-top: 1.25rem; }
+.diy-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.diy-section-title { font-size: 0.95rem; font-weight: 600; margin: 0; }
+.diy-code-block {
+  background: var(--surface-alt, #f5f5f5);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+}
+
+/* ── Manual Input ── */
+.manual-source-toggle {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+.manual-source-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.manual-source-option input[type="radio"] { margin: 0; }
+.manual-evidence-input {
+  width: 100%;
+  resize: vertical;
+  font-size: 0.85rem;
+  min-height: 44px;
+}
+.manual-criteria-mobile { display: none; }
+.manual-criterion-card {
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+}
+.manual-criterion-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
 /* Admin — text sections */
 
 .admin-textarea {
@@ -2067,8 +2137,8 @@ tr:last-child .sc-td { border-bottom: none; }
 
 /* Suggest goals modal */
 
-.suggest-goals-intro  { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.875rem; }
-.suggest-goals-list   { display: flex; flex-direction: column; gap: 0.5rem; }
+.suggest-goals-intro  { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem; }
+.suggest-goals-list   { display: flex; flex-direction: column; gap: 0.75rem; }
 .suggest-info-list    { font-size: 0.9rem; line-height: 2; margin: 0.5rem 0 0; }
 
 .suggest-goal-item {
@@ -2478,7 +2548,7 @@ tr:last-child .sc-td { border-bottom: none; }
   padding: 0.4rem 0.65rem;
   border: 1px solid var(--border-med);
   border-radius: 5px;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-family: inherit;
   background: var(--surface);
   color: var(--text);
@@ -2656,6 +2726,39 @@ tr:last-child .sc-td { border-bottom: none; }
 .row-btn--danger { color: var(--red); }
 .row-btn--danger:hover { background: var(--red-bg); }
 
+/* Inline select — looks like plain text until clicked */
+.inline-select {
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0.1rem 0.2rem;
+  border-radius: 3px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.inline-select:hover,
+.inline-select:focus {
+  background: var(--brand-light, #f0f0ff);
+  box-shadow: 0 0 0 1px var(--border, #e0e0e0);
+}
+
+/* Clickable opportunity name */
+.td-primary-link {
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+.td-primary-link:hover {
+  text-decoration: underline;
+  color: var(--brand);
+}
+
 /* Status pill */
 .status-pip {
   display: inline-block;
@@ -2765,7 +2868,7 @@ tr:last-child .sc-td { border-bottom: none; }
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--border-med);
   border-radius: 5px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-family: inherit;
   color: var(--text);
   background: var(--surface);
@@ -3718,40 +3821,40 @@ tr:last-child .sc-td { border-bottom: none; }
   font-style: italic;
 }
 
-/* ── Pursuits page ── */
-.pursuits-summary {
+/* ── Opportunities page ── */
+.opportunities-summary {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
-.pursuits-stat {
+.opportunities-stat {
   flex: 1;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 0.85rem 1rem;
 }
-.pursuits-stat-value {
+.opportunities-stat-value {
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
-.pursuits-stat-label {
+.opportunities-stat-label {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
 }
 
 /* ── Stage funnel ── */
-.pursuits-funnel {
+.opportunities-funnel {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
-.pursuits-funnel-stage {
+.opportunities-funnel-stage {
   flex: 1;
   min-width: 80px;
   background: var(--surface);
@@ -3762,31 +3865,31 @@ tr:last-child .sc-td { border-bottom: none; }
   transition: background 0.15s;
   text-align: center;
 }
-.pursuits-funnel-stage:hover {
+.opportunities-funnel-stage:hover {
   background: color-mix(in srgb, var(--stage-color, #64748b) 10%, white);
 }
-.pursuits-funnel-stage--active {
+.opportunities-funnel-stage--active {
   background: color-mix(in srgb, var(--stage-color, #64748b) 15%, white);
   border-width: 2px;
 }
-.pursuits-funnel-count {
+.opportunities-funnel-count {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--stage-color, var(--text));
   line-height: 1;
 }
-.pursuits-funnel-name {
+.opportunities-funnel-name {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-muted);
   margin-top: 0.2rem;
 }
-.pursuits-funnel-value {
+.opportunities-funnel-value {
   font-size: 0.7rem;
   color: var(--stage-color, var(--text-muted));
   margin-top: 0.15rem;
 }
-.pursuits-funnel-clear {
+.opportunities-funnel-clear {
   background: none;
   border: 1px solid var(--border);
   border-radius: 0.4rem;
@@ -3796,21 +3899,21 @@ tr:last-child .sc-td { border-bottom: none; }
   cursor: pointer;
   white-space: nowrap;
 }
-.pursuits-funnel-clear:hover { background: var(--surface-hover); }
+.opportunities-funnel-clear:hover { background: var(--surface-hover); }
 
-/* ── Pursuits table extras ── */
-.pursuits-origin {
+/* ── Opportunities table extras ── */
+.opportunities-origin {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
-.pursuits-isc-link {
+.opportunities-isc-link {
   font-size: 0.78rem;
   color: var(--brand);
   text-decoration: none;
   font-weight: 600;
 }
-.pursuits-isc-link:hover { text-decoration: underline; }
-.pursuits-rationale {
+.opportunities-isc-link:hover { text-decoration: underline; }
+.opportunities-rationale {
   font-size: 0.78rem;
   color: var(--text-muted);
   max-width: 220px;
@@ -3853,6 +3956,8 @@ tr:last-child .sc-td { border-bottom: none; }
     border-top: 1px solid var(--border);
     z-index: 100;
     transform: translateZ(0); /* force GPU layer — prevents flicker during iOS scroll */
+    -webkit-transform: translate3d(0, 0, 0); /* Prevent Safari address bar bounce */
+    will-change: transform;
     -webkit-backface-visibility: hidden;
   }
 
@@ -3863,6 +3968,8 @@ tr:last-child .sc-td { border-bottom: none; }
     align-items: center;
     justify-content: center;
     min-height: 56px;
+    min-width: 64px;
+    text-align: center;
     text-decoration: none;
     color: var(--text-muted);
     font-size: 0.65rem;
@@ -3964,7 +4071,7 @@ tr:last-child .sc-td { border-bottom: none; }
 
   /* Hide the header quick-add button on mobile (FAB replaces it) */
   .page-header-actions .btn-primary {
-    /* Only hide on Dashboard — use parent specificity */
+    display: none;
   }
 }
 
@@ -4002,7 +4109,8 @@ tr:last-child .sc-td { border-bottom: none; }
   .mobile-hamburger span {
     display: block; width: 20px; height: 2px; background: #fff; border-radius: 1px;
   }
-  .mobile-header-title { font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+  .mobile-header-title { font-weight: 400; font-size: 0.85rem; white-space: nowrap; }
+  .mobile-header-title strong { font-weight: 700; }
   .mobile-header-tab { font-weight: 400; font-size: 0.8rem; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mobile-currency-toggle {
     display: flex;
@@ -4111,13 +4219,13 @@ tr:last-child .sc-td { border-bottom: none; }
   /* ── Dashboard stat row ── */
   .dash-stats { flex-direction: column; }
 
-  /* ── Pursuits summary strip ── */
-  .pursuits-summary { flex-wrap: wrap; }
-  .pursuits-summary .pursuits-stat { min-width: calc(50% - 0.5rem); }
+  /* ── Opportunities summary strip ── */
+  .opportunities-summary { flex-wrap: wrap; }
+  .opportunities-summary .opportunities-stat { min-width: calc(50% - 0.5rem); }
 
-  /* ── Pursuits funnel ── */
-  .pursuits-funnel { flex-wrap: wrap; }
-  .pursuits-funnel-stage { min-width: calc(33% - 0.35rem); }
+  /* ── Opportunities funnel ── */
+  .opportunities-funnel { flex-wrap: wrap; }
+  .opportunities-funnel-stage { min-width: calc(33% - 0.35rem); }
 
   /* ── Dashboard: two-col stacks ── */
   .two-col { grid-template-columns: 1fr; }
@@ -4143,6 +4251,12 @@ tr:last-child .sc-td { border-bottom: none; }
   .sc-tabs--desktop { display: none; }
   .sc-tabs--mobile { display: block; margin-bottom: 1rem; }
   .sc-tab-select { width: 100%; min-height: 44px; }
+
+  /* ── Manual criteria: table → cards on mobile ── */
+  .manual-criteria-desktop { display: none; }
+  .manual-criteria-mobile { display: block; }
+  .diy-controls-row { flex-wrap: wrap; }
+  .diy-code-block { max-height: 300px; font-size: 0.72rem; }
 
   /* ── Scorecard tables: remove min-widths, allow shrink ── */
   .sc-td { min-width: 0; padding: 0.5rem 0.5rem; }
@@ -4917,4 +5031,13 @@ tr:last-child .sc-td { border-bottom: none; }
   color: var(--text-muted);
   font-size: 0.825rem;
   white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Prevent iOS Safari auto-zoom on input focus (Issue #36)
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }

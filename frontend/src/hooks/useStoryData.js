@@ -63,5 +63,16 @@ export function useStoryData() {
 
   function clearStory() { setStory(null); }
 
-  return { story, saveStorySection, clearStory };
+  function updateManualEntries(entries) {
+    setStory(prev => ({
+      ...prev,
+      manual_entries: { ...(prev?.manual_entries ?? {}), ...entries },
+    }));
+  }
+
+  function setActiveSource(source) {
+    setStory(prev => ({ ...prev, activeSource: source }));
+  }
+
+  return { story, saveStorySection, clearStory, updateManualEntries, setActiveSource };
 }

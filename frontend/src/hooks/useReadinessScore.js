@@ -29,7 +29,7 @@ const DIMENSION_LABELS = {
 
 const DIMENSION_ROUTES = {
   scorecard: '/scorecard',
-  pipeline:  '/pursuits',
+  pipeline:  '/opportunities',
   gates:     '/goals',
   evidence:  '/story',
   wins:      '/wins',
@@ -131,13 +131,51 @@ export function computeReadinessScore({
   const eminenceScore = totalEminence >= 2 ? 100 : totalEminence === 1 ? 50 : 0;
   const winsScore = (countScore + eminenceScore) / 2;
 
+  // ── Detail strings for tooltips ──
+  const scorecardDetail = metricScores.length > 0
+    ? `Based on ${metricScores.length} metric${metricScores.length !== 1 ? 's' : ''} with targets set. Average achievement: ${Math.round(scorecardScore)}%`
+    : 'No scorecard metrics with targets set';
+
+  let pipelineDetail;
+  if (salesStats.target == null || salesStats.target <= 0) {
+    pipelineDetail = 'No signings target set';
+  } else if (salesStats.total >= salesStats.target) {
+    pipelineDetail = 'Signings target already met';
+  } else {
+    const signingsGap = Math.max(salesStats.target - salesStats.realized, 0);
+    const openOpps = (opportunities ?? []).filter(
+      o => o.year === qualifyingYear && o.status === 'open'
+    );
+    const weightedPipeline = openOpps.reduce((sum, o) => {
+      const prob = (o.probability != null && o.probability !== '') ? Number(o.probability) : 50;
+      return sum + (Number(o.signingsValue) || 0) * (prob / 100);
+    }, 0);
+    const fmtK = v => v >= 1000 ? `$${Math.round(v / 1000)}K` : `$${Math.round(v)}`;
+    const coveragePct = signingsGap > 0 ? Math.round(Math.min(weightedPipeline / signingsGap, 1) * 100) : 0;
+    pipelineDetail = `Weighted pipeline: ${fmtK(weightedPipeline)} covers ${coveragePct}% of signings gap (${fmtK(signingsGap)} remaining)`;
+  }
+
+  const gatesDone = gateGoals.filter(g => g.status === 'done').length;
+  const gatesDetail = gateGoals.length > 0
+    ? `${gatesDone} of ${gateGoals.length} IBM milestone goal${gateGoals.length !== 1 ? 's' : ''} completed`
+    : 'No IBM milestone goals flagged';
+
+  const strong  = criteria.filter(c => c.strength === 'Strong').length;
+  const partial = criteria.filter(c => c.strength === 'Partial').length;
+  const missing = criteria.filter(c => c.strength === 'Missing').length;
+  const evidenceDetail = criteria.length > 0
+    ? `Based on gap analysis: ${strong} strong, ${partial} partial, ${missing} missing criteria`
+    : 'No gap analysis generated yet';
+
+  const winsDetail = `${qyWins.length} qualifying-year win${qyWins.length !== 1 ? 's' : ''}, ${totalEminence} eminence activit${totalEminence !== 1 ? 'ies' : 'y'}`;
+
   // ── Weighted average ──
   const dimensions = {
-    scorecard: { score: Math.round(scorecardScore), weight: w.scorecard, label: DIMENSION_LABELS.scorecard, route: DIMENSION_ROUTES.scorecard },
-    pipeline:  { score: Math.round(pipelineScore),  weight: w.pipeline,  label: DIMENSION_LABELS.pipeline,  route: DIMENSION_ROUTES.pipeline },
-    gates:     { score: Math.round(gatesScore),      weight: w.gates,     label: DIMENSION_LABELS.gates,     route: DIMENSION_ROUTES.gates },
-    evidence:  { score: Math.round(evidenceScore),   weight: w.evidence,  label: DIMENSION_LABELS.evidence,  route: DIMENSION_ROUTES.evidence },
-    wins:      { score: Math.round(winsScore),       weight: w.wins,      label: DIMENSION_LABELS.wins,      route: DIMENSION_ROUTES.wins },
+    scorecard: { score: Math.round(scorecardScore), weight: w.scorecard, label: DIMENSION_LABELS.scorecard, route: DIMENSION_ROUTES.scorecard, details: scorecardDetail },
+    pipeline:  { score: Math.round(pipelineScore),  weight: w.pipeline,  label: DIMENSION_LABELS.pipeline,  route: DIMENSION_ROUTES.pipeline,  details: pipelineDetail },
+    gates:     { score: Math.round(gatesScore),      weight: w.gates,     label: DIMENSION_LABELS.gates,     route: DIMENSION_ROUTES.gates,     details: gatesDetail },
+    evidence:  { score: Math.round(evidenceScore),   weight: w.evidence,  label: DIMENSION_LABELS.evidence,  route: DIMENSION_ROUTES.evidence,  details: evidenceDetail },
+    wins:      { score: Math.round(winsScore),       weight: w.wins,      label: DIMENSION_LABELS.wins,      route: DIMENSION_ROUTES.wins,      details: winsDetail },
   };
 
   const overall = Math.round(
@@ -187,7 +225,13 @@ export function useReadinessScore() {
       opportunities: scorecard.opportunities,
       goals, wins,
       eminenceActivities,
-      gapAnalysis: story?.gap_analysis?.data ?? [],
+      gapAnalysis: (story?.activeSource === 'manual'
+        ? (story?.manual_entries?.criteria ?? []).map(c => ({
+            criterion: c.criterion,
+            evidence: c.evidence ? [c.evidence] : [],
+            strength: c.strength === 'Strong' ? 'Strong' : c.strength === 'Moderate' ? 'Partial' : 'Missing',
+          }))
+        : story?.gap_analysis?.data) ?? [],
       weights: adminData?.readinessWeights ?? DEFAULT_WEIGHTS,
       qualifyingYear,
     });
