@@ -89,6 +89,10 @@ These overlap and can be confusing:
 | Term | Meaning |
 |------|---------|
 | **Relationship type** | Champion, Supporter, Peer, Client (configurable in Admin) |
+| **Influence tier** | Decision-maker, Influencer, Supporter, Informer — how much power over your promotion |
+| **Strategic importance** | Critical, High, Medium, Low — how important this relationship is right now |
+| **Stakeholder group** | Arena a contact belongs to (Practice leadership, Client, HR/Talent, etc.) — used for coverage analysis |
+| **Coverage** | Whether you have high-influence contacts across all key stakeholder groups. Covered / Thin / Gap |
 | **Touchpoint** | A logged interaction with a contact |
 | **Planned touchpoint** | A future intended interaction (can link to action items) |
 | **Stale contact** | >30 days since last touchpoint |
@@ -101,6 +105,24 @@ These overlap and can be confusing:
 | **Internal eminence** | IBM forums, knowledge networks, internal speaking |
 | **External eminence** | Conferences, publications, media, public panels |
 | **Activity types** | speaking, publication, media, panel, award, internal-ibm, community, other |
+
+## 360 Feedback
+
+| Term | Meaning |
+|------|---------|
+| **360 feedback** | Structured feedback from reviewers across 5 soft-skill dimensions |
+| **Dimensions** | Strategic thinking, Executive presence, Collaboration & influence, Delivery excellence, Growth mindset |
+| **Review token** | One-time link sent to a reviewer (no account needed). Stored in `review_tokens` table |
+| **Feedback synthesis** | AI-generated summary of all 360 feedback responses. Cached in `feedback_synthesis` domain |
+| **Legacy feedback** | Original single star-rating + comment format (via `feedback_token` on users table) |
+
+## Readiness Snapshots
+
+| Term | Meaning |
+|------|---------|
+| **Readiness snapshot** | Point-in-time capture of overall + dimension scores. Stored in `readiness` domain |
+| **Auto-snapshot** | Captured once per day on Dashboard load (deduplicates same-day) |
+| **Trend chart** | SVG line chart showing overall score + togglable dimension lines over time |
 
 ## Key Interconnections
 
@@ -125,6 +147,8 @@ These overlap and can be confusing:
 | `admin` | Categories, criteria, API key |
 | `settings` | Promotion year, currency, demo mode |
 | `sharing` | Public summary visibility config |
+| `readiness` | Readiness score snapshots + trend data |
+| `feedback_synthesis` | Cached AI synthesis of 360 feedback |
 
 ## Confusable Terms
 

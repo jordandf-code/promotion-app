@@ -100,17 +100,23 @@ async function loadFirmConfig() {
         metricLabels: { ...FIRM_CONFIG_DEFAULTS.metricLabels, ...(raw.metricLabels || {}) },
       };
     }
-  } catch {}
+  } catch (e) { console.warn('Failed to load firm config:', e.message); }
   return FIRM_CONFIG_DEFAULTS;
 }
 
 async function buildContext(userId) {
-  const [dataResult, firmConfig] = await Promise.all([
+  const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis']]
     ),
     loadFirmConfig(),
+    db.query(
+      `SELECT reviewer, rating, dimensions, COALESCE(submitted_at, created_at) AS submitted_at
+       FROM feedback WHERE user_id = $1 AND dimensions IS NOT NULL
+       ORDER BY COALESCE(submitted_at, created_at) DESC LIMIT 20`,
+      [userId]
+    ).catch(() => ({ rows: [] })),
   ]);
   const byDomain = Object.fromEntries(dataResult.rows.map(r => [r.domain, r.data]));
 
@@ -240,12 +246,15 @@ async function buildContext(userId) {
   const people = rawPeople.map(p => {
     const lastTp = (p.touchpoints ?? []).sort((a, b) => b.date.localeCompare(a.date))[0];
     return {
-      name:                p.name,
-      title:               p.title ?? null,
-      org:                 p.org ?? null,
-      relationship_type:   p.type ?? null,
-      relationship_status: p.relationshipStatus ?? null,
-      last_touchpoint:     lastTp?.date ?? null,
+      name:                 p.name,
+      title:                p.title ?? null,
+      org:                  p.org ?? null,
+      relationship_type:    p.type ?? null,
+      relationship_status:  p.relationshipStatus ?? null,
+      influence_tier:       p.influenceTier ?? null,
+      strategic_importance: p.strategicImportance ?? null,
+      stakeholder_group:    p.stakeholderGroup ?? null,
+      last_touchpoint:      lastTp?.date ?? null,
     };
   });
 
@@ -277,6 +286,12 @@ async function buildContext(userId) {
       acc[t] = (acc[t] || 0) + 1;
       return acc;
     }, {}),
+    people_by_influence: rawPeople.reduce((acc, p) => {
+      const t = p.influenceTier ?? 'unset';
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {}),
+    stakeholder_groups:  [...new Set(rawPeople.map(p => p.stakeholderGroup).filter(Boolean))],
   };
 
   const context = {
@@ -337,6 +352,37 @@ async function buildContext(userId) {
       courses:              aiCourses,
       total_training_hours: totalTrainingHours,
     };
+  }
+
+  // ── 360 feedback summary (if synthesis exists or raw feedback available) ──
+  const feedbackSynthesis = byDomain.feedback_synthesis;
+  if (feedbackSynthesis) {
+    context.feedback_360 = {
+      synthesis: feedbackSynthesis,
+      response_count: feedbackSynthesis.responseCount || feedbackResult.rows.length,
+    };
+  } else if (feedbackResult.rows.length > 0) {
+    // Provide raw dimension averages when no AI synthesis has been run
+    const dimTotals = {};
+    const dimCounts = {};
+    for (const row of feedbackResult.rows) {
+      if (!Array.isArray(row.dimensions)) continue;
+      for (const d of row.dimensions) {
+        dimTotals[d.key] = (dimTotals[d.key] || 0) + d.rating;
+        dimCounts[d.key] = (dimCounts[d.key] || 0) + 1;
+      }
+    }
+    const dimAverages = Object.entries(dimTotals).map(([key, total]) => ({
+      key,
+      avgRating: Math.round((total / dimCounts[key]) * 10) / 10,
+      responses: dimCounts[key],
+    }));
+    if (dimAverages.length) {
+      context.feedback_360 = {
+        dimension_averages: dimAverages,
+        response_count: feedbackResult.rows.length,
+      };
+    }
   }
 
   return removeNulls(context);

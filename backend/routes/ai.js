@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT } = require('../ai/prompts');
 const { fmtCurrency }   = require('../ai/formatUtils');
 const db = require('../db');
 
@@ -164,7 +164,7 @@ router.post('/suggest-impact', async (req, res) => {
       }
     } else {
       parts.push(`\nLinked opportunity: ${opp.name} for ${opp.client}`);
-      parts.push(`Deal value: ${fmtCurrency(opp.signings_value)}`);
+      parts.push(`Deal value: ${fmtCurrency(opp.signings_credit)}`);
       if (opp.logo_type) parts.push(`Logo type: ${opp.logo_type}`);
       if (opp.strategic_note) parts.push(`Strategic context: ${opp.strategic_note}`);
     }
@@ -251,6 +251,66 @@ router.post('/preview-context', async (req, res) => {
     context: safeCtx,
     systemPrompt: mode.prompt,
   });
+});
+
+// ── POST /api/ai/synthesize-feedback ────────────────────────────────────────
+// Synthesizes all structured 360 feedback into themes, strengths, and recommendations.
+
+router.post('/synthesize-feedback', async (req, res) => {
+  // Load structured feedback
+  const fbResult = await db.query(
+    `SELECT reviewer, rating, comments, dimensions,
+            COALESCE(submitted_at, created_at) AS submitted_at
+     FROM feedback WHERE user_id = $1 AND dimensions IS NOT NULL
+     ORDER BY COALESCE(submitted_at, created_at) DESC`,
+    [req.userId]
+  );
+
+  if (fbResult.rows.length < 1) {
+    return res.status(400).json({ ok: false, error: 'Need at least 1 structured feedback response to synthesize', code: 'NO_FEEDBACK' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build user content: all feedback responses
+  const feedbackData = fbResult.rows.map(r => ({
+    reviewer: r.reviewer,
+    overallRating: r.rating,
+    dimensions: r.dimensions,
+    comments: r.comments,
+    date: r.submitted_at,
+  }));
+
+  const userContent = JSON.stringify({
+    responseCount: feedbackData.length,
+    feedback: feedbackData,
+  });
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: FEEDBACK_SYNTHESIS_PROMPT,
+    userContent,
+    maxTokens:    2000,
+    parseJson:    true,
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Cache synthesis in user_data
+  try {
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'feedback_synthesis', $2, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2, updated_at = NOW()`,
+      [req.userId, JSON.stringify(result.data)]
+    );
+  } catch (cacheErr) {
+    console.error('cache feedback synthesis error:', cacheErr.message);
+  }
+
+  res.json({ ok: true, data: result.data, usage: result.usage });
 });
 
 module.exports = router;

@@ -15,6 +15,8 @@ import { useReadinessScore } from '../hooks/useReadinessScore.js';
 
 import StatStrip from '../components/dashboard/StatStrip.jsx';
 import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
+import ReadinessTrendWidget from '../components/dashboard/ReadinessTrendWidget.jsx';
+import { useReadinessSnapshots } from '../hooks/useReadinessSnapshots.js';
 import ScorecardWidget from '../components/dashboard/ScorecardWidget.jsx';
 import ActionsWidget from '../components/dashboard/ActionsWidget.jsx';
 import RecentWinsWidget from '../components/dashboard/RecentWinsWidget.jsx';
@@ -41,6 +43,7 @@ export default function Dashboard() {
   const { addGoal } = useGoalsData();
   const { people, addPerson } = usePeopleData();
   const readiness = useReadinessScore();
+  const { snapshots, takeSnapshot } = useReadinessSnapshots(readiness);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const deadline = `${qualifyingYear}-12-31`;
@@ -87,9 +90,9 @@ export default function Dashboard() {
       />
 
       {/* ── Primary widgets (full-width) ── */}
-      <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} />
+      <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} onSnapshot={takeSnapshot} />
 
-      {/* Future primary widget slot: nudges, readiness trend, etc. */}
+      <ReadinessTrendWidget snapshots={snapshots} />
 
       <ScorecardWidget scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
 

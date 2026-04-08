@@ -2,7 +2,7 @@
 // Person card: header with edit/remove, contact info, touchpoint log, planned contacts.
 
 import { useState } from 'react';
-import { lastContactDate, daysSinceContact, RELATIONSHIP_STATUS_LABELS, nextRelationshipStatus } from '../../hooks/usePeopleData.js';
+import { lastContactDate, daysSinceContact, RELATIONSHIP_STATUS_LABELS, nextRelationshipStatus, INFLUENCE_TIER_LABELS, INFLUENCE_TIER_COLORS, STRATEGIC_IMPORTANCE_LABELS } from '../../hooks/usePeopleData.js';
 import { fmtDate } from '../../data/sampleData.js';
 import PlannedContactSection from './PlannedContactSection.jsx';
 
@@ -20,6 +20,7 @@ export default function PersonCard({
   onAddPlannedTouchpoint,
   onRemovePlannedTouchpoint,
   onLogPlannedTouchpoint,
+  onRequestFeedback,
   actions,
   onAddAction,
   onToggleActionDone,
@@ -72,6 +73,9 @@ export default function PersonCard({
           <div className="person-org">{person.org}</div>
         </div>
         <div className="person-card-actions">
+          {person.email && onRequestFeedback && (
+            <button className="row-btn" onClick={() => onRequestFeedback(person)} title="Request 360 feedback">Feedback</button>
+          )}
           <button className="row-btn" onClick={onEdit}>Edit</button>
           <button className="row-btn row-btn--danger" onClick={onDelete}>Remove</button>
         </div>
@@ -91,9 +95,28 @@ export default function PersonCard({
         >
           {RELATIONSHIP_STATUS_LABELS[person.relationshipStatus ?? 'in-progress']}
         </button>
+        {person.influenceTier && (
+          <span className="type-badge" style={{
+            background: INFLUENCE_TIER_COLORS[person.influenceTier] + '18',
+            color: INFLUENCE_TIER_COLORS[person.influenceTier],
+            border: `1px solid ${INFLUENCE_TIER_COLORS[person.influenceTier]}55`,
+          }}>{INFLUENCE_TIER_LABELS[person.influenceTier]}</span>
+        )}
+        {person.strategicImportance && (
+          <span className="type-badge" style={{
+            background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1',
+          }}>{STRATEGIC_IMPORTANCE_LABELS[person.strategicImportance]}</span>
+        )}
         {stale && <span className="stale-badge">{staleBadgeText}</span>}
         {hasRecurrence && !stale && <span className="stale-badge" style={{ background: '#dbeafe', color: '#1e40af', borderColor: '#93c5fd' }}>{staleBadgeText}</span>}
       </div>
+
+      {/* ── Stakeholder group ── */}
+      {person.stakeholderGroup && (
+        <div className="person-stakeholder-group" style={{ padding: '0 0.75rem', fontSize: '0.8rem', color: '#64748b' }}>
+          {person.stakeholderGroup}
+        </div>
+      )}
 
       {/* ── Contact info ── */}
       {(person.email || person.phone) && (

@@ -59,6 +59,7 @@ ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `S
 
 ### API patterns
 - All data endpoints: `GET /api/data/:domain` and `PUT /api/data/:domain`, scoped to `req.userId` via JWT
+- Export endpoints: `GET /api/export` (full ZIP), `GET /api/export/:domain` (single CSV)
 - AI endpoints: `POST /api/ai/narrative`, `POST /api/ai/suggest-goals`, `POST /api/ai/suggest-impact`
 - AI calls use `buildContext(userId)` to assemble all user data server-side — frontend never sends data payloads to AI endpoints
 - Error envelope: `{ ok: false, error, code }` with codes: NO_KEY, NO_CRITERIA, INVALID_KEY, RATE_LIMITED, OVERLOADED, BILLING, PARSE_ERROR
@@ -83,14 +84,22 @@ Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 2
 
 **Layer 0 complete (2026-04-07)**: Security hardening (0A), firm-agnostic config (0B), Dashboard widget scaffold (0C), navigation scaffold with 6 new placeholder routes (0D), role/permissions rework with `user_relationships` table (0E), email infrastructure (0F). Migration `migration_layer0e.sql` must be run in Supabase before deploying.
 
+**Layer 1E complete (2026-04-08)**: Bulk import/export — `GET /api/export` (full ZIP with 10 CSVs + README), `GET /api/export/:domain` (single CSV), ImportExport page with export button + import for opportunities/wins/people, shared ImportModal component, CSV utilities with papaparse, duplicate detection for people, pipe-separated tags for wins. Nav item unhidden.
+
+**Layer 1C complete (2026-04-08)**: Structured 360 feedback — 5 soft-skill dimensions (strategic thinking, executive presence, collaboration & influence, delivery excellence, growth mindset). Public feedback form upgraded with per-dimension ratings + optional comments. Feedback request flow from People cards via review_tokens + Resend email. Sharing page split into Links/Feedback sub-tabs. Feedback inbox with expandable dimension details. AI synthesis via `POST /api/ai/synthesize-feedback`. Synthesis cached in `feedback_synthesis` domain. `buildContext.js` includes feedback_360 data. Migration: `migration_1c_feedback.sql`.
+
+**Layer 1A complete (2026-04-08)**: People tab enrichment — 3 new fields per person: `influenceTier` (decision-maker/influencer/supporter/informer), `strategicImportance` (critical/high/medium/low), `stakeholderGroup` (combobox with defaults + free text). Collapsible CoverageSummary panel on People page (stakeholder groups × influence tiers, gap/thin/covered indicators). Influence tier filter dropdown. Color-coded badges on PersonCard. AI pipeline includes new fields + coverage stats. No migration needed.
+
+**Layer 1B complete (2026-04-08)**: Readiness score snapshots + trend chart — new `readiness` domain with `useReadinessSnapshots` hook (auto-snapshot once/day on Dashboard load, manual via "Snapshot" button, 365-snapshot cap, same-day dedup). `ReadinessTrendWidget` (pure SVG line chart: overall score line + 5 togglable dimension lines, hover tooltips, responsive legend). Placed on Dashboard between ReadinessWidget and ScorecardWidget. No migration needed.
+
 ## What to build next
 
-**Layer 0 is done. Layer 1 is fully unblocked** — up to 7 features can be built in parallel:
-- **1A** People tab enrichment (influence tier, coverage, strategic importance)
-- **1B** Readiness score snapshots + trend chart
-- **1C** Structured 360 feedback (5 questions + AI synthesis)
+**Layer 1 is in progress** — 1A, 1B, 1C, and 1E done, 4 remaining features can be built in parallel:
+- ~~**1A** People tab enrichment~~ ✅
+- ~~**1B** Readiness score snapshots + trend chart~~ ✅
+- ~~**1C** Structured 360 feedback~~ ✅
 - **1D** Sponsor view (Sponsees page)
-- **1E** Bulk import/export (CSV ZIP)
+- ~~**1E** Bulk import/export (CSV ZIP)~~ ✅
 - **1F** Remaining notification types + **1G** AI usage log
 - **1H** Super Admin tooling + **1I** Onboarding polish
 
@@ -108,8 +117,12 @@ See `docs/PLAN.md` for dependencies and the full graph.
 - Platform data uses `app_settings` table (keys: `platform_categories`, `firm_config`), not `user_data`
 - Narrative page has 3 subtabs with an "active source" toggle that controls which source feeds the readiness score's evidence dimension
 - User relationships use `user_relationships` table (sponsor/peer types). Old `viewer_access` table kept for backward compat — both are written to during transition
-- New pages (influence-map, brand, sponsees, mock-panel, vault, import-export) are registered in App.jsx and Layout.jsx but hidden in nav. When building these features, flip `hidden: false` in Layout.jsx `ALL_NAV_ITEMS`
+- New pages (influence-map, brand, mock-panel, vault) are registered in App.jsx and Layout.jsx but hidden in nav. When building these features, flip `hidden: false` in Layout.jsx `ALL_NAV_ITEMS`
+- Export endpoint: `GET /api/export` (full ZIP) and `GET /api/export/:domain` (single CSV) — auth required, currency in CAD
 - Dashboard uses widget slot pattern — add new widgets as components in `components/dashboard/`, import and place them in Dashboard.jsx. Don't inline new sections.
+- Sharing page now has sub-tabs (Links | Feedback). Feedback tab has request tracking, expandable inbox, and AI synthesis.
+- Feedback form supports both legacy (single star rating via `feedback_token`) and structured 360 (5 dimensions via `review_tokens`). Token type determines form mode.
+- `feedback_synthesis` is a user_data domain — cached AI synthesis of 360 feedback responses.
 
 ## Session workflow
 
