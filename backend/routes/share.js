@@ -13,10 +13,20 @@
 
 const express        = require('express');
 const crypto         = require('crypto');
+const rateLimit      = require('express-rate-limit');
 const db             = require('../db');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+
+// Rate limit public endpoints (view + feedback submission): 30 requests per 15 minutes per IP
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many requests — please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function genToken() {
   return crypto.randomBytes(20).toString('hex');
@@ -130,7 +140,7 @@ router.post('/reset', authMiddleware, async (req, res) => {
 
 // GET /api/share/view/:token
 // Public summary — returns owner name, wins, narrative, scorecard based on sharing settings.
-router.get('/view/:token', async (req, res) => {
+router.get('/view/:token', publicLimiter, async (req, res) => {
   try {
     const userResult = await db.query(
       'SELECT id, name FROM users WHERE share_token = $1',
@@ -184,7 +194,7 @@ router.get('/view/:token', async (req, res) => {
 
 // GET /api/share/feedback-info/:token
 // Returns basic info for the feedback form header (whose profile it is).
-router.get('/feedback-info/:token', async (req, res) => {
+router.get('/feedback-info/:token', publicLimiter, async (req, res) => {
   try {
     const result = await db.query(
       'SELECT name FROM users WHERE feedback_token = $1',
@@ -200,7 +210,7 @@ router.get('/feedback-info/:token', async (req, res) => {
 
 // POST /api/share/feedback/:token
 // Submits feedback from a reviewer.
-router.post('/feedback/:token', async (req, res) => {
+router.post('/feedback/:token', publicLimiter, async (req, res) => {
   const { reviewer, rating, comments } = req.body ?? {};
   if (!reviewer?.trim())              return res.status(400).json({ error: 'Your name is required' });
   if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1–5' });

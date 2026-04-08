@@ -22,6 +22,12 @@ const ALL_NAV_ITEMS = [
   { to: '/actions',   label: 'Action items'          },
   { to: '/learning',  label: 'Learning'              },
   { to: '/story',     label: 'Narrative + Gaps'       },
+  { to: '/influence-map', label: 'Influence Map',  hidden: true },
+  { to: '/brand',     label: 'Brand',              hidden: true },
+  { to: '/mock-panel', label: 'Mock Panel',        hidden: true },
+  { to: '/vault',     label: 'Documents',          hidden: true },
+  { to: '/import-export', label: 'Import / Export', hidden: true },
+  { to: '/sponsees',  label: 'Sponsees',           hidden: true },
   { to: '/calendar',  label: 'Calendar'              },
   { to: '/sharing',   label: 'Sharing'               },
   { to: '/view-others', label: 'View others'         },
@@ -41,12 +47,12 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
 
-  // Filter nav items by role
+  // Filter nav items by role and hidden flag
   let baseItems;
   if (user.role === 'viewer') {
     baseItems = ALL_NAV_ITEMS.filter(n => VIEWER_ROUTES.has(n.to));
   } else {
-    baseItems = ALL_NAV_ITEMS;
+    baseItems = ALL_NAV_ITEMS.filter(n => !n.hidden);
   }
 
   // Apply user's custom tab ordering (only for reorderable items)

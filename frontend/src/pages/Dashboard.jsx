@@ -1,20 +1,35 @@
 // pages/Dashboard.jsx
-// Qualifying-year snapshot: live scorecard progress, countdown, overdue items,
-// recent wins, and a quick-add button.
+// Career Command Center dashboard: qualifying-year snapshot with pluggable widget slots.
+// Widget components live in components/dashboard/ — add new widgets there, register below.
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useScorecardData } from '../hooks/useScorecardData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import { useWinsData } from '../hooks/useWinsData.js';
 import { useGoalsData } from '../hooks/useGoalsData.js';
-import { daysUntil, fmtDate } from '../data/sampleData.js';
+import { daysUntil } from '../data/sampleData.js';
 import { usePeopleData, daysSinceContact } from '../hooks/usePeopleData.js';
-import ScorecardTable from '../components/dashboard/ScorecardTable.jsx';
-import QuickAddModal  from '../components/dashboard/QuickAddModal.jsx';
-import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
 import { useReadinessScore } from '../hooks/useReadinessScore.js';
+
+import StatStrip from '../components/dashboard/StatStrip.jsx';
+import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
+import ScorecardWidget from '../components/dashboard/ScorecardWidget.jsx';
+import ActionsWidget from '../components/dashboard/ActionsWidget.jsx';
+import RecentWinsWidget from '../components/dashboard/RecentWinsWidget.jsx';
+import QuickAddModal from '../components/dashboard/QuickAddModal.jsx';
+
+// ── Widget slot registry ────────────────────────────────────────────────────
+// To add a new dashboard widget:
+//   1. Create a component in components/dashboard/
+//   2. Import it above
+//   3. Add it to PRIMARY_WIDGETS or SECONDARY_WIDGETS below
+//   4. It receives the full dashboardContext object as props
+//
+// PRIMARY_WIDGETS render full-width above the two-column layout.
+// SECONDARY_WIDGETS render as cards in the two-column layout.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const TODAY = new Date();
 
@@ -25,7 +40,6 @@ export default function Dashboard() {
   const { wins, addWin } = useWinsData();
   const { addGoal } = useGoalsData();
   const { people, addPerson } = usePeopleData();
-  const navigate = useNavigate();
   const readiness = useReadinessScore();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
@@ -43,7 +57,6 @@ export default function Dashboard() {
   const recentWins = [...wins]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 3);
-
 
   return (
     <div className="page">
@@ -65,89 +78,28 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="stat-strip">
-        <div className="stat-card stat-card--qual stat-card--link" onClick={() => navigate('/calendar')}>
-          <div className="stat-value">{daysLeft}</div>
-          <div className="stat-label">days to Dec 31, {qualifyingYear}</div>
-        </div>
-        <div className={`stat-card stat-card--link ${overdueActions.length > 0 ? 'stat-card--red' : 'stat-card--green'}`}
-          onClick={() => navigate('/actions?filter=overdue')}>
-          <div className="stat-value">{overdueActions.length}</div>
-          <div className="stat-label">overdue action{overdueActions.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div className={`stat-card stat-card--link ${staleContacts.length > 0 ? 'stat-card--amber' : 'stat-card--green'}`}
-          onClick={() => navigate('/people?filter=stale')}>
-          <div className="stat-value">{staleContacts.length}</div>
-          <div className="stat-label">contact{staleContacts.length !== 1 ? 's' : ''} to follow up</div>
-        </div>
-      </div>
+      {/* ── Stat strip ── */}
+      <StatStrip
+        daysLeft={daysLeft}
+        qualifyingYear={qualifyingYear}
+        overdueCount={overdueActions.length}
+        staleCount={staleContacts.length}
+      />
 
+      {/* ── Primary widgets (full-width) ── */}
       <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} />
 
-      <section className="section">
-        <div className="section-header">
-          <h2 className="section-title">Scorecard highlights</h2>
-          <Link to="/scorecard" className="section-link">Full scorecard →</Link>
-        </div>
-        <div className="card card--flush">
-          <ScorecardTable scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
-        </div>
-      </section>
+      {/* Future primary widget slot: nudges, readiness trend, etc. */}
 
+      <ScorecardWidget scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
+
+      {/* ── Secondary widgets (two-column) ── */}
       <div className="two-col">
-        <section className="section">
-          <div className="section-header">
-            <h2 className="section-title">Upcoming actions</h2>
-            <Link to="/actions" className="section-link">All →</Link>
-          </div>
-          <div className="card card--list">
-            {overdueActions.map(a => (
-              <div key={a.id} className="list-item list-item--overdue list-item--link" onClick={() => navigate(`/actions?id=${a.id}`)}>
-                <button className="list-item-check list-item-check--open" onClick={e => { e.stopPropagation(); toggleDone(a.id); }} title="Mark done" />
-                <div>
-                  <div className="list-item-title">{a.title}</div>
-                  <div className="list-item-meta overdue-label">Overdue · {fmtDate(a.dueDate)}</div>
-                </div>
-              </div>
-            ))}
-            {upcomingActions.map(a => (
-              <div key={a.id} className="list-item list-item--link" onClick={() => navigate(`/actions?id=${a.id}`)}>
-                <button className="list-item-check list-item-check--open" onClick={e => { e.stopPropagation(); toggleDone(a.id); }} title="Mark done" />
-                <div>
-                  <div className="list-item-title">{a.title}</div>
-                  <div className="list-item-meta">Due {fmtDate(a.dueDate)}</div>
-                </div>
-              </div>
-            ))}
-            {overdueActions.length === 0 && upcomingActions.length === 0 && (
-              <div className="list-empty">No upcoming actions</div>
-            )}
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="section-header">
-            <h2 className="section-title">Recent wins</h2>
-            <Link to="/wins" className="section-link">All →</Link>
-          </div>
-          <div className="card card--list">
-            {recentWins.map(w => (
-              <div key={w.id} className="list-item list-item--link" onClick={() => navigate(`/wins?id=${w.id}`)}>
-                <span className="list-item-dot list-item-dot--green" />
-                <div>
-                  <div className="list-item-title">{w.title}</div>
-                  <div className="list-item-meta">
-                    {fmtDate(w.date)}{w.tags.length > 0 && ` · ${w.tags.join(', ')}`}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {recentWins.length === 0 && <div className="list-empty">No wins logged yet</div>}
-          </div>
-        </section>
+        <ActionsWidget overdueActions={overdueActions} upcomingActions={upcomingActions} toggleDone={toggleDone} />
+        <RecentWinsWidget recentWins={recentWins} />
       </div>
 
-      {/* FAB for mobile — positioned above bottom tab bar */}
+      {/* ── FAB for mobile ── */}
       <button className="fab-quick-add" onClick={() => setShowQuickAdd(true)} aria-label="Quick add">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>

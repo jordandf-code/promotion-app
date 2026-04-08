@@ -73,12 +73,46 @@ function getUtilStats(utilization, targets, year) {
 
 // ── Main builder ────────────────────────────────────────────────────────────
 
+// ── Firm config defaults (used when no platform firm_config is set) ──────────
+
+const FIRM_CONFIG_DEFAULTS = {
+  companyName:      'IBM Canada',
+  currentRoleLabel: 'Associate Partner',
+  targetRoleLabel:  'Partner',
+  marketDescription: 'Canadian public sector',
+  criteriaLabel:    'Promotion criteria',
+  metricLabels: {
+    signings:    'Signings',
+    revenue:     'Revenue',
+    grossProfit: 'Gross profit',
+    utilization: 'Chargeable utilization',
+  },
+};
+
+async function loadFirmConfig() {
+  try {
+    const result = await db.query("SELECT value FROM app_settings WHERE key = 'firm_config'");
+    if (result.rows[0]?.value) {
+      const raw = JSON.parse(result.rows[0].value);
+      return {
+        ...FIRM_CONFIG_DEFAULTS,
+        ...raw,
+        metricLabels: { ...FIRM_CONFIG_DEFAULTS.metricLabels, ...(raw.metricLabels || {}) },
+      };
+    }
+  } catch {}
+  return FIRM_CONFIG_DEFAULTS;
+}
+
 async function buildContext(userId) {
-  const result = await db.query(
-    `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-    [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence']]
-  );
-  const byDomain = Object.fromEntries(result.rows.map(r => [r.domain, r.data]));
+  const [dataResult, firmConfig] = await Promise.all([
+    db.query(
+      `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence']]
+    ),
+    loadFirmConfig(),
+  ]);
+  const byDomain = Object.fromEntries(dataResult.rows.map(r => [r.domain, r.data]));
 
   const admin    = byDomain.admin    ?? {};
   const settings = byDomain.settings ?? {};
@@ -97,7 +131,7 @@ async function buildContext(userId) {
     throw err;
   }
   if (!admin.ibmCriteria) {
-    const err = new Error('No IBM criteria configured');
+    const err = new Error(`No ${firmConfig.criteriaLabel.toLowerCase()} configured`);
     err.code = 'NO_CRITERIA';
     throw err;
   }
@@ -106,12 +140,12 @@ async function buildContext(userId) {
   const qualifyingYear = promotionYear - 1;
   const currentYear    = new Date().getFullYear();
 
-  // ── user_context ──
+  // ── user_context (labels from firm config) ──
   const user_context = {
-    current_role:    'Associate Partner',
-    target_role:     'Partner',
-    company:         'IBM Canada',
-    market:          'Canadian public sector',
+    current_role:    firmConfig.currentRoleLabel,
+    target_role:     firmConfig.targetRoleLabel,
+    company:         firmConfig.companyName,
+    market:          firmConfig.marketDescription,
     qualifying_year: qualifyingYear,
     target_year:     promotionYear,
   };

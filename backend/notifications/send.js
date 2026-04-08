@@ -4,12 +4,18 @@
 const { Resend } = require('resend');
 const db = require('../db');
 
-const DEFAULT_FROM = 'Promotion Tracker <notifications@partner.jordandf.com>';
+const DEFAULT_FROM = 'Career Command Center <notifications@partner.jordandf.com>';
 
 // Minimum intervals between sends of the same type (prevents duplicates)
 const MIN_INTERVALS = {
   weekly_digest:     6 * 24 * 60 * 60 * 1000, // 6 days
   feedback_received: 60 * 60 * 1000,           // 1 hour
+  overdue_action:    24 * 60 * 60 * 1000,      // 1 day
+  stale_contact:     7 * 24 * 60 * 60 * 1000,  // 7 days
+  goal_deadline:     24 * 60 * 60 * 1000,      // 1 day
+  scorecard_at_risk: 7 * 24 * 60 * 60 * 1000,  // 7 days
+  access_granted:    0,                         // no dedup — transactional
+  feedback_request:  0,                         // no dedup — transactional
 };
 
 /**
@@ -40,7 +46,17 @@ async function sendNotification({ userId, type, subject, html, payload, force })
       if (prefs.paused) return { sent: false, reason: 'paused' };
 
       // Check per-type toggle (default to enabled)
-      const typeKey = type === 'weekly_digest' ? 'weeklyDigest' : 'feedbackReceived';
+      const TYPE_TO_PREF_KEY = {
+        weekly_digest: 'weeklyDigest',
+        feedback_received: 'feedbackReceived',
+        overdue_action: 'overdueAction',
+        stale_contact: 'staleContact',
+        goal_deadline: 'goalDeadline',
+        scorecard_at_risk: 'scorecardAtRisk',
+        access_granted: 'accessGranted',
+        feedback_request: 'feedbackRequest',
+      };
+      const typeKey = TYPE_TO_PREF_KEY[type] || type;
       if (prefs[typeKey] === false) return { sent: false, reason: 'type_disabled' };
 
       // Dedup check
