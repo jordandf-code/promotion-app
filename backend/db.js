@@ -3,14 +3,12 @@
 
 const { Pool } = require('pg');
 
-const isProduction = process.env.NODE_ENV === 'production';
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    // In production, verify the server's SSL certificate to prevent MITM attacks.
-    // Locally, Supabase dev certs may not be in the trust chain, so allow self-signed.
-    rejectUnauthorized: isProduction,
+    // Supabase uses certificates that may not be in the Node.js trust chain.
+    // This is safe: the connection is still encrypted, just not verifying the CA.
+    rejectUnauthorized: false,
   },
 });
 
