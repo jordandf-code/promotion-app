@@ -1,15 +1,20 @@
 // routes/share.js
 // Share links and feedback for the promotion profile.
 //
+// HTML escaping helper for email content:
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+//
 // Owner endpoints (JWT required):
-//   GET  /api/share/tokens         — get or create share + feedback tokens
-//   POST /api/share/reset          — rotate both tokens (invalidates old links)
-//   GET  /api/share/feedback        — fetch all feedback submitted by reviewers
+//   GET  /api/share/tokens              — get or create share + feedback tokens
+//   POST /api/share/reset               — rotate both tokens (invalidates old links)
+//   GET  /api/share/feedback            — fetch all feedback submitted by reviewers
+//   POST /api/share/request-feedback    — send a feedback request email to a specific person
+//   GET  /api/share/feedback-requests   — list all sent feedback requests + status
 //
 // Public endpoints (no auth):
-//   GET  /api/share/view/:token    — public summary data
+//   GET  /api/share/view/:token         — public summary data
 //   GET  /api/share/feedback-info/:token — reviewer form header info
-//   POST /api/share/feedback/:token — submit feedback
+//   POST /api/share/feedback/:token     — submit feedback (supports structured 360 dimensions)
 
 const express        = require('express');
 const crypto         = require('crypto');
@@ -193,15 +198,38 @@ router.get('/view/:token', publicLimiter, async (req, res) => {
 });
 
 // GET /api/share/feedback-info/:token
-// Returns basic info for the feedback form header (whose profile it is).
+// Returns basic info for the feedback form header. Supports both legacy feedback_token
+// (from users table) and new review_tokens (from 1C structured feedback).
 router.get('/feedback-info/:token', publicLimiter, async (req, res) => {
   try {
-    const result = await db.query(
+    // Try legacy feedback_token first
+    const legacyResult = await db.query(
       'SELECT name FROM users WHERE feedback_token = $1',
       [req.params.token]
     );
-    if (!result.rows[0]) return res.status(404).json({ error: 'Feedback link not found' });
-    res.json({ owner: { name: result.rows[0].name } });
+    if (legacyResult.rows[0]) {
+      return res.json({ owner: { name: legacyResult.rows[0].name }, tokenType: 'legacy' });
+    }
+
+    // Try review_tokens table
+    const rtResult = await db.query(
+      `SELECT rt.id AS token_id, rt.reviewer_name, rt.reviewer_email, rt.expires_at, u.name AS owner_name
+       FROM review_tokens rt JOIN users u ON u.id = rt.owner_id
+       WHERE rt.token = $1 AND rt.purpose = 'feedback'`,
+      [req.params.token]
+    );
+    if (!rtResult.rows[0]) return res.status(404).json({ error: 'Feedback link not found' });
+
+    const rt = rtResult.rows[0];
+    if (rt.expires_at && new Date(rt.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'This feedback link has expired' });
+    }
+    res.json({
+      owner: { name: rt.owner_name },
+      tokenType: 'review_token',
+      reviewerName: rt.reviewer_name || null,
+      reviewerEmail: rt.reviewer_email || null,
+    });
   } catch (err) {
     console.error('feedback-info error:', err.message);
     res.status(500).json({ error: 'Failed to load feedback info' });
@@ -209,50 +237,99 @@ router.get('/feedback-info/:token', publicLimiter, async (req, res) => {
 });
 
 // POST /api/share/feedback/:token
-// Submits feedback from a reviewer.
+// Submits feedback from a reviewer. Supports both legacy (rating + comments) and
+// structured 360 format (dimensions array + comments).
 router.post('/feedback/:token', publicLimiter, async (req, res) => {
-  const { reviewer, rating, comments } = req.body ?? {};
-  if (!reviewer?.trim())              return res.status(400).json({ error: 'Your name is required' });
-  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'Rating must be 1–5' });
+  const { reviewer, rating, comments, dimensions } = req.body ?? {};
+  if (!reviewer?.trim()) return res.status(400).json({ error: 'Your name is required' });
+
+  // Structured 360 feedback: dimensions is an array of { key, label, rating, comment }
+  const isStructured = Array.isArray(dimensions) && dimensions.length > 0;
+
+  if (isStructured) {
+    // Validate each dimension has a rating 1-5
+    for (const d of dimensions) {
+      if (!d.rating || d.rating < 1 || d.rating > 5) {
+        return res.status(400).json({ error: `Rating must be 1–5 for each dimension` });
+      }
+    }
+  } else {
+    // Legacy format requires a single rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be 1–5' });
+    }
+  }
 
   try {
-    const userResult = await db.query(
+    // Resolve token — try legacy feedback_token first, then review_tokens
+    let userId = null;
+    let reviewTokenId = null;
+
+    const legacyResult = await db.query(
       'SELECT id FROM users WHERE feedback_token = $1',
       [req.params.token]
     );
-    if (!userResult.rows[0]) return res.status(404).json({ error: 'Feedback link not found' });
+    if (legacyResult.rows[0]) {
+      userId = legacyResult.rows[0].id;
+    } else {
+      const rtResult = await db.query(
+        `SELECT id, owner_id, expires_at, used_at FROM review_tokens
+         WHERE token = $1 AND purpose = 'feedback'`,
+        [req.params.token]
+      );
+      if (!rtResult.rows[0]) return res.status(404).json({ error: 'Feedback link not found' });
+      const rt = rtResult.rows[0];
+      if (rt.expires_at && new Date(rt.expires_at) < new Date()) {
+        return res.status(410).json({ error: 'This feedback link has expired' });
+      }
+      if (rt.used_at) {
+        return res.status(410).json({ error: 'This feedback link has already been used' });
+      }
+      userId = rt.owner_id;
+      reviewTokenId = rt.id;
 
-    const userId = userResult.rows[0].id;
+      // Mark review token as used
+      await db.query('UPDATE review_tokens SET used_at = NOW() WHERE id = $1', [rt.id]);
+    }
+
+    // Compute average rating for backward compat
+    const avgRating = isStructured
+      ? Math.round(dimensions.reduce((s, d) => s + d.rating, 0) / dimensions.length)
+      : Number(rating);
+
     await db.query(
-      `INSERT INTO feedback (user_id, reviewer, rating, comments)
-       VALUES ($1, $2, $3, $4)`,
-      [userId, reviewer.trim(), Number(rating), comments?.trim() || null]
+      `INSERT INTO feedback (user_id, reviewer, rating, comments, dimensions, review_token_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, reviewer.trim(), avgRating, comments?.trim() || null,
+       isStructured ? JSON.stringify(dimensions) : null, reviewTokenId]
     );
 
     // Fire-and-forget feedback notification
     try {
       const { sendNotification } = require('../notifications/send');
-      const stars = '★'.repeat(Number(rating)) + '☆'.repeat(5 - Number(rating));
+      const { wrapEmail } = require('../notifications/emailTemplate');
+      const stars = '★'.repeat(avgRating) + '☆'.repeat(5 - avgRating);
+      const dimSummary = isStructured
+        ? dimensions.map(d => `<li>${esc(d.label)}: ${'★'.repeat(d.rating)}${'☆'.repeat(5 - d.rating)}</li>`).join('')
+        : '';
       const preview = comments?.trim() ? comments.trim().slice(0, 200) : '';
-      const html = `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;">
-          <div style="background:#0040a0;color:#fff;padding:14px 20px;border-radius:8px 8px 0 0;text-align:center;">
-            <div style="font-size:16px;font-weight:700;">New Feedback Received</div>
-          </div>
-          <div style="background:#fff;padding:20px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;">
-            <p style="margin:0 0 8px;font-size:14px;"><strong>${reviewer.trim()}</strong> left feedback:</p>
-            <p style="margin:0 0 8px;font-size:20px;">${stars}</p>
-            ${preview ? `<p style="margin:0 0 12px;font-size:13px;color:#555;">"${preview}${comments.trim().length > 200 ? '…' : ''}"</p>` : ''}
-            <a href="${process.env.APP_URL || 'https://partner.jordandf.com'}/sharing" style="display:inline-block;background:#0040a0;color:#fff;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;">View in app</a>
-          </div>
-        </div>`;
+      const body = `
+        <p style="margin:0 0 8px;font-size:14px;"><strong>${esc(reviewer.trim())}</strong> submitted ${isStructured ? '360 ' : ''}feedback:</p>
+        <p style="margin:0 0 8px;font-size:20px;">${stars} <span style="font-size:13px;color:#666;">(avg)</span></p>
+        ${dimSummary ? `<ul style="margin:0 0 12px;padding-left:20px;font-size:13px;color:#444;">${dimSummary}</ul>` : ''}
+        ${preview ? `<p style="margin:0 0 12px;font-size:13px;color:#555;">"${esc(preview)}${(comments?.trim().length || 0) > 200 ? '…' : ''}"</p>` : ''}`;
+      const html = wrapEmail(body, {
+        subtitle: 'Feedback Received',
+        ctaLabel: 'View feedback',
+        ctaUrl: `${process.env.APP_URL || 'https://partner.jordandf.com'}/sharing`,
+      });
       sendNotification({
         userId,
         type: 'feedback_received',
-        subject: `New feedback from ${reviewer.trim()} — ${stars}`,
+        subject: `New ${isStructured ? '360 ' : ''}feedback from ${reviewer.trim()} — ${stars}`,
         html,
-        payload: { reviewer: reviewer.trim(), rating: Number(rating) },
-      }).catch(() => {}); // swallow errors — don't fail the feedback submission
+        payload: { reviewer: reviewer.trim(), rating: avgRating, structured: isStructured },
+      }).catch(() => {});
     } catch { /* notification module not available — skip */ }
 
     res.json({ ok: true });
@@ -267,14 +344,128 @@ router.post('/feedback/:token', publicLimiter, async (req, res) => {
 router.get('/feedback', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, reviewer, rating, comments, submitted_at
-       FROM feedback WHERE user_id = $1 ORDER BY submitted_at DESC`,
+      `SELECT id, reviewer, rating, comments, dimensions, review_token_id,
+              COALESCE(submitted_at, created_at) AS submitted_at
+       FROM feedback WHERE user_id = $1
+       ORDER BY COALESCE(submitted_at, created_at) DESC`,
       [req.userId]
     );
     res.json({ feedback: result.rows });
   } catch (err) {
     console.error('get feedback error:', err.message);
     res.status(500).json({ error: 'Failed to load feedback' });
+  }
+});
+
+// POST /api/share/request-feedback
+// Send a feedback request to a specific person via email. Creates a review_token.
+router.post('/request-feedback', authMiddleware, async (req, res) => {
+  const { recipientEmail, recipientName, personId, message } = req.body ?? {};
+  if (!recipientEmail?.trim()) return res.status(400).json({ error: 'Recipient email is required' });
+  if (!recipientName?.trim())  return res.status(400).json({ error: 'Recipient name is required' });
+
+  try {
+    const token = genToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    await db.query(
+      `INSERT INTO review_tokens (owner_id, token, reviewer_name, reviewer_email, purpose, expires_at)
+       VALUES ($1, $2, $3, $4, 'feedback', $5)`,
+      [req.userId, token, recipientName.trim(), recipientEmail.trim(), expiresAt]
+    );
+
+    // Load owner name for the email
+    const ownerResult = await db.query('SELECT name FROM users WHERE id = $1', [req.userId]);
+    const ownerName = ownerResult.rows[0]?.name || 'A colleague';
+
+    // Send feedback request email
+    try {
+      const { sendNotification } = require('../notifications/send');
+      const { wrapEmail, APP_URL } = require('../notifications/emailTemplate');
+      const feedbackUrl = `${APP_URL}/feedback/${token}`;
+      const personalMsg = message?.trim()
+        ? `<p style="margin:0 0 16px;font-size:14px;color:#555;font-style:italic;">"${message.trim()}"</p>`
+        : '';
+      const body = `
+        <p style="margin:0 0 8px;font-size:15px;">Hi ${recipientName.trim()},</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#333;">
+          <strong>${ownerName}</strong> has invited you to provide structured 360 feedback
+          on their readiness for promotion. Your feedback is confidential and shared only with them.
+        </p>
+        ${personalMsg}
+        <p style="margin:0 0 8px;font-size:13px;color:#666;">
+          The form takes about 5 minutes and covers 5 dimensions. The link expires in 30 days.
+        </p>`;
+      const html = wrapEmail(body, {
+        subtitle: 'Feedback Request',
+        ctaLabel: 'Give feedback',
+        ctaUrl: feedbackUrl,
+      });
+
+      // Send directly via Resend (not through sendNotification dedup, since recipient is external)
+      const { Resend } = require('resend');
+      const apiKey = process.env.RESEND_API_KEY;
+      if (apiKey) {
+        const resend = new Resend(apiKey);
+        const fromResult = await db.query("SELECT value FROM app_settings WHERE key = 'email_from'");
+        const fromAddress = fromResult.rows[0]?.value || 'Career Command Center <notifications@partner.jordandf.com>';
+        await resend.emails.send({
+          from: fromAddress,
+          to: [recipientEmail.trim()],
+          subject: `${ownerName} is requesting your feedback`,
+          html,
+        });
+      }
+
+      // Also log a notification for the owner (so they see it in history)
+      sendNotification({
+        userId: req.userId,
+        type: 'feedback_request',
+        subject: `Feedback request sent to ${recipientName.trim()}`,
+        html: `<p>You sent a feedback request to <strong>${recipientName.trim()}</strong> (${recipientEmail.trim()}).</p>`,
+        payload: { recipientName: recipientName.trim(), recipientEmail: recipientEmail.trim(), token },
+      }).catch(() => {});
+    } catch (emailErr) {
+      console.error('feedback request email error:', emailErr.message);
+      // Don't fail — token was created, email just didn't send
+    }
+
+    res.json({ ok: true, token });
+  } catch (err) {
+    console.error('request-feedback error:', err.message);
+    res.status(500).json({ error: 'Failed to create feedback request' });
+  }
+});
+
+// GET /api/share/feedback-requests
+// List all feedback requests sent by this user with their status.
+router.get('/feedback-requests', authMiddleware, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT rt.id, rt.token, rt.reviewer_name, rt.reviewer_email, rt.created_at, rt.expires_at, rt.used_at,
+              (SELECT COUNT(*) FROM feedback f WHERE f.review_token_id = rt.id) AS response_count
+       FROM review_tokens rt
+       WHERE rt.owner_id = $1 AND rt.purpose = 'feedback'
+       ORDER BY rt.created_at DESC`,
+      [req.userId]
+    );
+    const requests = result.rows.map(r => ({
+      id: r.id,
+      token: r.token,
+      reviewerName: r.reviewer_name,
+      reviewerEmail: r.reviewer_email,
+      createdAt: r.created_at,
+      expiresAt: r.expires_at,
+      usedAt: r.used_at,
+      responseCount: Number(r.response_count),
+      status: Number(r.response_count) > 0 ? 'completed'
+            : (r.expires_at && new Date(r.expires_at) < new Date()) ? 'expired'
+            : 'pending',
+    }));
+    res.json({ requests });
+  } catch (err) {
+    console.error('feedback-requests error:', err.message);
+    res.status(500).json({ error: 'Failed to load feedback requests' });
   }
 });
 

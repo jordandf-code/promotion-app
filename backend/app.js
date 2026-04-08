@@ -36,6 +36,7 @@ app.use('/api/admin',    require('./routes/admin'));
 app.use('/api/platform', require('./routes/platform'));
 app.use('/api/issues',        require('./routes/issues'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/export', require('./routes/export'));
 app.use('/api',        require('./routes/peers'));
 
 // --- GLOBAL ERROR HANDLER ---

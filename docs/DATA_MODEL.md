@@ -58,13 +58,17 @@ Many-to-many with goals via `linkedGoalIds` array.
 ```
 [ {
   id, name, title, org, type, relationshipStatus, email, phone, need,
+  influenceTier, strategicImportance, stakeholderGroup,
   touchpoints[{ id, date, note }],
   plannedTouchpoints[{ id, date, note, actionId }]
 } ]
 ```
 
 - `type`: desired relationship type (Champion, Supporter, Peer, Client). Configurable via Admin Categories.
-- `relationshipStatus`: `established | in-progress` — NOT YET IMPLEMENTED (Phase 7c). Field exists in the schema spec but is not in the current code.
+- `relationshipStatus`: `established | in-progress`.
+- `influenceTier`: `decision-maker | influencer | supporter | informer` — how much power this person has over your promotion outcome.
+- `strategicImportance`: `critical | high | medium | low` — how important this relationship is to your promotion case right now.
+- `stakeholderGroup`: free-text with defaults (`Practice leadership`, `Geography leadership`, `Client`, `HR / Talent`, `Peer network`, `External`) — which arena they belong to. Used for coverage analysis.
 - `lastContact`: derived from most recent touchpoint — never stored directly.
 - `plannedTouchpoints`: future contacts; `actionId` links to an action item. "Log as done" converts to real touchpoint and marks action done.
 
@@ -116,6 +120,41 @@ currency        — display currency: 'CAD' or 'USD' (1.5× IBM rate)
 
 Cached AI outputs. `gap_analysis.data` is a JSON array of `{ criterion, evidence[], strength, recommendation }`.
 `polished_narrative.data` is plain text. Regenerated on demand — not auto-regenerated on data change.
+
+---
+
+## `readiness` domain
+
+```
+{
+  snapshots: [ {
+    id,               // uid string
+    date,             // ISO date (YYYY-MM-DD)
+    overall,          // 0–100
+    dimensions: {     // { scorecard, pipeline, gates, evidence, wins } — each 0–100
+      [key]: number
+    }
+  } ],
+  lastAutoDate       // ISO date of last auto-snapshot (null if never)
+}
+```
+
+- Auto-captured once per day on Dashboard load (deduplicates same-day).
+- Manual capture via "Snapshot" button on ReadinessWidget.
+- Capped at 365 snapshots (oldest dropped).
+- Trend chart shows overall line + togglable dimension lines.
+
+## `feedback_synthesis` domain
+
+```
+{
+  synthesis:     string,      // AI-generated synthesis of all 360 feedback
+  generated_at:  ISO string,  // when synthesis was last generated
+  feedback_count: number      // number of feedback responses included
+}
+```
+
+Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 
 ---
 
@@ -175,14 +214,55 @@ CREATE TABLE user_data (
 ### `feedback`
 ```sql
 CREATE TABLE feedback (
-  id          SERIAL PRIMARY KEY,
-  user_id     INTEGER REFERENCES users(id),
-  reviewer    TEXT NOT NULL,
-  rating      INTEGER,
-  comment     TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id              SERIAL PRIMARY KEY,
+  user_id         INTEGER REFERENCES users(id),
+  reviewer        TEXT NOT NULL,
+  rating          INTEGER,
+  comment         TEXT,
+  dimensions      JSONB,                                    -- Layer 1C: structured 360 ratings
+  review_token_id INTEGER REFERENCES review_tokens(id),     -- Layer 1C: links to review token
+  submitted_at    TIMESTAMPTZ DEFAULT NOW(),
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_feedback_review_token ON feedback(review_token_id);
+```
+
+`dimensions` JSONB stores structured 360 ratings:
+```json
+[
+  { "key": "strategic_thinking", "label": "Strategic Thinking", "rating": 4, "comment": "..." },
+  { "key": "executive_presence", "label": "Executive Presence", "rating": 5, "comment": "" }
+]
+```
+
+### `user_relationships` (Layer 0E)
+```sql
+CREATE TABLE user_relationships (
+  id                SERIAL PRIMARY KEY,
+  user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  related_user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  relationship_type TEXT NOT NULL CHECK (relationship_type IN ('sponsor', 'peer')),
+  granted_at        TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, related_user_id, relationship_type)
 );
 ```
+`user_id` = owner (person whose data is shared), `related_user_id` = the sponsor/peer who can view.
+
+### `review_tokens` (Layer 0E)
+```sql
+CREATE TABLE review_tokens (
+  id            SERIAL PRIMARY KEY,
+  owner_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token         TEXT NOT NULL UNIQUE,
+  reviewer_name TEXT,
+  reviewer_email TEXT,
+  purpose       TEXT DEFAULT 'feedback',
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  expires_at    TIMESTAMPTZ,
+  used_at       TIMESTAMPTZ
+);
+```
+Token-based reviewer access (no account needed). `used_at` set when feedback is submitted.
 
 ### `app_settings` (Phase 18)
 ```sql

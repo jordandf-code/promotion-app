@@ -81,11 +81,11 @@ Migration required: `migration_layer0e.sql` (run in Supabase SQL editor)
 
 | ID | Feature | Depends on |
 |----|---------|-----------|
-| **1A** | People tab enrichment (influence tier, coverage, strategic importance) | 0B |
-| **1B** | Readiness score snapshots + trend chart | 0C |
-| **1C** | Structured 360 feedback (5 questions + AI synthesis) | 0E, 0F |
+| **1A** | People tab enrichment (influence tier, coverage, strategic importance) | 0B | ✅ |
+| **1B** | Readiness score snapshots + trend chart | 0C | ✅ |
+| **1C** | Structured 360 feedback (5 questions + AI synthesis) | 0E, 0F | ✅ |
 | **1D** | Sponsor view (purpose-built summary in Sponsees page) | 0E, 0D |
-| **1E** | Bulk import/export (CSV ZIP) | Layer 0 |
+| **1E** | Bulk import/export (CSV ZIP) | Layer 0 | ✅ |
 | **1F** | Remaining notification types (4 deferred from Phase 23) | 0F |
 | **1G** | AI usage log | Layer 0 |
 | **1H** | Super Admin tooling (100+ user management) | 0E |

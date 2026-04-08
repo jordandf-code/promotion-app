@@ -1,6 +1,7 @@
 // components/readiness/ReadinessWidget.jsx
 // Dashboard card: circular SVG progress arc + five dimension bars.
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ACTION_PROMPTS } from '../../hooks/useReadinessScore.js';
 
@@ -12,9 +13,16 @@ function scoreColor(score) {
   return '#dc2626';
 }
 
-export default function ReadinessWidget({ readiness, daysLeft, qualifyingYear }) {
+export default function ReadinessWidget({ readiness, daysLeft, qualifyingYear, onSnapshot }) {
   const navigate = useNavigate();
   const { overall, dimensions, weakest, warnings } = readiness;
+  const [snapshotFlash, setSnapshotFlash] = useState(false);
+
+  function handleSnapshot() {
+    if (onSnapshot) onSnapshot();
+    setSnapshotFlash(true);
+    setTimeout(() => setSnapshotFlash(false), 1500);
+  }
 
   // SVG arc geometry
   const size = 120;
@@ -49,6 +57,16 @@ export default function ReadinessWidget({ readiness, daysLeft, qualifyingYear })
           </div>
           <div className="readiness-arc-label">Promotion readiness</div>
           <div className="readiness-arc-sub">{daysLeft} days to Dec 31, {qualifyingYear}</div>
+          {onSnapshot && (
+            <button
+              className="readiness-snapshot-btn"
+              onClick={handleSnapshot}
+              title="Save snapshot"
+              type="button"
+            >
+              {snapshotFlash ? '✓ Saved' : '📌 Snapshot'}
+            </button>
+          )}
         </div>
 
         {/* Dimension bars */}
