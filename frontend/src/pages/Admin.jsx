@@ -7,6 +7,7 @@ import { useAdminData, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import WipeSection from '../components/admin/WipeSection.jsx';
 import AIUsageLog from '../components/admin/AIUsageLog.jsx';
+import ModeShiftWizard from '../components/ModeShiftWizard.jsx';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -530,6 +531,7 @@ function GenAITab() {
 function SettingsTab() {
   const { navOrder, setNavOrder, autoFollowUp, setAutoFollowUp } = useAdminData();
   const followUp = autoFollowUp ?? { enabled: true, intervalDays: 30 };
+  const [showModeShift, setShowModeShift] = useState(false);
 
   const NAV_LABELS = {
     '/': 'Dashboard', '/scorecard': 'Scorecard', '/opportunities': 'Opportunities', '/goals': 'Goals',
@@ -647,6 +649,21 @@ function SettingsTab() {
 
       <section className="section">
         <div className="section-header">
+          <h2 className="section-title">Role transition</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            When you're promoted or changing roles, this wizard helps you archive your current progress
+            and set up for your new role.
+          </p>
+          <button className="btn-primary" onClick={() => setShowModeShift(true)}>
+            Start role transition
+          </button>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
           <h2 className="section-title">Account data</h2>
         </div>
         <div className="card admin-card">
@@ -657,6 +674,13 @@ function SettingsTab() {
           <WipeSection />
         </div>
       </section>
+
+      {showModeShift && (
+        <ModeShiftWizard
+          onComplete={() => { setShowModeShift(false); window.location.reload(); }}
+          onClose={() => setShowModeShift(false)}
+        />
+      )}
     </div>
   );
 }

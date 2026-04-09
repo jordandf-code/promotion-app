@@ -8,6 +8,7 @@ import { useAdminData } from '../hooks/useAdminData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import PersonCard from '../components/people/PersonCard.jsx';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import LinkedInImportModal from '../components/LinkedInImportModal.jsx';
 
 const EMPTY_FORM = { name: '', title: '', org: '', type: '', relationshipStatus: 'in-progress', email: '', phone: '', need: '', influenceTier: '', strategicImportance: '', stakeholderGroup: '' };
 
@@ -54,8 +55,9 @@ export default function People() {
   const [typeFilter,      setTypeFilter]      = useState('all');
   const [statusFilter,    setStatusFilter]    = useState('all');
   const [influenceFilter, setInfluenceFilter] = useState('all');
-  const [modal,      setModal]      = useState(null);
-  const [feedbackModal, setFeedbackModal] = useState(null); // { person }
+  const [modal,          setModal]          = useState(null);
+  const [feedbackModal,  setFeedbackModal]  = useState(null); // { person }
+  const [showLinkedIn,   setShowLinkedIn]   = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
@@ -97,11 +99,33 @@ export default function People() {
     if (confirm('Remove this person?')) removePerson(id);
   }
 
+  function handleLinkedInImport(contacts) {
+    contacts.forEach(c => {
+      addPerson({
+        name:               c.name || '',
+        title:              c.title || '',
+        org:                c.org || '',
+        email:              c.email || '',
+        type:               relationshipTypes[0]?.label || '',
+        relationshipStatus: 'in-progress',
+        phone:              '',
+        need:               '',
+        influenceTier:      '',
+        strategicImportance: '',
+        stakeholderGroup:   '',
+      });
+    });
+    setShowLinkedIn(false);
+  }
+
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">People</h1>
-        <button className="btn-primary" onClick={openAdd}>+ Add person</button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn-secondary" onClick={() => setShowLinkedIn(true)}>Import from LinkedIn</button>
+          <button className="btn-primary" onClick={openAdd}>+ Add person</button>
+        </div>
       </div>
 
       {filterStale && (
@@ -178,6 +202,13 @@ export default function People() {
         <FeedbackRequestModal
           person={feedbackModal.person}
           onClose={() => setFeedbackModal(null)}
+        />
+      )}
+
+      {showLinkedIn && (
+        <LinkedInImportModal
+          onImport={handleLinkedInImport}
+          onClose={() => setShowLinkedIn(false)}
         />
       )}
     </div>

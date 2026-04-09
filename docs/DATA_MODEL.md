@@ -230,6 +230,47 @@ Default framework categories: Commercial acumen, Client relationship, Leadership
 }
 ```
 
+## `brand` domain
+
+```
+{
+  tagline:         string,         // single-line elevator pitch
+  positioning:     string,         // longer positioning statement
+  key_messages: [ {
+    id, message, category          // category: 'expertise' | 'leadership' | 'impact' | 'vision'
+  } ],                             // max 5 entries
+  proof_points: [ {
+    id, claim, evidence_type,      // evidence_type: 'win' | 'eminence' | 'feedback' | 'competency'
+    evidence_id, evidence_summary
+  } ],
+  perception_log: [ {
+    id, date, source, perception, context
+  } ],
+  visibility_goals: [ {
+    id, goal, platform,            // platform: 'linkedin' | 'conference' | 'internal' | 'publication'
+    target_date, status            // status: 'planned' | 'in_progress' | 'done'
+  } ]
+}
+```
+
+## `vault` domain
+
+```
+{
+  documents: [ {
+    id, filename, mimeType, size,  // file metadata
+    data,                          // Base64-encoded content (data URL)
+    uploadedAt,                    // ISO datetime
+    linkedType,                    // 'win' | 'eminence' | 'general'
+    linkedId,                      // ID of linked entry (null if general)
+    description,                   // optional note
+    tags[]                         // searchable tags
+  } ]
+}
+```
+
+Max 5 MB per file. Stored as Base64 in JSONB — no server file storage needed.
+
 ---
 
 ## Planned extensions to existing domains

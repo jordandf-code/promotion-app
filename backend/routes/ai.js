@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, PARSE_LINKEDIN_PROMPT } = require('../ai/prompts');
 const { fmtCurrency }   = require('../ai/formatUtils');
 const db = require('../db');
 
@@ -563,6 +563,38 @@ router.post('/competency-analysis', async (req, res) => {
   } catch (cacheErr) {
     console.error('cache competency analysis error:', cacheErr.message);
   }
+
+  res.json({ ok: true, data: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/parse-linkedin ───────────────────────────────────────────────
+// Body: { text } — raw pasted LinkedIn content
+// Parses contacts from the text and returns structured records.
+
+router.post('/parse-linkedin', async (req, res) => {
+  const { text } = req.body ?? {};
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ ok: false, error: 'text is required', code: 'AI_ERROR' });
+  }
+  if (text.length > 50000) {
+    return res.status(400).json({ ok: false, error: 'Text is too long (max 50,000 characters)', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: PARSE_LINKEDIN_PROMPT,
+    userContent:  text.trim(),
+    maxTokens:    2000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'parse-linkedin',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
 
   res.json({ ok: true, data: result.data, usage: result.usage });
 });

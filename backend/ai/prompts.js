@@ -353,6 +353,37 @@ Rules:
 - If evidence is strong but the self-rating is low (underrated), say so — this is valuable data too.
 - Keep insights specific: reference actual wins, deals, or activities from the data when possible.`;
 
+// ── LinkedIn import ─────────────────────────────────────────────────────────
+
+const PARSE_LINKEDIN_PROMPT = `You are a contact extraction assistant. Your job is to parse raw text pasted from LinkedIn — profile pages, connection lists, CSV exports, or free-form contact details — and extract structured contact records.
+
+CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Output ONLY the JSON object. If the input is sparse or ambiguous, extract whatever you can — a name alone is a valid contact.
+
+For each person found, extract:
+- name: full name as written
+- title: current job title (normalize capitalization — title case)
+- org: current company or organization name
+- email: email address if present, otherwise null
+
+Format your response as a JSON object:
+{
+  "contacts": [
+    { "name": "string", "title": "string or null", "org": "string or null", "email": "string or null" }
+  ]
+}
+
+Return only valid JSON. No preamble, no markdown fences.
+
+Rules:
+- Deduplicate by name — if the same person appears more than once, include them once.
+- Skip any entry that does not have a name. A name is required.
+- Normalize titles to title case (e.g. "SENIOR MANAGER" → "Senior Manager").
+- Do not invent data. If a field is not present in the input, set it to null.
+- Handle all LinkedIn formats: profile pages, connection list tables, CSV exports (e.g. columns: First Name, Last Name, Email Address, Company, Position), and free-form lists.
+- If the input contains a CSV header row, use the column names to identify fields.
+- Maximum 50 contacts per import. If more than 50 are found, return the first 50.
+- Null and empty-string values are equivalent — use null for missing fields.`;
+
 module.exports = {
   STORY_MODES,
   SUGGEST_GOALS_PROMPT,
@@ -361,4 +392,5 @@ module.exports = {
   ENHANCE_WIN_PROMPT,
   REFLECTION_SYNTHESIS_PROMPT,
   COMPETENCY_ANALYSIS_PROMPT,
+  PARSE_LINKEDIN_PROMPT,
 };
