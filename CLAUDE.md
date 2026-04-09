@@ -99,7 +99,7 @@ Only modify files directly required for the stated task. Do not opportunisticall
 
 ## Current status
 
-Layer 0 done, Layer 1 in progress (1A/1B/1C/1E done, 1D/1F-1I remaining). See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`.
+Layer 0 done, Layer 1 in progress (1A/1B/1C/1E done, 1D/1F-1L remaining — 1J/1K/1L are new features from competitive gap analysis). See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`.
 
 ## Doc loading
 
