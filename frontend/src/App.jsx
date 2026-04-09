@@ -1,3 +1,4 @@
+// App.jsx — Main router setup with all page routes, auth context, and layout wrapper
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';

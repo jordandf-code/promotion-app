@@ -85,28 +85,24 @@ Many-to-many with goals via `linkedGoalIds` array.
 
 ```
 {
-  relationshipTypes: [ { label, color } ],
-  winTags:           [ { label, color } ],
-  dealTypes:         [ { value, label } ],
-  logoTypes:         [ { value, label } ],
-  originTypes:       [ { value, label } ],
   ibmCriteria:       string,
   careerHistory:     string,
   anthropicKey:      string,
-  navOrder:          [ string ]
+  navOrder:          [ string ],
+  bottomBarTabs:     [ string ]
 }
 ```
 
-- Colour lists have `label` + `color` (hex). Value lists have `value` (machine key) + `label` (display).
-- All configurable via Admin → Categories tab with drag-and-drop reorder.
-- Migrated from `adminData_v1` (plain strings → objects with default colours).
+- Per-user AI settings, nav preferences, and mobile bottom bar config.
 - IMPORTANT: `adminData` sync has a `serverLoaded` guard to prevent default overwrites on failed fetch.
+- Note: Site-wide categories (relationshipTypes, winTags, dealTypes, logoTypes, originTypes, eminenceTypes, pipelineStages) moved to `app_settings` table under `platform_categories` key. Managed via Super Admin → Platform, not per-user admin.
 
 ## `settings` domain
 
 ```
 promotionYear   — user's target partner year (default 2027)
 currency        — display currency: 'CAD' or 'USD' (1.5× IBM rate)
+demoMode        — boolean, true for new users with seed data
 ```
 
 ## `story` domain (`storyData_v1`)
@@ -158,9 +154,7 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 
 ---
 
-## Future domains (not yet implemented)
-
-### `learning` domain (`learningData_v1`) — Phase 17
+## `learning` domain (`learningData_v1`)
 
 ```
 {
@@ -169,13 +163,18 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 }
 ```
 
-### `eminence` domain (`eminenceData_v1`) — Phase 22
+- `status` (certifications): `planned | in_progress | earned | expired`
+- `status` (courses): `planned | in_progress | completed`
+
+## `eminence` domain (`eminenceData_v1`)
 
 ```
 {
   activities: [ { id, title, type, date, venue, audience, reach, url, description, tags[], year } ]
 }
 ```
+
+- `type`: `speaking | publication | media | panel | award | internal-ibm | community | other`
 
 ---
 
@@ -271,7 +270,7 @@ CREATE TABLE app_settings (
   value TEXT NOT NULL
 );
 ```
-Currently stores `invite_code_hash` (bcrypt hash of registration invite code).
+Keys: `invite_code_hash` (bcrypt hash of registration invite code), `platform_categories` (JSON — site-wide win tags, relationship types, deal types, logo types, origin types, eminence types, pipeline stages with labels + colors), `firm_config` (JSON — configurable labels for company, roles, market, metrics used in Super Admin → Platform).
 
 ### `viewer_access` (Phase 18)
 ```sql

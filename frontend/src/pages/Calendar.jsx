@@ -1,5 +1,4 @@
-// pages/Calendar.jsx
-// Aggregates key dates from goals, action items, wins, opportunities, and planned contacts.
+// Calendar.jsx — Aggregated calendar view of goals, actions, wins, opportunities, and planned contacts
 
 import { useState, useMemo } from 'react';
 import { useNavigate }       from 'react-router-dom';

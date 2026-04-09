@@ -1,6 +1,4 @@
-// pages/Dashboard.jsx
-// Career Command Center dashboard: qualifying-year snapshot with pluggable widget slots.
-// Widget components live in components/dashboard/ — add new widgets there, register below.
+// Dashboard.jsx — Career Command Center dashboard with stat strip, readiness widget, and pluggable widget slots
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';

@@ -12,18 +12,6 @@ A multi-user web app for professional services leaders managing their path to pr
 - Three gates by Dec 31 of qualifying year: hit targets, complete training, top performer rating
 - **Vision**: Promotion tracking is the entry point; the architecture supports ongoing career management. The tool doesn't reset after promotion — it evolves via a lightweight mode shift.
 
-## Tech stack
-
-| Layer | Technology | Hosting |
-|---|---|---|
-| Frontend | React 19 (Vite 8) | Vercel (free) |
-| Backend | Node.js + Express | Render (free) |
-| Database | PostgreSQL | Supabase (free) |
-| AI | Anthropic API (claude-sonnet-4-6) | Via backend proxy |
-| Auth | JWT (email + password) | Backend |
-
-AI key is per-user (stored in DB via Admin tab), never an env var.
-
 ## App structure
 
 | Tab | Access | Purpose |
@@ -142,13 +130,4 @@ LAYER 1 (parallel)               LAYER 2 (parallel)
 
 ## Legacy phase specs
 
-Completed phases archived in `docs/PHASES_COMPLETE.md`. Original phase specs for reference:
-- `docs/PHASE_7C.md` through `docs/PHASE_26.md`
-
-## Other reference docs
-
-- Vision and long-term roadmap: `docs/VISION.md`
-- Data model schemas: `docs/DATA_MODEL.md`
-- Form UX standards: `docs/FORM_UX.md`
-- AI prompt specs: `backend/ai/AIprompt.md`
-- Deployment workflow: `DEPLOY.md`
+Completed phases archived in `docs/PHASES_COMPLETE.md`. Original phase specs archived in `docs/archive/`.

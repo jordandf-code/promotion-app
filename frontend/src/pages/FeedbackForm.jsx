@@ -1,6 +1,4 @@
-// pages/FeedbackForm.jsx
-// Reviewer feedback form — accessible at /feedback/:token, no auth required.
-// Supports both legacy (single rating) and structured 360 (5 dimensions) feedback.
+// FeedbackForm.jsx — Reviewer feedback form supporting legacy and structured 360-degree feedback
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';

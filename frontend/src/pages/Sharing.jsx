@@ -1,6 +1,4 @@
-// pages/Sharing.jsx
-// Owner view: sub-tabs for Links (share/feedback links, peer access) and
-// Feedback (request tracking, inbox with expandable dimensions, AI synthesis).
+// Sharing.jsx — Share links and feedback management (Links tab, Feedback tab with AI synthesis)
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, apiGet, apiPut, authHeaders } from '../utils/api.js';

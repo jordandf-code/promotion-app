@@ -1,5 +1,4 @@
-// pages/ImportExport.jsx — Layer 1E
-// Bulk CSV import/export for all data domains.
+// ImportExport.jsx — Bulk CSV import/export for all data domains
 
 import { useState } from 'react';
 import { API_BASE, authHeaders, apiGet } from '../utils/api.js';

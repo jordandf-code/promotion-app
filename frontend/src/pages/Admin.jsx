@@ -1,5 +1,4 @@
-// pages/Admin.jsx
-// App settings split into sub-tabs: My profile, GenAI, User Settings.
+// Admin.jsx — User profile, GenAI settings (API key), and general user settings
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';

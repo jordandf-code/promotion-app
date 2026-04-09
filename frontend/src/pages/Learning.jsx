@@ -1,5 +1,4 @@
-// pages/Learning.jsx
-// Phase 17: Certifications and courses tab.
+// Learning.jsx — Certifications and courses tracker with expiry/completion status
 
 import { useState } from 'react';
 import { useLearningData, CERT_STATUS_LABELS, COURSE_STATUS_LABELS,

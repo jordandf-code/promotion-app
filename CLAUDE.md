@@ -36,8 +36,7 @@ cd frontend && npm run dev   # port 5173
 
 # Git workflow
 git checkout dev             # all work on dev branch
-# Before committing: update docs/PLAN.md, docs/PHASES_COMPLETE.md, and CLAUDE.md
-# to reflect what was built (completion status, dependency map, "what to build next")
+# Before committing: see .claude/rules/commit-checklist.md for which docs to update
 git add -p                   # stage specific changes (prefer over git add -A)
 git commit -m "description"
 git push origin dev          # then PR to main
@@ -52,7 +51,7 @@ gh pr merge --merge          # merge PR to main for auto-deploy
 ## Key conventions
 
 ### Data persistence pattern
-All user data stored in PostgreSQL `user_data` table as JSONB, keyed by `(user_id, domain)`. Domains: `scorecard`, `wins`, `actions`, `goals`, `people`, `admin`, `story`, `settings`, `sharing`, `backup`, `learning`. Each domain has a React hook (`useXxxData`) that follows the same optimistic-update pattern: state updates instantly in React, then fires a debounced background PUT to `/api/data/:domain` (300ms debounce + per-domain deduplication in `api.js`).
+All user data stored in PostgreSQL `user_data` table as JSONB, keyed by `(user_id, domain)`. Domains: `scorecard`, `wins`, `actions`, `goals`, `people`, `admin`, `story`, `settings`, `sharing`, `backup`, `learning`, `eminence`, `readiness`, `feedback_synthesis`. Each domain has a React hook (`useXxxData`) that follows the same optimistic-update pattern: state updates instantly in React, then fires a debounced background PUT to `/api/data/:domain` (300ms debounce + per-domain deduplication in `api.js`).
 
 ### Currency
 ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `SettingsContext` provides `toInputValue()`, `fromInputValue()`, and `currencySymbol` — use these in all currency inputs and displays.
@@ -71,76 +70,47 @@ ALL currency values stored in CAD. Display conversion to USD uses 1.5× rate. `S
 Required fields: red `*` via `<span className="form-required">*</span>`. Optional fields: no marker at all — never write "(optional)". Units: `<span className="form-unit">%</span>` inline after label. Full spec in `docs/FORM_UX.md`.
 
 ### Mobile UX
-**Every UI change must work on both desktop and mobile (375px viewport).** Test at the 768px breakpoint. No horizontal scrolling allowed. Key patterns: top-anchored modals, 44px touch targets, tables convert to cards, sub-tabs become dropdowns, scorecard uses single-year arrow navigation. Full spec in `docs/MOBILE_UX.md`.
+After any UI change, verify the component renders without horizontal scroll at 375px. If adding a table, it must have a card-view fallback below 768px. If adding a sub-tab bar, it must have a select dropdown alternative on mobile. No element should have a fixed pixel width > 375px without `max-width: 100%`. Common horizontal scroll causes: fixed-width table columns, flex rows without `flex-wrap`, `min-width` on filter/button rows. Full spec in `docs/MOBILE_UX.md`.
 
 ### Adding a new data domain
-Follow the pattern from existing hooks. New domain needs: a `useXxxData` hook (copy any existing one), add domain to `GET/PUT /api/data/:domain` whitelist in backend, add to `buildContext.js` if AI needs it. No migration needed — `user_data` table handles arbitrary domain strings.
+Every new domain requires ALL of the following:
+1. `useXxxData` hook (copy any existing one)
+2. Add domain string to the whitelist array in `backend/routes/data.js`
+3. Add `loadDomain(userId, 'xxx')` call in `backend/ai/buildContext.js` if AI needs it
+4. Add seed entry in the demo data initializer (search for `demoMode` in backend)
+5. Add to CSV export in `backend/routes/export.js` if user-facing
+6. If the domain has UI on more than one page, list all affected pages before starting — build all of them
+
+No migration needed — `user_data` table handles arbitrary domain strings.
+
+## Build rules
+
+### Scope check
+Before modifying any file, identify every surface that consumes the same data or shares the same UI pattern (sibling pages, share views, mobile breakpoints, export, AI context). Change them all in the same commit. If unsure which surfaces are affected, grep before coding.
+
+### Check all surfaces
+Every UI change must be verified at 375px and 768px before considering it complete. Every new data field must be added to: the hook, the form, the card/display, the CSV export, and `buildContext.js` (if AI-relevant). Missing any surface is a bug.
+
+### Re-investigate when challenged
+When the user says something is wrong ("are you sure?", "that doesn't seem right"), re-read the actual files before responding. Never defend prior work from memory — verify against current code.
+
+### Scope discipline
+Only modify files directly required for the stated task. Do not opportunistically refactor, rename, or clean up adjacent code unless asked. If you notice a problem outside scope, mention it instead of fixing it.
 
 ## Current status
 
-Phases 1–23, 7c, and 20 complete (all of Phase 19 including 19c/g/h/i; Phase 20 testing-only). New users get demo data across all 7 domains with a `demoMode` flag and "Start your promotion journey" onboarding flow. 30 of 32 GitHub issues resolved (2026-04-07 triage). Key changes: pursuit→opportunity rename (route is now `/opportunities`), site-wide categories moved from Admin to Super Admin (new `/api/platform` endpoint), narrative page has 3 subtabs (AI Generated / DIY Prompts / Manual Input), recurring touchpoints with auto-actions, TCV field on opportunities, scorecard table redesigned. See `docs/PHASES_COMPLETE.md` for full history.
+Layer 0 done, Layer 1 in progress (1A/1B/1C/1E done, 1D/1F-1I remaining). See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`.
 
-**Restructured as Career Command Center (2026-04-07)**: Old linear phase sequence replaced with a 4-layer dependency graph optimized for parallel agent execution. 22 features across Layers 0–3. See `docs/PLAN.md` for the full dependency roadmap.
+## Doc loading
 
-**Layer 0 complete (2026-04-07)**: Security hardening (0A), firm-agnostic config (0B), Dashboard widget scaffold (0C), navigation scaffold with 6 new placeholder routes (0D), role/permissions rework with `user_relationships` table (0E), email infrastructure (0F). Migration `migration_layer0e.sql` must be run in Supabase before deploying.
+Read only what the task requires — do not load docs speculatively.
+- Feature work: `docs/PLAN.md` + `docs/DATA_MODEL.md`
+- UI work: add `docs/FORM_UX.md` + `docs/MOBILE_UX.md`
+- AI pipeline: `backend/ai/AIprompt.md`
+- Ambiguous terms: check `docs/GLOSSARY.md` first
+- Phase history: `docs/PHASES_COMPLETE.md` (archive only — ~4,500 tokens, do not load unless debugging legacy behavior)
 
-**Layer 1E complete (2026-04-08)**: Bulk import/export — `GET /api/export` (full ZIP with 10 CSVs + README), `GET /api/export/:domain` (single CSV), ImportExport page with export button + import for opportunities/wins/people, shared ImportModal component, CSV utilities with papaparse, duplicate detection for people, pipe-separated tags for wins. Nav item unhidden.
+If you need a credential, config value, or invite code to proceed — ask immediately. Do not guess or search for it.
 
-**Layer 1C complete (2026-04-08)**: Structured 360 feedback — 5 soft-skill dimensions (strategic thinking, executive presence, collaboration & influence, delivery excellence, growth mindset). Public feedback form upgraded with per-dimension ratings + optional comments. Feedback request flow from People cards via review_tokens + Resend email. Sharing page split into Links/Feedback sub-tabs. Feedback inbox with expandable dimension details. AI synthesis via `POST /api/ai/synthesize-feedback`. Synthesis cached in `feedback_synthesis` domain. `buildContext.js` includes feedback_360 data. Migration: `migration_1c_feedback.sql`.
+When compacting, preserve: the current task, which files have been modified, which checklist items are done vs remaining, and any failing tests or blockers.
 
-**Layer 1A complete (2026-04-08)**: People tab enrichment — 3 new fields per person: `influenceTier` (decision-maker/influencer/supporter/informer), `strategicImportance` (critical/high/medium/low), `stakeholderGroup` (combobox with defaults + free text). Collapsible CoverageSummary panel on People page (stakeholder groups × influence tiers, gap/thin/covered indicators). Influence tier filter dropdown. Color-coded badges on PersonCard. AI pipeline includes new fields + coverage stats. No migration needed.
-
-**Layer 1B complete (2026-04-08)**: Readiness score snapshots + trend chart — new `readiness` domain with `useReadinessSnapshots` hook (auto-snapshot once/day on Dashboard load, manual via "Snapshot" button, 365-snapshot cap, same-day dedup). `ReadinessTrendWidget` (pure SVG line chart: overall score line + 5 togglable dimension lines, hover tooltips, responsive legend). Placed on Dashboard between ReadinessWidget and ScorecardWidget. No migration needed.
-
-## What to build next
-
-**Layer 1 is in progress** — 1A, 1B, 1C, and 1E done, 4 remaining features can be built in parallel:
-- ~~**1A** People tab enrichment~~ ✅
-- ~~**1B** Readiness score snapshots + trend chart~~ ✅
-- ~~**1C** Structured 360 feedback~~ ✅
-- **1D** Sponsor view (Sponsees page)
-- ~~**1E** Bulk import/export (CSV ZIP)~~ ✅
-- **1F** Remaining notification types + **1G** AI usage log
-- **1H** Super Admin tooling + **1I** Onboarding polish
-
-See `docs/PLAN.md` for dependencies and the full graph.
-
-## Important gotchas
-
-- Modal backdrop clicks do NOT close modals (prevents data loss) — do not change this
-- Anthropic API key is NEVER an env var — always per-user from DB
-- Never modify existing `migration*.sql` files — always create new ones
-- `adminData` sync has a `serverLoaded` guard to prevent race conditions — do not remove
-- Scorecard metric labels are now configurable via firm config in Super Admin → Platform. Defaults: "Signings", "Revenue", "Gross profit", "Chargeable utilization"
-- Route is `/opportunities` (not `/pursuits`) — renamed in 2026-04-07 triage
-- Site-wide categories (win tags, relationship types, pipeline stages, etc.) are stored via `/api/platform` and managed in Super Admin — NOT per-user admin data
-- Platform data uses `app_settings` table (keys: `platform_categories`, `firm_config`), not `user_data`
-- Narrative page has 3 subtabs with an "active source" toggle that controls which source feeds the readiness score's evidence dimension
-- User relationships use `user_relationships` table (sponsor/peer types). Old `viewer_access` table kept for backward compat — both are written to during transition
-- New pages (influence-map, brand, mock-panel, vault) are registered in App.jsx and Layout.jsx but hidden in nav. When building these features, flip `hidden: false` in Layout.jsx `ALL_NAV_ITEMS`
-- Export endpoint: `GET /api/export` (full ZIP) and `GET /api/export/:domain` (single CSV) — auth required, currency in CAD
-- Dashboard uses widget slot pattern — add new widgets as components in `components/dashboard/`, import and place them in Dashboard.jsx. Don't inline new sections.
-- Sharing page now has sub-tabs (Links | Feedback). Feedback tab has request tracking, expandable inbox, and AI synthesis.
-- Feedback form supports both legacy (single star rating via `feedback_token`) and structured 360 (5 dimensions via `review_tokens`). Token type determines form mode.
-- `feedback_synthesis` is a user_data domain — cached AI synthesis of 360 feedback responses.
-
-## Session workflow
-
-Start each session by telling Claude which docs to read for the task at hand. Examples:
-- New phase: "Read docs/PHASE_21.md and docs/DATA_MODEL.md. Build Phase 21."
-- UI work: "Read docs/PHASE_17.md and docs/FORM_UX.md. Build the certification modal."
-- AI pipeline: "Read backend/ai/AIprompt.md. Fix the gap analysis JSON parsing."
-- Planning: "Read docs/PLAN.md. What should I build next?"
-
-When compacting, preserve: the current phase being worked on, which files have been modified, what checklist items are done vs remaining, and any failing tests.
-
-## Reference docs
-
-- Common language glossary: `docs/GLOSSARY.md`
-- Data model schemas: `docs/DATA_MODEL.md`
-- Form UX standards: `docs/FORM_UX.md`
-- AI prompt specs: `backend/ai/AIprompt.md`
-- Deployment workflow: `DEPLOY.md`
-- Mobile UX standards: `docs/MOBILE_UX.md`
-- Completed phase archive: `docs/PHASES_COMPLETE.md`
-- Individual phase specs: `docs/PHASE_17.md` through `docs/PHASE_26.md`

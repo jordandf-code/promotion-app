@@ -1,5 +1,4 @@
-// pages/BrandWorkspace.jsx — Layer 2B placeholder
-// Brand positioning, perception vs reality, proof points, key themes.
+// BrandWorkspace.jsx — Placeholder for brand positioning and perception tracking
 
 export default function BrandWorkspace() {
   return (

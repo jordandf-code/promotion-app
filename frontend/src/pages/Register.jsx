@@ -1,4 +1,4 @@
-// pages/Register.jsx
+// Register.jsx — Registration with invite code, security question, and company selection
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
