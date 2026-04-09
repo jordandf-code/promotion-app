@@ -12,13 +12,57 @@ const router = express.Router();
 // All routes require superuser
 router.use(authMiddleware, requireRole('superuser'));
 
-// GET /api/admin/users — list all accounts (no sensitive fields)
+// GET /api/admin/users — paginated, searchable, filterable user list
 router.get('/users', async (req, res) => {
   try {
-    const result = await db.query(
-      'SELECT id, email, name, role, company, created_at FROM users ORDER BY created_at'
+    const page   = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || '').trim();
+    const role   = req.query.role || '';
+
+    // Allowed sort columns (whitelist to prevent injection)
+    const SORT_COLS = { created_at: 'created_at', name: 'name', email: 'email' };
+    const sortCol   = SORT_COLS[req.query.sort] || 'created_at';
+    const order     = req.query.order === 'asc' ? 'ASC' : 'DESC';
+
+    const params  = [];
+    const where   = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      where.push(`(name ILIKE $${params.length} OR email ILIKE $${params.length})`);
+    }
+    if (role && ['user', 'viewer', 'superuser'].includes(role)) {
+      params.push(role);
+      where.push(`role = $${params.length}`);
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const countResult = await db.query(
+      `SELECT COUNT(*) FROM users ${whereClause}`,
+      params
     );
-    res.json({ users: result.rows });
+    const total = parseInt(countResult.rows[0].count, 10);
+
+    const dataParams = [...params, limit, offset];
+    const dataResult = await db.query(
+      `SELECT id, email, name, role, company, created_at
+       FROM users
+       ${whereClause}
+       ORDER BY ${sortCol} ${order}
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
+    );
+
+    res.json({
+      users:      dataResult.rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     console.error('admin/users error:', err.message);
     res.status(500).json({ error: 'Failed to load users' });
@@ -47,6 +91,34 @@ router.put('/users/:id/role', async (req, res) => {
   } catch (err) {
     console.error('admin/users/role error:', err.message);
     res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+// PUT /api/admin/users/bulk-role — change role for multiple users at once
+router.put('/users/bulk-role', async (req, res) => {
+  const { userIds, role } = req.body;
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ error: 'userIds must be a non-empty array' });
+  }
+  if (!['user', 'viewer'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be user or viewer' });
+  }
+  if (userIds.includes(req.userId)) {
+    return res.status(403).json({ error: 'Cannot change your own role' });
+  }
+
+  try {
+    // Build parameterized query: UPDATE ... WHERE id = ANY($1)
+    const ids = userIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    const result = await db.query(
+      'UPDATE users SET role = $1 WHERE id = ANY($2) AND id != $3',
+      [role, ids, req.userId]
+    );
+    res.json({ ok: true, updated: result.rowCount });
+  } catch (err) {
+    console.error('admin/users/bulk-role error:', err.message);
+    res.status(500).json({ error: 'Failed to update roles' });
   }
 });
 

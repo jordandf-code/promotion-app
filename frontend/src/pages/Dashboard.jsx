@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useScorecardData } from '../hooks/useScorecardData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
@@ -11,6 +12,7 @@ import { daysUntil } from '../data/sampleData.js';
 import { usePeopleData, daysSinceContact } from '../hooks/usePeopleData.js';
 import { useReadinessScore } from '../hooks/useReadinessScore.js';
 
+import WelcomeWizard from '../components/WelcomeWizard.jsx';
 import StatStrip from '../components/dashboard/StatStrip.jsx';
 import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
 import ReadinessTrendWidget from '../components/dashboard/ReadinessTrendWidget.jsx';
@@ -36,7 +38,8 @@ import QuickAddModal from '../components/dashboard/QuickAddModal.jsx';
 const TODAY = new Date();
 
 export default function Dashboard() {
-  const { qualifyingYear, scorecardYears, demoMode } = useSettings();
+  const { user } = useAuth();
+  const { qualifyingYear, scorecardYears, demoMode, onboardingComplete, setOnboardingComplete } = useSettings();
   const scorecard = useScorecardData();
   const { actions, toggleDone, addAction } = useActionsData();
   const { wins, addWin } = useWinsData();
@@ -61,6 +64,8 @@ export default function Dashboard() {
   const recentWins = [...wins]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 3);
+
+  const showWizard = !onboardingComplete && user?.role !== 'viewer';
 
   return (
     <div className="page">
@@ -109,6 +114,10 @@ export default function Dashboard() {
       <button className="fab-quick-add" onClick={() => setShowQuickAdd(true)} aria-label="Quick add">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
+
+      {showWizard && (
+        <WelcomeWizard onComplete={() => setOnboardingComplete(true)} />
+      )}
 
       {showQuickAdd && (
         <QuickAddModal

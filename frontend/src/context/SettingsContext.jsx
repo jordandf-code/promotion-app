@@ -14,6 +14,7 @@ const DEFAULTS = {
   promotionYear: 2027,
   currency: 'CAD',
   demoMode: false,
+  onboardingComplete: false,
 };
 
 function formatAmount(cadAmount, currency) {
@@ -85,6 +86,10 @@ export function SettingsProvider({ children }) {
     setSettings(s => ({ ...s, demoMode: value }));
   }
 
+  function setOnboardingComplete(value) {
+    setSettings(s => ({ ...s, onboardingComplete: value }));
+  }
+
   function fmtCurrency(cadAmount) {
     return formatAmount(cadAmount, settings.currency);
   }
@@ -107,7 +112,7 @@ export function SettingsProvider({ children }) {
       : Math.round(n);
   }
 
-  const { promotionYear, currency, demoMode } = settings;
+  const { promotionYear, currency, demoMode, onboardingComplete } = settings;
   const currencySymbol = currency === 'USD' ? 'USD$' : 'CA$';
   const qualifyingYear = promotionYear - 1;
   const scorecardYears = [
@@ -122,7 +127,7 @@ export function SettingsProvider({ children }) {
 
   return (
     <SettingsContext.Provider
-      value={{ promotionYear, setPromotionYear, qualifyingYear, scorecardYears, currency, setCurrency, fmtCurrency, currencySymbol, toInputValue, fromInputValue, demoMode, setDemoMode }}
+      value={{ promotionYear, setPromotionYear, qualifyingYear, scorecardYears, currency, setCurrency, fmtCurrency, currencySymbol, toInputValue, fromInputValue, demoMode, setDemoMode, onboardingComplete, setOnboardingComplete }}
     >
       {children}
     </SettingsContext.Provider>
