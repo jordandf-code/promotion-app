@@ -4,6 +4,24 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+function getPasswordStrength(password) {
+  if (!password) return null;
+  const len = password.length;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  if (len < 8) return { level: 'weak', label: 'Too short', color: '#ef4444', width: '25%' };
+  if (len >= 12 && hasUpper && hasLower && hasNumber && hasSpecial) {
+    return { level: 'strong', label: 'Strong', color: '#22c55e', width: '100%' };
+  }
+  if ((hasUpper || hasNumber) && hasLower) {
+    return { level: 'fair', label: 'Fair', color: '#f59e0b', width: '60%' };
+  }
+  return { level: 'weak', label: 'Weak', color: '#ef4444', width: '33%' };
+}
+
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +55,8 @@ export default function Register() {
     }
   }
 
+  const strength = getPasswordStrength(form.password);
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -46,8 +66,12 @@ export default function Register() {
         {error && <p className="auth-error">{error}</p>}
 
         <form onSubmit={handleSubmit} className="auth-form">
+
+          {/* ── Account section ── */}
+          <p className="auth-section-label">Account</p>
+
           <label>
-            Full name
+            Full name <span className="form-required">*</span>
             <input
               type="text"
               name="name"
@@ -60,7 +84,7 @@ export default function Register() {
           </label>
 
           <label>
-            Email
+            Email <span className="form-required">*</span>
             <input
               type="email"
               name="email"
@@ -72,7 +96,8 @@ export default function Register() {
           </label>
 
           <label>
-            Password <span className="auth-hint">(min 8 characters)</span>
+            Password <span className="form-required">*</span>
+            <span className="auth-hint"> (min 8 characters)</span>
             <input
               type="password"
               name="password"
@@ -84,14 +109,61 @@ export default function Register() {
             />
           </label>
 
+          {form.password && strength && (
+            <div style={{ marginTop: '-0.5rem', marginBottom: '0.75rem' }}>
+              <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: strength.width,
+                    background: strength.color,
+                    borderRadius: 2,
+                    transition: 'width 0.2s, background 0.2s',
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: '0.75rem', color: strength.color, fontWeight: 500 }}>
+                {strength.label}
+              </span>
+            </div>
+          )}
+
           <label>
-            Company <span className="auth-hint">(optional)</span>
+            Company
             <input
               type="text"
               name="company"
               value={form.company}
               onChange={handleChange}
               placeholder="e.g. IBM Canada"
+            />
+          </label>
+
+          {/* ── Security section ── */}
+          <p className="auth-section-label" style={{ marginTop: '0.5rem' }}>Security</p>
+
+          <label>
+            Security question <span className="form-required">*</span>
+            <input
+              type="text"
+              name="securityQuestion"
+              value={form.securityQuestion}
+              onChange={handleChange}
+              required
+              placeholder="e.g. What city were you born in?"
+              autoComplete="off"
+            />
+          </label>
+
+          <label>
+            Security answer <span className="form-required">*</span>
+            <input
+              type="text"
+              name="securityAnswer"
+              value={form.securityAnswer}
+              onChange={handleChange}
+              required
+              autoComplete="off"
             />
           </label>
 
@@ -105,31 +177,7 @@ export default function Register() {
               placeholder="Provided by your admin"
               autoComplete="off"
             />
-          </label>
-
-          <label>
-            Security question
-            <input
-              type="text"
-              name="securityQuestion"
-              value={form.securityQuestion}
-              onChange={handleChange}
-              required
-              placeholder="e.g. What city were you born in?"
-              autoComplete="off"
-            />
-          </label>
-
-          <label>
-            Security answer
-            <input
-              type="text"
-              name="securityAnswer"
-              value={form.securityAnswer}
-              onChange={handleChange}
-              required
-              autoComplete="off"
-            />
+            <span className="auth-hint">Leave blank if not required</span>
           </label>
 
           <button type="submit" className="auth-btn" disabled={submitting}>

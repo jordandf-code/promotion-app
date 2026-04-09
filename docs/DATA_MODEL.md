@@ -176,7 +176,7 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 
 - `type`: `speaking | publication | media | panel | award | internal-ibm | community | other`
 
-## `competencies` domain _(planned — 1J)_
+## `competencies` domain
 
 ```
 {

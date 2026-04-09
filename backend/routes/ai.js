@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT } = require('../ai/prompts');
 const { fmtCurrency }   = require('../ai/formatUtils');
 const db = require('../db');
 
@@ -486,6 +486,82 @@ router.post('/reflection-synthesis', async (req, res) => {
     );
   } catch (cacheErr) {
     console.error('cache reflection synthesis error:', cacheErr.message);
+  }
+
+  res.json({ ok: true, data: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/competency-analysis ─────────────────────────────────────────
+// Detects perception gaps between self-ratings and actual evidence.
+
+router.post('/competency-analysis', async (req, res) => {
+  // Load competencies data
+  const compResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'competencies'`,
+    [req.userId]
+  );
+  const competenciesData = compResult.rows[0]?.data ?? { assessments: [] };
+  const assessments = competenciesData.assessments ?? [];
+
+  if (assessments.length < 1) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Complete a self-assessment first',
+      code: 'INSUFFICIENT_DATA',
+    });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build user content: latest assessment + full context
+  const latest = assessments[assessments.length - 1];
+  const { anthropicKey, ...safeCtx } = ctx;
+
+  const userContent = JSON.stringify({
+    self_assessment: {
+      date: latest.date,
+      ratings: latest.ratings,
+      overall_notes: latest.overall_notes,
+    },
+    wins: safeCtx.wins ?? [],
+    eminence: safeCtx.eminence ?? [],
+    feedback_360: safeCtx.feedback_360 ?? null,
+    scorecard: safeCtx.scorecard ?? {},
+    goals: safeCtx.goals ?? [],
+    user_context: safeCtx.user_context,
+  });
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: COMPETENCY_ANALYSIS_PROMPT,
+    userContent,
+    maxTokens:    2500,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'competency-analysis',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Cache result in competencies domain
+  try {
+    const updatedData = {
+      ...competenciesData,
+      ai_analysis: {
+        ...result.data,
+        generated_at: new Date().toISOString(),
+      },
+    };
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'competencies', $2::jsonb, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+      [req.userId, JSON.stringify(updatedData)]
+    );
+  } catch (cacheErr) {
+    console.error('cache competency analysis error:', cacheErr.message);
   }
 
   res.json({ ok: true, data: result.data, usage: result.usage });

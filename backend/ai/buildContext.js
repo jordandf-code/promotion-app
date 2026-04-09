@@ -108,7 +108,7 @@ async function buildContext(userId) {
   const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies']]
     ),
     loadFirmConfig(),
     db.query(
@@ -366,6 +366,17 @@ async function buildContext(userId) {
       confidence: c.confidence,
       need_help: c.need_help || null,
     }));
+  }
+
+  // ── competency self-assessment (latest) ──
+  const rawCompetencies = byDomain.competencies ?? { assessments: [] };
+  if (rawCompetencies.assessments?.length) {
+    const latest = rawCompetencies.assessments[rawCompetencies.assessments.length - 1];
+    context.competency_self_assessment = {
+      date: latest.date,
+      ratings: latest.ratings,
+      overall_notes: latest.overall_notes,
+    };
   }
 
   // ── 360 feedback summary (if synthesis exists or raw feedback available) ──

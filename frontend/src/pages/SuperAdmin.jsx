@@ -44,20 +44,55 @@ export default function SuperAdmin() {
 // ── Users tab ───────────────────────────────────────────────────────────────
 
 function UsersTab() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [resetModal, setResetModal] = useState(null); // userId or null
-  const [deleteModal, setDeleteModal] = useState(null);
-  const [resetPw, setResetPw] = useState('');
-  const [actionMsg, setActionMsg] = useState('');
+  const [users,       setUsers]       = useState([]);
+  const [total,       setTotal]       = useState(0);
+  const [totalPages,  setTotalPages]  = useState(1);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState('');
+  const [actionMsg,   setActionMsg]   = useState('');
 
-  const loadUsers = useCallback(async () => {
+  // Search / filter / sort / page state
+  const [search,      setSearch]      = useState('');
+  const [roleFilter,  setRoleFilter]  = useState('');
+  const [page,        setPage]        = useState(1);
+  const [sort,        setSort]        = useState('created_at');
+  const [order,       setOrder]       = useState('desc');
+
+  // Bulk select
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkRole,    setBulkRole]    = useState('user');
+
+  // Modals
+  const [resetModal, setResetModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [resetPw,    setResetPw]    = useState('');
+
+  // Expanded card on mobile
+  const [expandedId, setExpandedId] = useState(null);
+
+  // Debounce ref for search
+  const searchTimer = useRef(null);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+
+  const loadUsers = useCallback(async (searchVal, roleVal, pageVal, sortVal, orderVal) => {
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, { headers: authHeaders() });
+      const params = new URLSearchParams({
+        page:   pageVal,
+        limit:  25,
+        search: searchVal,
+        role:   roleVal,
+        sort:   sortVal,
+        order:  orderVal,
+      });
+      const res  = await fetch(`${API_BASE}/api/admin/users?${params}`, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setUsers(data.users);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -65,7 +100,40 @@ function UsersTab() {
     }
   }, []);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
+  // Reload whenever filter/sort/page changes
+  useEffect(() => {
+    loadUsers(search, roleFilter, page, sort, order);
+  }, [loadUsers, roleFilter, page, sort, order]); // search excluded — handled by debounce below
+
+  // Debounce search input: wait 300ms after last keystroke, then reset to page 1 and fetch
+  function handleSearchChange(val) {
+    setSearch(val);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setPage(1);
+      loadUsers(val, roleFilter, 1, sort, order);
+    }, 300);
+  }
+
+  // Sort: clicking same column toggles asc/desc; clicking a new column defaults to asc
+  function handleSort(col) {
+    if (col === sort) {
+      const nextOrder = order === 'asc' ? 'desc' : 'asc';
+      setOrder(nextOrder);
+      loadUsers(search, roleFilter, page, col, nextOrder);
+    } else {
+      setSort(col);
+      setOrder('asc');
+      loadUsers(search, roleFilter, page, col, 'asc');
+    }
+  }
+
+  function sortIndicator(col) {
+    if (col !== sort) return null;
+    return <span style={{ marginLeft: '0.25rem', fontSize: '0.75rem' }}>{order === 'asc' ? '▲' : '▼'}</span>;
+  }
+
+  // ── Individual actions ─────────────────────────────────────────────────────
 
   async function changeRole(userId, role) {
     setActionMsg('');
@@ -113,6 +181,7 @@ function UsersTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setUsers(prev => prev.filter(u => u.id !== deleteModal));
+      setTotal(prev => prev - 1);
       setActionMsg('User deleted');
       setDeleteModal(null);
     } catch (err) {
@@ -120,37 +189,140 @@ function UsersTab() {
     }
   }
 
-  if (loading) return <div className="tab-content"><p className="muted">Loading users…</p></div>;
-  if (error) return <div className="tab-content"><p className="auth-error">{error}</p></div>;
+  // ── Bulk actions ───────────────────────────────────────────────────────────
 
-  // Get current user ID from the token (stored users list includes self)
-  const currentUserId = users.find(u => u.role === 'superuser')?.id;
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const nonSuperIds = users.filter(u => u.role !== 'superuser').map(u => u.id);
+    if (nonSuperIds.every(id => selectedIds.has(id))) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(nonSuperIds));
+    }
+  }
+
+  async function applyBulkRole() {
+    if (selectedIds.size === 0) return;
+    setActionMsg('');
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/bulk-role`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ userIds: [...selectedIds], role: bulkRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMsg(`Updated ${data.updated} user${data.updated !== 1 ? 's' : ''} to ${bulkRole}`);
+      setSelectedIds(new Set());
+      loadUsers(search, roleFilter, page, sort, order);
+    } catch (err) {
+      setActionMsg(err.message);
+    }
+  }
+
+  // ── Derived ────────────────────────────────────────────────────────────────
+
+  const nonSuperIds = users.filter(u => u.role !== 'superuser').map(u => u.id);
+  const allSelected = nonSuperIds.length > 0 && nonSuperIds.every(id => selectedIds.has(id));
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="tab-content">
-      {actionMsg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{actionMsg}</p>}
 
-      <div className="card" style={{ overflowX: 'auto' }}>
+      {/* Search + filter bar */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <input
+          className="form-input"
+          style={{ flex: '1 1 180px', minWidth: 0 }}
+          placeholder="Search name or email…"
+          value={search}
+          onChange={e => handleSearchChange(e.target.value)}
+        />
+        <select
+          className="form-input"
+          style={{ flex: '0 0 auto' }}
+          value={roleFilter}
+          onChange={e => { setRoleFilter(e.target.value); setPage(1); }}
+        >
+          <option value="">All roles</option>
+          <option value="user">User</option>
+          <option value="viewer">Viewer</option>
+          <option value="superuser">Superuser</option>
+        </select>
+      </div>
+
+      {/* Status line */}
+      {actionMsg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{actionMsg}</p>}
+      {error     && <p className="auth-error" style={{ marginBottom: '0.75rem' }}>{error}</p>}
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle, #f5f5f5)', borderRadius: '6px' }}>
+          <span className="muted">{selectedIds.size} selected</span>
+          <span className="muted">— Change role to</span>
+          <select
+            className="form-input"
+            style={{ width: 'auto', padding: '0.25rem 0.5rem' }}
+            value={bulkRole}
+            onChange={e => setBulkRole(e.target.value)}
+          >
+            <option value="user">user</option>
+            <option value="viewer">viewer</option>
+          </select>
+          <button className="btn-primary btn-sm" onClick={applyBulkRole}>Apply</button>
+          <button className="btn-secondary btn-sm" onClick={() => setSelectedIds(new Set())}>Clear</button>
+        </div>
+      )}
+
+      {/* Desktop table (≥768px) */}
+      <div className="card users-table-wrap" style={{ overflowX: 'auto', display: 'none' }} data-desktop>
         <table className="super-admin-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
+              <th style={{ width: '2rem' }}>
+                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
+              </th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                Name{sortIndicator('name')}
+              </th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('email')}>
+                Email{sortIndicator('email')}
+              </th>
               <th>Role</th>
-              <th>Joined</th>
+              <th>Company</th>
+              <th style={{ cursor: 'pointer' }} onClick={() => handleSort('created_at')}>
+                Joined{sortIndicator('created_at')}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map(u => {
+            {loading ? (
+              <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: '1.5rem' }}>Loading…</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan={7} className="muted" style={{ textAlign: 'center', padding: '1.5rem' }}>No users found</td></tr>
+            ) : users.map(u => {
               const isSelf = u.role === 'superuser';
               return (
                 <tr key={u.id}>
+                  <td>
+                    {!isSelf && (
+                      <input type="checkbox" checked={selectedIds.has(u.id)} onChange={() => toggleSelect(u.id)} />
+                    )}
+                  </td>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
                     {isSelf ? (
-                      <span>{u.role}</span>
+                      <span className="badge">{u.role}</span>
                     ) : (
                       <select
                         value={u.role}
@@ -163,6 +335,7 @@ function UsersTab() {
                       </select>
                     )}
                   </td>
+                  <td>{u.company || <span className="muted">—</span>}</td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
                   <td>
                     {!isSelf && (
@@ -182,6 +355,92 @@ function UsersTab() {
           </tbody>
         </table>
       </div>
+
+      {/* Mobile cards (<768px) */}
+      <div className="users-cards-wrap">
+        {loading ? (
+          <p className="muted" style={{ padding: '1rem 0' }}>Loading…</p>
+        ) : users.length === 0 ? (
+          <p className="muted" style={{ padding: '1rem 0' }}>No users found</p>
+        ) : users.map(u => {
+          const isSelf = u.role === 'superuser';
+          const isExpanded = expandedId === u.id;
+          return (
+            <div key={u.id} className="card" style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+                  <div className="muted" style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                  <div style={{ marginTop: '0.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.8rem' }}>
+                    <span className="badge">{u.role}</span>
+                    {u.company && <span className="muted">{u.company}</span>}
+                    <span className="muted">{new Date(u.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                {!isSelf && (
+                  <button
+                    className="btn-secondary btn-sm"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => setExpandedId(isExpanded ? null : u.id)}
+                  >
+                    {isExpanded ? 'Close' : 'Actions'}
+                  </button>
+                )}
+              </div>
+
+              {isExpanded && !isSelf && (
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem' }}>
+                    Role
+                    <select
+                      value={u.role}
+                      onChange={e => changeRole(u.id, e.target.value)}
+                      className="form-input"
+                      style={{ marginTop: '0.25rem' }}
+                    >
+                      <option value="user">user</option>
+                      <option value="viewer">viewer</option>
+                    </select>
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button className="btn-secondary btn-sm" onClick={() => { setResetModal(u.id); setResetPw(''); setExpandedId(null); }}>
+                      Reset password
+                    </button>
+                    <button className="btn-secondary btn-sm btn-danger" onClick={() => { setDeleteModal(u.id); setExpandedId(null); }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn-secondary btn-sm"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage(p => p - 1)}
+          >
+            Previous
+          </button>
+          <span className="muted">Page {page} of {totalPages}</span>
+          <button
+            className="btn-secondary btn-sm"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage(p => p + 1)}
+          >
+            Next
+          </button>
+          <span className="muted" style={{ marginLeft: '0.25rem' }}>({total} total)</span>
+        </div>
+      )}
+      {totalPages <= 1 && total > 0 && !loading && (
+        <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{total} user{total !== 1 ? 's' : ''}</p>
+      )}
 
       {/* Reset password modal */}
       {resetModal && (
@@ -227,6 +486,18 @@ function UsersTab() {
           </div>
         </div>
       )}
+
+      {/* Responsive CSS: show table on desktop, cards on mobile */}
+      <style>{`
+        @media (min-width: 768px) {
+          .users-table-wrap { display: block !important; }
+          .users-cards-wrap { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          .users-table-wrap { display: none !important; }
+          .users-cards-wrap { display: block !important; }
+        }
+      `}</style>
     </div>
   );
 }
