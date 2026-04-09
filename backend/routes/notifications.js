@@ -6,6 +6,7 @@ const db             = require('../db');
 const authMiddleware = require('../middleware/auth');
 const { buildDigest } = require('../notifications/digest');
 const { sendNotification } = require('../notifications/send');
+const { runTriggersForUser, runAllTriggers } = require('../notifications/triggers');
 
 const router = express.Router();
 
@@ -86,6 +87,26 @@ router.post('/test-digest', async (req, res) => {
 router.get('/status', async (req, res) => {
   const hasKey = !!process.env.RESEND_API_KEY;
   res.json({ configured: hasKey });
+});
+
+// POST /api/notifications/run-triggers — manually run notification triggers
+// Superusers run for all users; regular users run for themselves only.
+router.post('/run-triggers', async (req, res) => {
+  try {
+    const userResult = await db.query('SELECT role FROM users WHERE id = $1', [req.userId]);
+    const role = userResult.rows[0]?.role;
+
+    let results;
+    if (role === 'superuser') {
+      results = await runAllTriggers();
+    } else {
+      results = await runTriggersForUser(req.userId);
+    }
+    res.json({ ok: true, results });
+  } catch (err) {
+    console.error('run-triggers error:', err.message);
+    res.status(500).json({ error: 'Failed to run triggers' });
+  }
 });
 
 module.exports = router;

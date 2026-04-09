@@ -2,6 +2,7 @@
 // Wrapper around the Anthropic SDK with retry logic, error mapping, and token logging.
 
 const Anthropic = require('@anthropic-ai/sdk');
+const db = require('../db');
 
 const RETRY_DELAYS = [2000, 4000]; // ms — exponential backoff for 529
 
@@ -69,9 +70,10 @@ function friendlyMessage(code, rawMessage) {
   return messages[code] || messages.AI_ERROR;
 }
 
-async function callAnthropic({ apiKey, systemPrompt, userContent, maxTokens, parseJson = true }) {
+async function callAnthropic({ apiKey, systemPrompt, userContent, maxTokens, parseJson = true, userId, endpoint, narrativeMode }) {
   const client = new Anthropic({ apiKey });
   let lastError = null;
+  const startTime = Date.now();
 
   const messages = [{ role: 'user', content: userContent }];
 
@@ -85,6 +87,17 @@ async function callAnthropic({ apiKey, systemPrompt, userContent, maxTokens, par
       });
 
       console.log(`[AI] input_tokens=${response.usage.input_tokens} output_tokens=${response.usage.output_tokens} model=${response.model}`);
+
+      // Log usage to ai_usage_log (fire-and-forget)
+      if (userId) {
+        const elapsed = Date.now() - startTime;
+        db.query(
+          `INSERT INTO ai_usage_log (user_id, endpoint, narrative_mode, input_tokens, output_tokens, model, response_time_ms)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [userId, endpoint || 'unknown', narrativeMode || null,
+           response.usage.input_tokens, response.usage.output_tokens, response.model, elapsed]
+        ).catch(err => console.error('AI usage log error:', err.message));
+      }
 
       const rawText = response.content[0].text.trim();
       const usage = {

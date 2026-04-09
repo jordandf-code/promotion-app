@@ -205,7 +205,7 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 
 Default framework categories: Commercial acumen, Client relationship, Leadership & people, Practice building, Executive presence, Strategic thinking, Delivery excellence. Configurable per firm via `firm_config` in `app_settings`.
 
-## `reflections` domain _(planned — 1K)_
+## `reflections` domain
 
 ```
 {
@@ -234,7 +234,7 @@ Default framework categories: Commercial acumen, Client relationship, Leadership
 
 ## Planned extensions to existing domains
 
-### `wins` — enhanced field _(planned — 1L)_
+### `wins` — enhanced field
 
 Each win entry gains an optional `enhanced` object:
 ```

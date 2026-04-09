@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useAdminData, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import WipeSection from '../components/admin/WipeSection.jsx';
+import AIUsageLog from '../components/admin/AIUsageLog.jsx';
 
 export default function Admin() {
   const { user } = useAuth();
@@ -397,6 +398,26 @@ function NotificationPrefsSection() {
                   onChange={() => savePrefs({ ...prefs, feedbackReceived: !feedbackEnabled })} />
                 Feedback received
               </label>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={prefs.overdueAction !== false}
+                  onChange={() => savePrefs({ ...prefs, overdueAction: prefs.overdueAction === false })} />
+                Overdue action items
+              </label>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={prefs.staleContact !== false}
+                  onChange={() => savePrefs({ ...prefs, staleContact: prefs.staleContact === false })} />
+                Stale key contacts
+              </label>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={prefs.goalDeadline !== false}
+                  onChange={() => savePrefs({ ...prefs, goalDeadline: prefs.goalDeadline === false })} />
+                Goal deadlines approaching
+              </label>
+              <label className="sharing-toggle">
+                <input type="checkbox" checked={prefs.scorecardAtRisk !== false}
+                  onChange={() => savePrefs({ ...prefs, scorecardAtRisk: prefs.scorecardAtRisk === false })} />
+                Scorecard metrics at risk
+              </label>
             </div>
 
             {digestEnabled && (
@@ -492,6 +513,13 @@ function GenAITab() {
           <TextSection value={careerHistory} onSave={setCareerHistory}
             placeholder="e.g. 12 years at IBM Canada. Started as a consultant, promoted to Senior Consultant (2017), Manager (2019), Associate Partner (2022). Focus on federal public sector IT transformation..." rows={7} />
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">AI usage</h2>
+        </div>
+        <AIUsageLog />
       </section>
     </div>
   );

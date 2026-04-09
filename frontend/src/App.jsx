@@ -32,6 +32,7 @@ import Sponsees from './pages/Sponsees';
 import MockPanel from './pages/MockPanel';
 import DocumentVault from './pages/DocumentVault';
 import ImportExport from './pages/ImportExport';
+import Reflections from './pages/Reflections';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="sponsees"   element={<RoleGuard allowed={['superuser','user']}><Sponsees /></RoleGuard>} />
             <Route path="mock-panel" element={<RoleGuard allowed={['superuser','user']}><MockPanel /></RoleGuard>} />
             <Route path="vault"      element={<RoleGuard allowed={['superuser','user']}><DocumentVault /></RoleGuard>} />
+            <Route path="reflections" element={<RoleGuard allowed={['superuser','user']}><Reflections /></RoleGuard>} />
             <Route path="import-export" element={<RoleGuard allowed={['superuser','user']}><ImportExport /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />
             <Route path="view-others" element={<ViewOthers />} />

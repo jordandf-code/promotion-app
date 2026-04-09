@@ -108,7 +108,7 @@ async function buildContext(userId) {
   const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections']]
     ),
     loadFirmConfig(),
     db.query(
@@ -352,6 +352,20 @@ async function buildContext(userId) {
       courses:              aiCourses,
       total_training_hours: totalTrainingHours,
     };
+  }
+
+  // ── reflections (last 8 check-ins for AI context) ──
+  const rawReflections = byDomain.reflections ?? { checkins: [] };
+  if (rawReflections.checkins?.length) {
+    context.reflections = rawReflections.checkins.slice(-8).map(c => ({
+      week: c.week_start,
+      win: c.biggest_win,
+      challenge: c.biggest_challenge,
+      learning: c.learning,
+      focus: c.next_week_focus,
+      confidence: c.confidence,
+      need_help: c.need_help || null,
+    }));
   }
 
   // ── 360 feedback summary (if synthesis exists or raw feedback available) ──

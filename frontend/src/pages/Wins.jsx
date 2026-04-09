@@ -5,6 +5,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useWinsData } from '../hooks/useWinsData.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../hooks/useAdminData.js';
 import { fmtDate } from '../data/sampleData.js';
+import { API_BASE, authHeaders } from '../utils/api.js';
+import { mapAiError } from '../utils/aiErrors.js';
 import WinFormModal from '../components/wins/WinFormModal.jsx';
 
 const SOURCE_LABEL = {
@@ -100,6 +102,7 @@ export default function Wins() {
               originOptions={ORIGIN_OPTIONS}
               onEdit={() => openEdit(w)}
               onDelete={() => handleDelete(w.id)}
+              onUpdateWin={updateWin}
               highlight={isHighlit}
               innerRef={isHighlit ? highlightRef : null}
             />
@@ -126,7 +129,42 @@ export default function Wins() {
   );
 }
 
-function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelete, highlight, innerRef }) {
+function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelete, onUpdateWin, highlight, innerRef }) {
+  const [enhancing, setEnhancing]     = useState(false);
+  const [enhanceErr, setEnhanceErr]   = useState(null);
+  const [enhanceUsage, setEnhanceUsage] = useState(null);
+  const [viewMode, setViewMode]       = useState(win.enhanced?.mode ?? 'statement');
+  const [showEnhanced, setShowEnhanced] = useState(!!win.enhanced);
+
+  async function handleEnhance() {
+    setEnhancing(true);
+    setEnhanceErr(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/enhance-win`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ winId: win.id }),
+      });
+      const data = await res.json();
+      if (!data.ok) { setEnhanceErr(mapAiError(data.code, data.error)); return; }
+      const enhanced = {
+        statement: data.data.statement,
+        bullets: data.data.bullets,
+        one_liner: data.data.one_liner,
+        generated_at: new Date().toISOString(),
+        mode: viewMode,
+        data_sources: data.data.data_sources ?? [],
+      };
+      onUpdateWin(win.id, { enhanced });
+      setShowEnhanced(true);
+      if (data.usage) setEnhanceUsage(data.usage);
+    } catch {
+      setEnhanceErr('Could not reach the AI service');
+    } finally {
+      setEnhancing(false);
+    }
+  }
+
   function tagColor(label) {
     return winTags.find(t => t.label === label)?.color ?? '#64748b';
   }
@@ -137,6 +175,9 @@ function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelet
         <div className="win-card-title-row">
           <h3 className="win-title">{win.title}</h3>
           <div className="win-card-actions">
+            <button type="button" className="btn-ai-inline" onClick={handleEnhance} disabled={enhancing}>
+              {enhancing ? 'Enhancing…' : win.enhanced ? '✦ Re-enhance' : '✦ Enhance with AI'}
+            </button>
             <button className="row-btn" onClick={onEdit}>Edit</button>
             <button className="row-btn row-btn--danger" onClick={onDelete}>Remove</button>
           </div>
@@ -191,6 +232,51 @@ function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelet
             <p className="win-strategic-note">{win.strategicNote}</p>
           )}
         </div>
+      )}
+
+      {enhanceErr && <p className="form-field-error" style={{ margin: '0.5rem 0 0' }}>{enhanceErr}</p>}
+
+      {win.enhanced && showEnhanced && (
+        <div className="win-enhanced" style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--bg-secondary, #f8f9fa)', borderRadius: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              {['statement', 'bullets', 'one_liner'].map(m => (
+                <button key={m} type="button"
+                  className={`sc-tab ${viewMode === m ? 'sc-tab--active' : ''}`}
+                  style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                  onClick={() => { setViewMode(m); onUpdateWin(win.id, { enhanced: { ...win.enhanced, mode: m } }); }}>
+                  {m === 'statement' ? 'Statement' : m === 'bullets' ? 'Bullets' : 'One-liner'}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="row-btn" onClick={() => setShowEnhanced(false)} style={{ fontSize: '0.7rem' }}>Hide</button>
+          </div>
+
+          {viewMode === 'statement' && (
+            <p style={{ whiteSpace: 'pre-wrap', margin: 0, lineHeight: 1.5 }}>{win.enhanced.statement}</p>
+          )}
+          {viewMode === 'bullets' && (
+            <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+              {(win.enhanced.bullets ?? []).map((b, i) => <li key={i} style={{ marginBottom: '0.25rem' }}>{b}</li>)}
+            </ul>
+          )}
+          {viewMode === 'one_liner' && (
+            <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem' }}>{win.enhanced.one_liner}</p>
+          )}
+
+          {enhanceUsage && (
+            <p className="story-token-usage" style={{ textAlign: 'left', padding: '0.5rem 0 0', margin: 0 }}>
+              {enhanceUsage.input_tokens} input · {enhanceUsage.output_tokens} output tokens
+            </p>
+          )}
+        </div>
+      )}
+
+      {win.enhanced && !showEnhanced && (
+        <button type="button" className="row-btn" onClick={() => setShowEnhanced(true)}
+          style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+          Show AI enhanced version
+        </button>
       )}
     </div>
   );

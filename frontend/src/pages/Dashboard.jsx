@@ -18,6 +18,8 @@ import { useReadinessSnapshots } from '../hooks/useReadinessSnapshots.js';
 import ScorecardWidget from '../components/dashboard/ScorecardWidget.jsx';
 import ActionsWidget from '../components/dashboard/ActionsWidget.jsx';
 import RecentWinsWidget from '../components/dashboard/RecentWinsWidget.jsx';
+import ReflectionsWidget from '../components/dashboard/ReflectionsWidget.jsx';
+import { useReflectionsData } from '../hooks/useReflectionsData.js';
 import QuickAddModal from '../components/dashboard/QuickAddModal.jsx';
 
 // ── Widget slot registry ────────────────────────────────────────────────────
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const { actions, toggleDone, addAction } = useActionsData();
   const { wins, addWin } = useWinsData();
   const { addGoal } = useGoalsData();
+  const { data: reflectionsData } = useReflectionsData();
   const { people, addPerson } = usePeopleData();
   const readiness = useReadinessScore();
   const { snapshots, takeSnapshot } = useReadinessSnapshots(readiness);
@@ -99,6 +102,8 @@ export default function Dashboard() {
         <ActionsWidget overdueActions={overdueActions} upcomingActions={upcomingActions} toggleDone={toggleDone} />
         <RecentWinsWidget recentWins={recentWins} />
       </div>
+
+      <ReflectionsWidget checkins={reflectionsData.checkins} />
 
       {/* ── FAB for mobile ── */}
       <button className="fab-quick-add" onClick={() => setShowQuickAdd(true)} aria-label="Quick add">

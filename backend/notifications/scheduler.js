@@ -6,6 +6,7 @@ const cron = require('node-cron');
 const db = require('../db');
 const { buildDigest } = require('./digest');
 const { sendNotification } = require('./send');
+const { runAllTriggers } = require('./triggers');
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -13,7 +14,7 @@ const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 
  * Initialize the notification scheduler. Call once on server startup.
  */
 function initScheduler() {
-  // Run every hour at :00
+  // Run every hour at :00 — digest check
   cron.schedule('0 * * * *', async () => {
     try {
       await runDigestCheck();
@@ -22,7 +23,16 @@ function initScheduler() {
     }
   });
 
-  console.log('Notification scheduler initialized (hourly digest check)');
+  // Run daily at 08:00 UTC — proactive notification triggers
+  cron.schedule('0 8 * * *', async () => {
+    try {
+      await runAllTriggers();
+    } catch (err) {
+      console.error('Scheduler trigger check error:', err.message);
+    }
+  });
+
+  console.log('Notification scheduler initialized (hourly digest + daily triggers)');
 }
 
 /**
