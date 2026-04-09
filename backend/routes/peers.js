@@ -188,7 +188,7 @@ router.get('/peers/:userId/data', async (req, res) => {
     }
 
     // Load selected domains (read-only snapshot)
-    const domains = ['scorecard', 'wins', 'goals', 'story', 'settings'];
+    const domains = ['scorecard', 'wins', 'goals', 'story', 'settings', 'readiness', 'actions', 'people'];
     const result = await db.query(
       'SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)',
       [ownerId, domains]
@@ -226,7 +226,34 @@ router.get('/sponsees', async (req, res) => {
        ORDER BY u.name`,
       [req.userId]
     );
-    res.json({ sponsees: result.rows });
+
+    // Enrich with summary data for overview cards
+    const sponsees = [];
+    for (const row of result.rows) {
+      const summaryResult = await db.query(
+        `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
+        [row.id, ['readiness', 'actions']]
+      );
+      const byDomain = Object.fromEntries(summaryResult.rows.map(r => [r.domain, r.data]));
+      const readiness = byDomain.readiness ?? {};
+      const actions = byDomain.actions ?? [];
+      const today = new Date().toISOString().slice(0, 10);
+      const overdueCount = actions.filter(a => !a.done && a.dueDate && a.dueDate < today).length;
+      const score = readiness.overall ?? readiness.score ?? null;
+
+      let status = 'on_track';
+      if (score != null && score < 40 || overdueCount > 3) status = 'at_risk';
+      else if (score != null && score < 60 || overdueCount > 0) status = 'needs_attention';
+
+      sponsees.push({
+        ...row,
+        readinessScore: score,
+        overdueActions: overdueCount,
+        status,
+      });
+    }
+
+    res.json({ sponsees });
   } catch (err) {
     console.error('sponsees error:', err.message);
     res.status(500).json({ error: 'Failed to load sponsees' });

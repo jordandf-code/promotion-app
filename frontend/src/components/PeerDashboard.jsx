@@ -8,9 +8,35 @@ export default function PeerDashboard({ data, peer }) {
   const scorecard = data?.scorecard;
   const wins      = data?.wins;
   const goals     = data?.goals;
+  const readiness = data?.readiness;
+  const actions   = data?.actions ?? [];
+
+  const today = new Date().toISOString().slice(0, 10);
+  const overdueCount = actions.filter(a => !a.done && a.dueDate && a.dueDate < today).length;
+  const overallReadiness = readiness?.overall ?? readiness?.score ?? null;
 
   return (
     <div className="tab-content">
+      {/* Key stats strip */}
+      {(overallReadiness != null || overdueCount > 0) && (
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+          {overallReadiness != null && (
+            <div className="card" style={{ padding: '0.75rem 1rem', flex: '1 1 120px', minWidth: '120px' }}>
+              <div className="muted" style={{ fontSize: '0.75rem' }}>Readiness</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{Math.round(overallReadiness)}%</div>
+            </div>
+          )}
+          <div className="card" style={{ padding: '0.75rem 1rem', flex: '1 1 120px', minWidth: '120px' }}>
+            <div className="muted" style={{ fontSize: '0.75rem' }}>Overdue actions</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: overdueCount > 0 ? '#dc2626' : '#16a34a' }}>{overdueCount}</div>
+          </div>
+          <div className="card" style={{ padding: '0.75rem 1rem', flex: '1 1 120px', minWidth: '120px' }}>
+            <div className="muted" style={{ fontSize: '0.75rem' }}>Total actions</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{actions.length}</div>
+          </div>
+        </div>
+      )}
+
       {/* Scorecard snapshot */}
       <section className="section">
         <div className="section-header">

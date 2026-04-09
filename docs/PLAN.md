@@ -72,15 +72,15 @@ Migration required: `migration_layer0e.sql` (run in Supabase SQL editor)
 | **1A** | People tab enrichment (influence tier, coverage, strategic importance) | 0B | ✅ |
 | **1B** | Readiness score snapshots + trend chart | 0C | ✅ |
 | **1C** | Structured 360 feedback (5 questions + AI synthesis) | 0E, 0F | ✅ |
-| **1D** | Sponsor view (purpose-built summary in Sponsees page) | 0E, 0D | |
+| **1D** | Sponsor view (purpose-built summary in Sponsees page) | 0E, 0D | ✅ |
 | **1E** | Bulk import/export (CSV ZIP) | Layer 0 | ✅ |
-| **1F** | Remaining notification types (4 deferred from Phase 23) | 0F | |
-| **1G** | AI usage log | Layer 0 | |
+| **1F** | Remaining notification types (4 deferred from Phase 23) | 0F | ✅ |
+| **1G** | AI usage log | Layer 0 | ✅ |
 | **1H** | Super Admin tooling (100+ user management) | 0E | |
 | **1I** | Onboarding polish (self-service at scale) | 0B | |
 | **1J** | Competency self-assessment (framework, radar chart, AI gap detection) | 0B | |
-| **1K** | Weekly reflection & check-in (habit loop, AI synthesis, Dashboard widget) | 0C, 0F | |
-| **1L** | Win enhancement AI (impact statements, bullets, one-liners from context) | Layer 0 | |
+| **1K** | Weekly reflection & check-in (habit loop, AI synthesis, Dashboard widget) | 0C, 0F | ✅ |
+| **1L** | Win enhancement AI (impact statements, bullets, one-liners from context) | Layer 0 | ✅ |
 
 ### Layer 2 — Second parallel fan-out (9 features)
 
@@ -118,13 +118,13 @@ LAYER 1 (parallel)               LAYER 2 (parallel)
                              └──→ 2D Peer Benchmarking
                              └──→ 2G Mode Shift
   1C Feedback ✅ ───────────────→ 2B Brand Workspace ←── 1J also enriches
-  1D Sponsor View
+  1D Sponsor View ✅
   1E Import/Export ✅             2F Document Vault
-  1F Notifications + 1G AI Log   2I Calendar Integration (deferred) ←── 2H
+  1F Notifications ✅ + 1G AI Log ✅  2I Calendar Integration (deferred) ←── 2H
   1H Super Admin + 1I Onboarding
   1J Competency Assessment        LAYER 3 (parallel)
-  1K Weekly Reflection              3A Mock Panel ←── 2B + 1J
-  1L Win Enhancement AI             3B Package Gen ←── 2B + 1L
+  1K Weekly Reflection ✅           3A Mock Panel ←── 2B + 1J
+  1L Win Enhancement AI ✅          3B Package Gen ←── 2B + 1L
 ```
 
 ### New features from competitive gap analysis (2026-04-08)

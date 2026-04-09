@@ -20,6 +20,7 @@ const ALL_NAV_ITEMS = [
   { to: '/wins',      label: 'Wins'                  },
   { to: '/eminence',  label: 'Eminence'              },
   { to: '/actions',   label: 'Action items'          },
+  { to: '/reflections', label: 'Reflections'         },
   { to: '/learning',  label: 'Learning'              },
   { to: '/story',     label: 'Narrative + Gaps'       },
   { to: '/influence-map', label: 'Influence Map',  hidden: true },
