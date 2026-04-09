@@ -1,5 +1,4 @@
-// pages/SuperAdmin.jsx
-// Superuser admin panel: manage users, invite code, platform settings, categories.
+// SuperAdmin.jsx — Superuser admin panel for users, invite codes, categories, and platform settings
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';

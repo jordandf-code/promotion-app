@@ -1,4 +1,4 @@
-// pages/People.jsx
+// People.jsx — Relationship management with influence tiers, contact log, and planned touchpoints
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';

@@ -1,6 +1,4 @@
-// pages/PublicSummary.jsx
-// Public read-only view of a user's promotion profile.
-// Accessible at /share/:token — no authentication required.
+// PublicSummary.jsx — Public read-only promotion profile accessible via share token
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';

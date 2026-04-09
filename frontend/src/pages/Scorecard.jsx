@@ -1,5 +1,4 @@
-// pages/Scorecard.jsx
-// Sub-tabs: Overview · Opportunities · Projects · Utilization
+// Scorecard.jsx — Multi-tab scorecard (Overview, Targets, Opportunities, Projects, Utilization)
 
 import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext.jsx';

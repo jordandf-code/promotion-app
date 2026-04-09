@@ -1,5 +1,4 @@
-// pages/MockPanel.jsx — Layer 3A placeholder
-// AI mock promotion panel: interactive practice with persona variance and stored debriefs.
+// MockPanel.jsx — Placeholder for AI mock promotion panel practice
 
 export default function MockPanel() {
   return (

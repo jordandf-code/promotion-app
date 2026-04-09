@@ -45,7 +45,8 @@ frontend/e2e/.auth-state.json
 frontend/blob-report/
 
 # Claude Code
-.claude/
+.claude/settings.local.json
+.claude/skills/
 .agents/
 
 # Misc

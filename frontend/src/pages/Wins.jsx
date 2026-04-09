@@ -1,4 +1,4 @@
-// pages/Wins.jsx
+// Wins.jsx — Win tracking with tag filtering, source linking, and date logging
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';

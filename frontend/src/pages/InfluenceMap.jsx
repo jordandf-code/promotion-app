@@ -1,5 +1,4 @@
-// pages/InfluenceMap.jsx — Layer 2A placeholder
-// Strategic visualization of People data: influence tiers, coverage gaps, connection strategies.
+// InfluenceMap.jsx — Placeholder for strategic influence network visualization
 
 export default function InfluenceMap() {
   return (

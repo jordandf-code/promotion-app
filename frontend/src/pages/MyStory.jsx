@@ -1,6 +1,4 @@
-// pages/MyStory.jsx
-// AI-powered promotion narrative — three subtabs:
-// 1. AI Generated (existing gap_analysis + polished_narrative)
+// MyStory.jsx — AI-powered promotion narrative with three subtabs (AI Generated, DIY Prompts, Manual Input)
 // 2. DIY Prompts (preview context + system prompt, copy to clipboard)
 // 3. Manual Input (structured criterion evidence + free-text narrative)
 

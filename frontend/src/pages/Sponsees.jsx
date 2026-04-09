@@ -1,5 +1,4 @@
-// pages/Sponsees.jsx
-// Sponsor view: see progress summaries of people who granted you sponsor access.
+// Sponsees.jsx — Sponsor view of people who granted sponsor access
 
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';

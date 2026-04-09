@@ -1,5 +1,4 @@
-// pages/Eminence.jsx
-// Phase 22: Eminence tracker — speaking, publications, panels, awards, etc.
+// Eminence.jsx — Speaking, publications, panels, awards, and other visibility activities
 
 import { useState, useMemo } from 'react';
 import { useEminenceData } from '../hooks/useEminenceData.js';

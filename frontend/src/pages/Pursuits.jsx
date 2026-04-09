@@ -1,6 +1,4 @@
-// pages/Pursuits.jsx
-// CRM-style pipeline view of live opportunities — stage, probability, strategic context.
-// Uses the same opportunity data as the Scorecard > Opportunities tab.
+// Pursuits.jsx — CRM-style pipeline view of live sales opportunities
 // UI label: "Opportunities" (route: /opportunities)
 
 import { useState } from 'react';

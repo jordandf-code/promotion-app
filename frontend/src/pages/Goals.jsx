@@ -1,4 +1,4 @@
-// pages/Goals.jsx
+// Goals.jsx — Goal tracking with status cycling, action linking, and AI-suggested goals
 
 import { useState } from 'react';
 import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useGoalsData.js';

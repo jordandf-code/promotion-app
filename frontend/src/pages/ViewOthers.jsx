@@ -1,5 +1,4 @@
-// pages/ViewOthers.jsx
-// View data shared by peers who have granted the current user access.
+// ViewOthers.jsx — View data shared by peers who granted the user access
 
 import { useState, useEffect, useCallback } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';

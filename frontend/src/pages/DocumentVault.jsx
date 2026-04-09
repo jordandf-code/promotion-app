@@ -1,5 +1,4 @@
-// pages/DocumentVault.jsx — Layer 2F placeholder
-// File uploads attached to wins and eminence activities.
+// DocumentVault.jsx — Placeholder for file uploads attached to wins and eminence items
 
 export default function DocumentVault() {
   return (

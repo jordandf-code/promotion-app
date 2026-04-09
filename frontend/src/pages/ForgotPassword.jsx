@@ -1,5 +1,4 @@
-// pages/ForgotPassword.jsx
-// Two-step forgot password flow: email → security question → new password.
+// ForgotPassword.jsx — Two-step password reset via email and security question
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
