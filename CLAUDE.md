@@ -99,7 +99,7 @@ Only modify files directly required for the stated task. Do not opportunisticall
 
 ## Current status
 
-Layer 0 and Layer 1 complete (all 12 features: 1A-1L). Layer 2 ready to start. See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
+Layers 0, 1, and 2 complete (2I Calendar deferred). Layer 3 ready to start (3A Mock Panel, 3B Package Generator). See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
 
 ## Doc loading
 

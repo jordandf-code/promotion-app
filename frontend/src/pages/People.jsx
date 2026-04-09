@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS, INFLUENCE_TIERS, INFLUENCE_TIER_LABELS, STRATEGIC_IMPORTANCE, STRATEGIC_IMPORTANCE_LABELS, DEFAULT_STAKEHOLDER_GROUPS } from '../hooks/usePeopleData.js';
 import CoverageSummary from '../components/people/CoverageSummary.jsx';
+import MeetingPrepModal from '../components/people/MeetingPrepModal.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import PersonCard from '../components/people/PersonCard.jsx';
@@ -56,6 +57,7 @@ export default function People() {
   const [influenceFilter, setInfluenceFilter] = useState('all');
   const [modal,      setModal]      = useState(null);
   const [feedbackModal, setFeedbackModal] = useState(null); // { person }
+  const [prepPerson, setPrepPerson] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
@@ -95,6 +97,21 @@ export default function People() {
 
   function handleDelete(id) {
     if (confirm('Remove this person?')) removePerson(id);
+  }
+
+  function handlePrepSave(prep) {
+    const person = prepPerson;
+    updatePerson(person.id, {
+      meeting_preps: [...(person.meeting_preps || []), prep],
+    });
+    // Add a touchpoint if debrief has outcomes
+    if (prep.debrief?.outcomes) {
+      addTouchpoint(person.id, {
+        date: prep.date,
+        note: 'Meeting: ' + prep.debrief.outcomes.slice(0, 100),
+      });
+    }
+    setPrepPerson(null);
   }
 
   return (
@@ -153,6 +170,7 @@ export default function People() {
             onRemovePlannedTouchpoint={removePlannedTouchpoint}
             onLogPlannedTouchpoint={logPlannedTouchpoint}
             onRequestFeedback={(person) => setFeedbackModal({ person })}
+            onPrepMeeting={(person) => setPrepPerson(person)}
             actions={actions}
             onAddAction={addAction}
             onToggleActionDone={toggleDone}
@@ -178,6 +196,14 @@ export default function People() {
         <FeedbackRequestModal
           person={feedbackModal.person}
           onClose={() => setFeedbackModal(null)}
+        />
+      )}
+
+      {prepPerson && (
+        <MeetingPrepModal
+          person={prepPerson}
+          onSave={handlePrepSave}
+          onClose={() => setPrepPerson(null)}
         />
       )}
     </div>

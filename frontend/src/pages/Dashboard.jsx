@@ -22,6 +22,7 @@ import ActionsWidget from '../components/dashboard/ActionsWidget.jsx';
 import RecentWinsWidget from '../components/dashboard/RecentWinsWidget.jsx';
 import ReflectionsWidget from '../components/dashboard/ReflectionsWidget.jsx';
 import { useReflectionsData } from '../hooks/useReflectionsData.js';
+import NudgesWidget from '../components/dashboard/NudgesWidget.jsx';
 import QuickAddModal from '../components/dashboard/QuickAddModal.jsx';
 
 // ── Widget slot registry ────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ export default function Dashboard() {
   const scorecard = useScorecardData();
   const { actions, toggleDone, addAction } = useActionsData();
   const { wins, addWin } = useWinsData();
-  const { addGoal } = useGoalsData();
+  const { goals, addGoal } = useGoalsData();
   const { data: reflectionsData } = useReflectionsData();
   const { people, addPerson } = usePeopleData();
   const readiness = useReadinessScore();
@@ -93,6 +94,18 @@ export default function Dashboard() {
         qualifyingYear={qualifyingYear}
         overdueCount={overdueActions.length}
         staleCount={staleContacts.length}
+      />
+
+      {/* ── Nudges widget ── */}
+      <NudgesWidget
+        actions={actions}
+        wins={wins}
+        people={people}
+        readiness={readiness}
+        scorecard={scorecard}
+        reflections={reflectionsData}
+        goals={goals}
+        qualifyingYear={qualifyingYear}
       />
 
       {/* ── Primary widgets (full-width) ── */}

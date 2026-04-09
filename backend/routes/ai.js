@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT } = require('../ai/prompts');
 const { fmtCurrency }   = require('../ai/formatUtils');
 const db = require('../db');
 
@@ -563,6 +563,109 @@ router.post('/competency-analysis', async (req, res) => {
   } catch (cacheErr) {
     console.error('cache competency analysis error:', cacheErr.message);
   }
+
+  res.json({ ok: true, data: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/meeting-prep ────────────────────────────────────────────────
+// Body: { contactId } — ID of the contact to prep for
+
+router.post('/meeting-prep', async (req, res) => {
+  const { contactId } = req.body ?? {};
+  if (!contactId) {
+    return res.status(400).json({ ok: false, error: 'contactId is required', code: 'AI_ERROR' });
+  }
+
+  // Load the person from the user's people data
+  const peopleResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'people'`,
+    [req.userId]
+  );
+  const allPeople = peopleResult.rows[0]?.data ?? [];
+  const person = allPeople.find(p => p.id === contactId);
+  if (!person) {
+    return res.status(404).json({ ok: false, error: 'Contact not found', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build focused user message with person details + cross-referenced data
+  const parts = [];
+  parts.push(`CONTACT:`);
+  parts.push(`Name: ${person.name}`);
+  if (person.title) parts.push(`Title: ${person.title}`);
+  if (person.org) parts.push(`Organization: ${person.org}`);
+  if (person.type) parts.push(`Relationship type: ${person.type}`);
+  if (person.relationshipStatus) parts.push(`Relationship status: ${person.relationshipStatus}`);
+  if (person.influenceTier) parts.push(`Influence tier: ${person.influenceTier}`);
+  if (person.strategicImportance) parts.push(`Strategic importance: ${person.strategicImportance}`);
+  if (person.stakeholderGroup) parts.push(`Stakeholder group: ${person.stakeholderGroup}`);
+  if (person.need) parts.push(`What the user needs from them: ${person.need}`);
+
+  // Touchpoint history (most recent 10)
+  const touchpoints = (person.touchpoints ?? [])
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 10);
+  if (touchpoints.length) {
+    parts.push(`\nTOUCHPOINT HISTORY (most recent first):`);
+    touchpoints.forEach(tp => {
+      parts.push(`- ${tp.date}: ${tp.note}`);
+    });
+  } else {
+    parts.push(`\nNo touchpoints logged yet.`);
+  }
+
+  // Cross-reference linked opportunities from scorecard
+  const rawScResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'scorecard'`,
+    [req.userId]
+  );
+  const rawOpps = rawScResult.rows[0]?.data?.opportunities ?? [];
+  const linkedOpps = rawOpps.filter(o =>
+    o.relationshipOrigin && (
+      (person.name && o.strategicNote && o.strategicNote.toLowerCase().includes(person.name.toLowerCase())) ||
+      o.client === person.org
+    )
+  );
+  if (linkedOpps.length) {
+    parts.push(`\nLINKED OPPORTUNITIES:`);
+    linkedOpps.slice(0, 5).forEach(o => {
+      parts.push(`- ${o.name} (${o.client}, ${o.status}, $${o.signingsValue ?? 0} signings)`);
+      if (o.strategicNote) parts.push(`  Context: ${o.strategicNote}`);
+    });
+  }
+
+  // Cross-reference wins mentioning this person
+  const winsResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'wins'`,
+    [req.userId]
+  );
+  const allWins = winsResult.rows[0]?.data ?? [];
+  const relatedWins = allWins.filter(w =>
+    (w.relationshipOrigin && w.description && w.description.toLowerCase().includes(person.name.toLowerCase())) ||
+    (w.strategicNote && w.strategicNote.toLowerCase().includes(person.name.toLowerCase()))
+  );
+  if (relatedWins.length) {
+    parts.push(`\nRELATED WINS:`);
+    relatedWins.slice(0, 5).forEach(w => {
+      parts.push(`- ${w.title} (${w.date})${w.impact ? ': ' + w.impact : ''}`);
+    });
+  }
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: MEETING_PREP_PROMPT,
+    userContent:  parts.join('\n'),
+    maxTokens:    1500,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'meeting-prep',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
 
   res.json({ ok: true, data: result.data, usage: result.usage });
 });
