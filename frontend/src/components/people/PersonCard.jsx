@@ -21,6 +21,7 @@ export default function PersonCard({
   onRemovePlannedTouchpoint,
   onLogPlannedTouchpoint,
   onRequestFeedback,
+  onPrepMeeting,
   actions,
   onAddAction,
   onToggleActionDone,
@@ -73,6 +74,9 @@ export default function PersonCard({
           <div className="person-org">{person.org}</div>
         </div>
         <div className="person-card-actions">
+          {onPrepMeeting && (
+            <button className="row-btn" onClick={() => onPrepMeeting(person)} title="Prep meeting">Prep meeting</button>
+          )}
           {person.email && onRequestFeedback && (
             <button className="row-btn" onClick={() => onRequestFeedback(person)} title="Request 360 feedback">Feedback</button>
           )}

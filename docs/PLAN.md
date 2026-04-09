@@ -88,12 +88,12 @@ Migration required: `migration_layer0e.sql` (run in Supabase SQL editor)
 |----|---------|-----------|--------|
 | **2A** | Influence map (strategic People visualization) | 1A | ✅ |
 | **2B** | Brand workspace (positioning, perception, proof points) | 0B, 1C | ✅ |
-| **2C** | Smart nudges engine (rules + AI coaching on Dashboard) | 0B, 0C, 1B | |
-| **2D** | Peer benchmarking (anonymized comparison) | 0E, 1B | |
+| **2C** | Smart nudges engine (rules + AI coaching on Dashboard) | 0B, 0C, 1B | ✅ |
+| **2D** | Peer benchmarking (anonymized comparison) | 0E, 1B | ✅ |
 | **2E** | LinkedIn import (paste → AI parse → People) | 1A | ✅ |
 | **2F** | Document vault (file uploads on wins/eminence) | 0D | ✅ |
 | **2G** | Mode shift wizard (role transition flow) | 0B, 1B | ✅ |
-| **2H** | Meeting prep & debrief engine (AI prep cards, quick-capture debrief) | 1A | |
+| **2H** | Meeting prep & debrief engine (AI prep cards, quick-capture debrief) | 1A | ✅ |
 | **2I** | Calendar integration (read-only sync, auto-detect tracked contacts) | 2H | _deferred_ |
 
 ### Layer 3 — Final features (2 features)

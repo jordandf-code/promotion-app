@@ -260,4 +260,176 @@ router.get('/sponsees', async (req, res) => {
   }
 });
 
+// ── Helper: compute benchmark metrics across participants ──────────────────
+function computeBenchmarkMetrics(participants, currentUserId, myByDomain) {
+  const results = [];
+
+  function percentile(sorted, p) {
+    if (!sorted.length) return 0;
+    const idx = (p / 100) * (sorted.length - 1);
+    const lo  = Math.floor(idx);
+    const hi  = Math.ceil(idx);
+    return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo));
+  }
+
+  function userPercentileRank(sorted, val) {
+    if (!sorted.length) return 50;
+    const below = sorted.filter(v => v < val).length;
+    return Math.round((below / sorted.length) * 100);
+  }
+
+  function buildMetric(key, label, unit, values, userVal) {
+    if (values.length < 2) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    return {
+      key,
+      label,
+      unit,
+      min:            sorted[0],
+      p25:            percentile(sorted, 25),
+      median:         percentile(sorted, 50),
+      p75:            percentile(sorted, 75),
+      max:            sorted[sorted.length - 1],
+      userValue:      Math.round(userVal ?? 0),
+      userPercentile: userPercentileRank(sorted, userVal ?? 0),
+    };
+  }
+
+  // ── readiness_score ──
+  const readinessVals = participants.map(([, d]) => {
+    const r = d.readiness ?? {};
+    return r.overall ?? r.score ?? 0;
+  });
+  const myReadiness = (() => {
+    const r = myByDomain.readiness ?? {};
+    return r.overall ?? r.score ?? 0;
+  })();
+  const rm = buildMetric('readiness_score', 'Readiness score', '%', readinessVals, myReadiness);
+  if (rm) results.push(rm);
+
+  // ── wins_count ──
+  const winsVals = participants.map(([, d]) => {
+    const w = d.wins;
+    if (!w) return 0;
+    return Array.isArray(w) ? w.length : (Array.isArray(w.wins) ? w.wins.length : 0);
+  });
+  const myWins = (() => {
+    const w = myByDomain.wins;
+    if (!w) return 0;
+    return Array.isArray(w) ? w.length : (Array.isArray(w.wins) ? w.wins.length : 0);
+  })();
+  const wm = buildMetric('wins_count', 'Wins logged', '', winsVals, myWins);
+  if (wm) results.push(wm);
+
+  // ── goals_completion ──
+  function goalsCompletion(domainData) {
+    const g = domainData.goals;
+    if (!g) return 0;
+    const list = Array.isArray(g) ? g : (Array.isArray(g.goals) ? g.goals : []);
+    if (!list.length) return 0;
+    const done = list.filter(x => x.status === 'done' || x.completed === true).length;
+    return Math.round((done / list.length) * 100);
+  }
+  const goalsVals = participants.map(([, d]) => goalsCompletion(d));
+  const gm = buildMetric('goals_completion', 'Goals completion rate', '%', goalsVals, goalsCompletion(myByDomain));
+  if (gm) results.push(gm);
+
+  // ── reflection_streak (consecutive weeks with check-ins backwards from now) ──
+  function reflectionStreak(domainData) {
+    const r = domainData.reflections;
+    if (!r) return 0;
+    const entries = Array.isArray(r) ? r : (Array.isArray(r.entries) ? r.entries : []);
+    if (!entries.length) return 0;
+    // Get weeks (ISO week strings) that have entries
+    const weeks = new Set(entries.map(e => {
+      const d = new Date(e.date || e.createdAt || 0);
+      // ISO week: YYYY-Www
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+      const weekNum = Math.ceil((dayOfYear + jan4.getDay()) / 7);
+      return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+    }));
+    // Count consecutive weeks backwards from current
+    const now = new Date();
+    let streak = 0;
+    for (let w = 0; w < 52; w++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - w * 7);
+      const jan4 = new Date(d.getFullYear(), 0, 4);
+      const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+      const weekNum = Math.ceil((dayOfYear + jan4.getDay()) / 7);
+      const key = `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+      if (weeks.has(key)) streak++;
+      else break;
+    }
+    return streak;
+  }
+  const streakVals = participants.map(([, d]) => reflectionStreak(d));
+  const sm = buildMetric('reflection_streak', 'Reflection streak', '', streakVals, reflectionStreak(myByDomain));
+  if (sm) results.push(sm);
+
+  // ── signings_pct ──
+  function signingsPct(domainData) {
+    const sc = domainData.scorecard;
+    if (!sc) return 0;
+    // Try overview targets structure
+    const targets = sc.targets ?? sc.overview?.targets ?? {};
+    const actual  = sc.actual  ?? sc.overview?.actual  ?? {};
+    const sigT = targets.signings ?? targets.Signings ?? 0;
+    const sigA = actual.signings  ?? actual.Signings  ?? 0;
+    if (!sigT) return 0;
+    return Math.round((sigA / sigT) * 100);
+  }
+  const sigVals = participants.map(([, d]) => signingsPct(d));
+  const sigm = buildMetric('signings_pct', 'Signings vs target', '%', sigVals, signingsPct(myByDomain));
+  if (sigm) results.push(sigm);
+
+  return results;
+}
+
+// GET /api/benchmark — anonymized peer benchmarks
+router.get('/benchmark', async (req, res) => {
+  try {
+    // Load current user's data
+    const myData = await db.query(
+      `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
+      [req.userId, ['readiness', 'wins', 'goals', 'actions', 'scorecard', 'reflections', 'settings']]
+    );
+    const myByDomain = Object.fromEntries(myData.rows.map(r => [r.domain, r.data]));
+
+    // Load all non-viewer users' data for comparison (anonymized)
+    const allUsers = await db.query(
+      `SELECT u.id, ud.domain, ud.data
+       FROM users u
+       JOIN user_data ud ON ud.user_id = u.id
+       WHERE u.role != 'viewer' AND ud.domain = ANY($1)`,
+      [['readiness', 'wins', 'goals', 'scorecard', 'reflections', 'settings']]
+    );
+
+    // Group by user
+    const userMap = {};
+    for (const row of allUsers.rows) {
+      if (!userMap[row.id]) userMap[row.id] = {};
+      userMap[row.id][row.domain] = row.data;
+    }
+
+    // Filter out opted-out users
+    const participants = Object.entries(userMap).filter(([, domains]) => {
+      const settings = domains.settings ?? {};
+      return settings.benchmarkOptOut !== true;
+    });
+
+    const participantCount = participants.length;
+    if (participantCount < 5) {
+      return res.json({ ok: true, participantCount, metrics: [] });
+    }
+
+    const metrics = computeBenchmarkMetrics(participants, req.userId, myByDomain);
+    res.json({ ok: true, participantCount, metrics });
+  } catch (err) {
+    console.error('benchmark error:', err.message);
+    res.status(500).json({ error: 'Failed to load benchmarks' });
+  }
+});
+
 module.exports = router;

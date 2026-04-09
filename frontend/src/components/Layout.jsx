@@ -30,6 +30,7 @@ const ALL_NAV_ITEMS = [
   { to: '/vault',     label: 'Documents'                        },
   { to: '/import-export', label: 'Import / Export' },
   { to: '/sponsees',  label: 'Sponsees'                          },
+  { to: '/benchmark', label: 'Benchmarking'                      },
   { to: '/calendar',  label: 'Calendar'              },
   { to: '/sharing',   label: 'Sharing'               },
   { to: '/view-others', label: 'View others'         },

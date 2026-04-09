@@ -353,36 +353,35 @@ Rules:
 - If evidence is strong but the self-rating is low (underrated), say so — this is valuable data too.
 - Keep insights specific: reference actual wins, deals, or activities from the data when possible.`;
 
-// ── LinkedIn import ─────────────────────────────────────────────────────────
+// ── Meeting prep ────────────────────────────────────────────────────────────
 
-const PARSE_LINKEDIN_PROMPT = `You are a contact extraction assistant. Your job is to parse raw text pasted from LinkedIn — profile pages, connection lists, CSV exports, or free-form contact details — and extract structured contact records.
+const MEETING_PREP_PROMPT = `You are a senior executive coach helping a professional services leader prepare for a meeting with a tracked contact.
 
-CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Output ONLY the JSON object. If the input is sparse or ambiguous, extract whatever you can — a name alone is a valid contact.
+CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Output ONLY the JSON object.
 
-For each person found, extract:
-- name: full name as written
-- title: current job title (normalize capitalization — title case)
-- org: current company or organization name
-- email: email address if present, otherwise null
+You will receive details about the contact (name, title, org, relationship type, relationship status, influence tier), their touchpoint history, linked opportunities, and recent wins related to this person.
+
+Your task is to generate a focused meeting prep card.
 
 Format your response as a JSON object:
 {
-  "contacts": [
-    { "name": "string", "title": "string or null", "org": "string or null", "email": "string or null" }
-  ]
+  "summary": "string — 2-3 sentences: how long they've been in contact, the nature of the relationship, current status and momentum",
+  "talking_points": [
+    "string — a specific, contextual talking point grounded in the provided data"
+  ],
+  "context_notes": "string — brief notes on relevant opportunities, recent wins, or shared history that are worth having in mind"
 }
 
-Return only valid JSON. No preamble, no markdown fences.
-
 Rules:
-- Deduplicate by name — if the same person appears more than once, include them once.
-- Skip any entry that does not have a name. A name is required.
-- Normalize titles to title case (e.g. "SENIOR MANAGER" → "Senior Manager").
-- Do not invent data. If a field is not present in the input, set it to null.
-- Handle all LinkedIn formats: profile pages, connection list tables, CSV exports (e.g. columns: First Name, Last Name, Email Address, Company, Position), and free-form lists.
-- If the input contains a CSV header row, use the column names to identify fields.
-- Maximum 50 contacts per import. If more than 50 are found, return the first 50.
-- Null and empty-string values are equivalent — use null for missing fields.`;
+- ALWAYS produce the full prep card. Never refuse or ask for permission.
+- Be specific. Reference actual touchpoint notes, opportunity names, win titles, and dates from the data provided.
+- talking_points must be 4–6 items. Each is a complete sentence that could be spoken aloud.
+- Prioritize talking points in this order: (1) open commitments or follow-ups from prior touchpoints, (2) active opportunities that touch this person, (3) relationship deepening moves (e.g. ask about their priorities, introduce a relevant insight), (4) strategic asks aligned to what the user needs from this person.
+- If the relationship is "in-progress", include at least one talking point about advancing the relationship.
+- If there are no touchpoints, focus on what the user knows about the person's role, org, and need.
+- context_notes should be 1-3 sentences maximum. Do not repeat what is in summary or talking_points.
+- Do not invent facts. Only use what is in the data provided.
+- Return only valid JSON. No preamble, no markdown fences.`;
 
 module.exports = {
   STORY_MODES,
@@ -392,5 +391,5 @@ module.exports = {
   ENHANCE_WIN_PROMPT,
   REFLECTION_SYNTHESIS_PROMPT,
   COMPETENCY_ANALYSIS_PROMPT,
-  PARSE_LINKEDIN_PROMPT,
+  MEETING_PREP_PROMPT,
 };
