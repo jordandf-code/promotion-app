@@ -30,6 +30,7 @@ import InfluenceMap from './pages/InfluenceMap';
 import BrandWorkspace from './pages/BrandWorkspace';
 import Sponsees from './pages/Sponsees';
 import MockPanel from './pages/MockPanel';
+import PromotionPackage from './pages/PromotionPackage';
 import DocumentVault from './pages/DocumentVault';
 import ImportExport from './pages/ImportExport';
 import Reflections from './pages/Reflections';
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="brand"      element={<RoleGuard allowed={['superuser','user']}><BrandWorkspace /></RoleGuard>} />
             <Route path="sponsees"   element={<RoleGuard allowed={['superuser','user']}><Sponsees /></RoleGuard>} />
             <Route path="mock-panel" element={<RoleGuard allowed={['superuser','user']}><MockPanel /></RoleGuard>} />
+            <Route path="promotion-package" element={<RoleGuard allowed={['superuser','user']}><PromotionPackage /></RoleGuard>} />
             <Route path="vault"      element={<RoleGuard allowed={['superuser','user']}><DocumentVault /></RoleGuard>} />
             <Route path="reflections"   element={<RoleGuard allowed={['superuser','user']}><Reflections /></RoleGuard>} />
             <Route path="competencies" element={<RoleGuard allowed={['superuser','user']}><Competencies /></RoleGuard>} />

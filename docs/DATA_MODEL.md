@@ -403,6 +403,54 @@ Send log for email notifications. Types: `weekly_digest`, `feedback_received`. U
 }
 ```
 
+## `mock_panel` domain
+
+```
+{
+  sessions: [ {
+    id, status,                 // 'in_progress' | 'completed' | 'abandoned'
+    difficulty,                 // 'standard' | 'challenging' | 'tough'
+    config: { focus_areas[], question_count },
+    questions: ["string"],      // AI-generated panel questions
+    turns: [ {
+      question, answer,
+      follow_up,                // AI follow-up after each answer
+      answered_at
+    } ],
+    debrief: {                  // generated after all questions answered
+      overall_score,            // 0–100
+      strengths[],
+      improvement_areas[],
+      question_scores: [ { turn, score, feedback } ],
+      coaching_notes
+    },
+    total_usage: { input_tokens, output_tokens },
+    created_at, completed_at
+  } ]
+}
+```
+
+## `promotion_package` domain
+
+```
+{
+  packages: [ {
+    id, status,                 // 'assembled' | 'generated' | 'exported'
+    created_at, polished_at,
+    polish_level,               // 'light' | 'standard' | 'full'
+    section_count,
+    sections: {
+      [section_key]: {
+        raw,                    // assembled from user data (no AI)
+        polished                // AI-polished version
+      }
+    }
+  } ]
+}
+```
+
+Section keys: `executive_summary`, `scorecard_performance`, `pipeline_outlook`, `key_wins`, `competency_assessment`, `brand_positioning`, `readiness_assessment`, `eminence_leadership`, `learning_development`, `people_network`, `the_ask`.
+
 ## Scorecard year structure
 
 7 years relative to promotion year: Year −4, −3, −2, −1 (qualifying), 0 (partner), +1, +2.

@@ -8,7 +8,9 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT, MOCK_PANEL_QUESTIONS_PROMPT, MOCK_PANEL_FOLLOWUP_PROMPT, MOCK_PANEL_DEBRIEF_PROMPT, PACKAGE_POLISH_PROMPT } = require('../ai/prompts');
+const { assemblePackage } = require('../ai/packageAssembly');
+const { renderPackageDeck } = require('../ai/renderPackageDeck');
 const { fmtCurrency }   = require('../ai/formatUtils');
 const db = require('../db');
 
@@ -668,6 +670,404 @@ router.post('/meeting-prep', async (req, res) => {
   if (!result.ok) return res.status(500).json(result);
 
   res.json({ ok: true, data: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/mock-panel/start ───────────────────────────────────────────
+// Body: { difficulty, focus_areas, question_count }
+
+router.post('/mock-panel/start', async (req, res) => {
+  const {
+    difficulty = 'standard',
+    focus_areas = ['commercial', 'leadership', 'strategic_thinking', 'client_relationships', 'eminence', 'people'],
+    question_count = 6,
+  } = req.body ?? {};
+
+  if (!['standard', 'challenging', 'tough'].includes(difficulty)) {
+    return res.status(400).json({ ok: false, error: 'Invalid difficulty', code: 'AI_ERROR' });
+  }
+  if (!Array.isArray(focus_areas) || focus_areas.length === 0) {
+    return res.status(400).json({ ok: false, error: 'At least one focus area required', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  const userContent = buildUserMessage(ctx)
+    + `\n\nDIFFICULTY: ${difficulty}`
+    + `\nFOCUS AREAS: ${focus_areas.join(', ')}`
+    + `\nNUMBER OF QUESTIONS: ${question_count}`;
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: MOCK_PANEL_QUESTIONS_PROMPT,
+    userContent,
+    maxTokens:    1000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'mock-panel-start',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const session = {
+    id: sessionId,
+    status: 'in_progress',
+    difficulty,
+    config: { focus_areas, question_count },
+    questions: result.data.questions,
+    turns: [],
+    created_at: new Date().toISOString(),
+    total_usage: { input_tokens: result.usage?.input_tokens ?? 0, output_tokens: result.usage?.output_tokens ?? 0 },
+  };
+
+  // Save to mock_panel domain
+  try {
+    const dataResult = await db.query(
+      `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'mock_panel'`,
+      [req.userId]
+    );
+    const mockPanelData = dataResult.rows[0]?.data ?? { sessions: [] };
+    mockPanelData.sessions = [session, ...mockPanelData.sessions];
+
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'mock_panel', $2::jsonb, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+      [req.userId, JSON.stringify(mockPanelData)]
+    );
+  } catch (dbErr) {
+    console.error('save mock panel session error:', dbErr.message);
+  }
+
+  res.json({ ok: true, session_id: sessionId, questions: result.data.questions, usage: result.usage });
+});
+
+// ── POST /api/ai/mock-panel/answer ──────────────────────────────────────────
+// Body: { session_id, turn, answer }
+
+router.post('/mock-panel/answer', async (req, res) => {
+  const { session_id, turn, answer } = req.body ?? {};
+  if (!session_id || turn == null || !answer) {
+    return res.status(400).json({ ok: false, error: 'session_id, turn, and answer are required', code: 'AI_ERROR' });
+  }
+
+  // Load session from DB
+  const dataResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'mock_panel'`,
+    [req.userId]
+  );
+  const mockPanelData = dataResult.rows[0]?.data ?? { sessions: [] };
+  const session = mockPanelData.sessions.find(s => s.id === session_id);
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'Session not found', code: 'AI_ERROR' });
+  }
+  if (session.status !== 'in_progress') {
+    return res.status(400).json({ ok: false, error: 'Session is not in progress', code: 'AI_ERROR' });
+  }
+
+  const questionIndex = turn - 1;
+  if (questionIndex < 0 || questionIndex >= session.questions.length) {
+    return res.status(400).json({ ok: false, error: 'Invalid turn number', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  const question = session.questions[questionIndex];
+  const userContent = `QUESTION ASKED:\n${question}\n\nCANDIDATE'S ANSWER:\n${answer}\n\nBRIEF CANDIDATE CONTEXT:\n${buildUserMessage(ctx)}`;
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: MOCK_PANEL_FOLLOWUP_PROMPT,
+    userContent,
+    maxTokens:    300,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'mock-panel-answer',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Save turn data
+  session.turns[questionIndex] = {
+    question,
+    answer,
+    follow_up: result.data.follow_up,
+    answered_at: new Date().toISOString(),
+  };
+  session.total_usage.input_tokens += result.usage?.input_tokens ?? 0;
+  session.total_usage.output_tokens += result.usage?.output_tokens ?? 0;
+
+  const isLast = turn >= session.config.question_count;
+
+  try {
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'mock_panel', $2::jsonb, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+      [req.userId, JSON.stringify(mockPanelData)]
+    );
+  } catch (dbErr) {
+    console.error('save mock panel answer error:', dbErr.message);
+  }
+
+  res.json({ ok: true, follow_up: result.data.follow_up, is_last: isLast });
+});
+
+// ── POST /api/ai/mock-panel/debrief ─────────────────────────────────────────
+// Body: { session_id }
+
+router.post('/mock-panel/debrief', async (req, res) => {
+  const { session_id } = req.body ?? {};
+  if (!session_id) {
+    return res.status(400).json({ ok: false, error: 'session_id is required', code: 'AI_ERROR' });
+  }
+
+  const dataResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'mock_panel'`,
+    [req.userId]
+  );
+  const mockPanelData = dataResult.rows[0]?.data ?? { sessions: [] };
+  const session = mockPanelData.sessions.find(s => s.id === session_id);
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'Session not found', code: 'AI_ERROR' });
+  }
+
+  // Validate all questions answered
+  const answeredCount = session.turns.filter(t => t && t.answer).length;
+  if (answeredCount < session.config.question_count) {
+    return res.status(400).json({ ok: false, error: 'Not all questions have been answered', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build content with all Q/A pairs
+  const qaPairs = session.turns.map((t, i) =>
+    `QUESTION ${i + 1}:\n${t.question}\n\nANSWER ${i + 1}:\n${t.answer}`
+  ).join('\n\n---\n\n');
+
+  const userContent = `PANEL SESSION Q&A:\n\n${qaPairs}\n\nCANDIDATE CONTEXT:\n${buildUserMessage(ctx)}`;
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: MOCK_PANEL_DEBRIEF_PROMPT,
+    userContent,
+    maxTokens:    2500,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'mock-panel-debrief',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Save debrief and mark complete
+  session.debrief = result.data;
+  session.status = 'completed';
+  session.completed_at = new Date().toISOString();
+  session.total_usage.input_tokens += result.usage?.input_tokens ?? 0;
+  session.total_usage.output_tokens += result.usage?.output_tokens ?? 0;
+
+  try {
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'mock_panel', $2::jsonb, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+      [req.userId, JSON.stringify(mockPanelData)]
+    );
+  } catch (dbErr) {
+    console.error('save mock panel debrief error:', dbErr.message);
+  }
+
+  res.json({ ok: true, debrief: result.data, usage: result.usage });
+});
+
+// ── POST /api/ai/package/assemble ───────────────────────────────────────────
+// Assembles raw promotion package sections from user data. No AI call.
+// Body: { sections_enabled: { executive_summary: true, ... } }
+
+router.post('/package/assemble', async (req, res) => {
+  const { sections_enabled } = req.body ?? {};
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Load additional domain data not in buildContext
+  const [readinessResult, competenciesResult, winsResult, storyResult, brandResult] = await Promise.all([
+    db.query(`SELECT data FROM user_data WHERE user_id = $1 AND domain = 'readiness'`, [req.userId]),
+    db.query(`SELECT data FROM user_data WHERE user_id = $1 AND domain = 'competencies'`, [req.userId]),
+    db.query(`SELECT data FROM user_data WHERE user_id = $1 AND domain = 'wins'`, [req.userId]),
+    db.query(`SELECT data FROM user_data WHERE user_id = $1 AND domain = 'story'`, [req.userId]),
+    db.query(`SELECT data FROM user_data WHERE user_id = $1 AND domain = 'brand'`, [req.userId]),
+  ]);
+
+  const readiness    = readinessResult.rows[0]?.data ?? {};
+  const competencies = competenciesResult.rows[0]?.data ?? { assessments: [] };
+  const allWins      = winsResult.rows[0]?.data ?? [];
+  const storyData    = storyResult.rows[0]?.data ?? {};
+  const brandData    = brandResult.rows[0]?.data ?? {};
+
+  // Attach story data (polished_narrative, plan_2027, gap_analysis) to context
+  if (storyData.polished_narrative) ctx.polished_narrative = storyData.polished_narrative;
+  if (storyData.plan_2027)          ctx.plan_2027 = storyData.plan_2027;
+  if (storyData.gap_analysis)       ctx.gap_analysis = storyData.gap_analysis;
+  if (brandData.tagline || brandData.positioning || (brandData.key_messages || []).length) {
+    ctx.brand = brandData;
+  }
+
+  // Assemble raw sections
+  const rawSections = assemblePackage(ctx, { readiness, competencies, allWins });
+
+  // Filter disabled sections
+  const sections = {};
+  for (const [key, raw] of Object.entries(rawSections)) {
+    if (sections_enabled && sections_enabled[key] === false) continue;
+    sections[key] = { raw };
+  }
+
+  // Create package record
+  const uid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const pkg = {
+    id: uid,
+    created_at: new Date().toISOString(),
+    status: 'assembled',
+    sections,
+    section_count: Object.keys(sections).length,
+  };
+
+  // Save to promotion_package domain
+  const pkgDataResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'promotion_package'`,
+    [req.userId]
+  );
+  const pkgData = pkgDataResult.rows[0]?.data ?? { packages: [] };
+  pkgData.packages = [pkg, ...pkgData.packages];
+
+  await db.query(
+    `INSERT INTO user_data (user_id, domain, data, updated_at)
+     VALUES ($1, 'promotion_package', $2::jsonb, NOW())
+     ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+    [req.userId, JSON.stringify(pkgData)]
+  );
+
+  res.json({ ok: true, package_id: uid, sections });
+});
+
+// ── POST /api/ai/package/polish ─────────────────────────────────────────────
+// Body: { package_id, polish_level: 'light' | 'standard' | 'full' }
+
+router.post('/package/polish', async (req, res) => {
+  const { package_id, polish_level = 'standard' } = req.body ?? {};
+  if (!package_id) {
+    return res.status(400).json({ ok: false, error: 'package_id is required', code: 'AI_ERROR' });
+  }
+
+  // Load package
+  const dataResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'promotion_package'`,
+    [req.userId]
+  );
+  const pkgData = dataResult.rows[0]?.data ?? { packages: [] };
+  const pkg = pkgData.packages.find(p => p.id === package_id);
+  if (!pkg) {
+    return res.status(404).json({ ok: false, error: 'Package not found', code: 'AI_ERROR' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Build user content: raw sections + polish level + user context
+  const rawSections = {};
+  for (const [key, section] of Object.entries(pkg.sections)) {
+    rawSections[key] = section.raw;
+  }
+
+  const userContent = JSON.stringify({
+    polish_level,
+    user_context: ctx.user_context,
+    sections: rawSections,
+  });
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: PACKAGE_POLISH_PROMPT,
+    userContent,
+    maxTokens:    6000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'package-polish',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Merge polished text into sections
+  const polishedSections = result.data.sections ?? {};
+  for (const [key, polished] of Object.entries(polishedSections)) {
+    if (pkg.sections[key]) {
+      pkg.sections[key].polished = polished;
+    }
+  }
+  pkg.status = 'generated';
+  pkg.polished_at = new Date().toISOString();
+  pkg.polish_level = polish_level;
+
+  // Save back
+  await db.query(
+    `INSERT INTO user_data (user_id, domain, data, updated_at)
+     VALUES ($1, 'promotion_package', $2::jsonb, NOW())
+     ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+    [req.userId, JSON.stringify(pkgData)]
+  );
+
+  res.json({ ok: true, sections: pkg.sections, usage: result.usage });
+});
+
+// ── POST /api/ai/package/export-deck ────────────────────────────────────────
+// Body: { package_id }
+
+router.post('/package/export-deck', async (req, res) => {
+  const { package_id } = req.body ?? {};
+  if (!package_id) {
+    return res.status(400).json({ ok: false, error: 'package_id is required', code: 'AI_ERROR' });
+  }
+
+  // Load package
+  const deckDataResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'promotion_package'`,
+    [req.userId]
+  );
+  const deckPkgData = deckDataResult.rows[0]?.data ?? { packages: [] };
+  const pkg = deckPkgData.packages.find(p => p.id === package_id);
+  if (!pkg) {
+    return res.status(404).json({ ok: false, error: 'Package not found', code: 'AI_ERROR' });
+  }
+
+  // Get user context
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  // Prepare sections for deck (prefer polished, fall back to raw)
+  const deckSections = {};
+  for (const [key, section] of Object.entries(pkg.sections)) {
+    deckSections[key] = section.polished || section.raw;
+  }
+
+  try {
+    const buf = await renderPackageDeck(deckSections, ctx.user_context);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.setHeader('Content-Disposition', 'attachment; filename="promotion-package.pptx"');
+    res.send(buf);
+  } catch (err) {
+    console.error('export-deck error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to generate deck', code: 'AI_ERROR' });
+  }
 });
 
 // ── GET /api/ai/usage ───────────────────────────────────────────────────────

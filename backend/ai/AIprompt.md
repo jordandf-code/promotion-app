@@ -353,3 +353,49 @@ Returns a JSON object with four sections:
 - All context assembled server-side via `backend/ai/buildContext.js` — frontend sends only
   `{ narrative_mode }` with JWT auth header
 - API key loaded from user's admin data in DB, never from request body
+
+---
+
+## Mock Panel Endpoints (Layer 3A)
+
+Three endpoints power the interactive mock promotion panel:
+
+### `POST /api/ai/mock-panel/start`
+- **Body**: `{ difficulty, focus_areas[], question_count }`
+- **Prompt**: `MOCK_PANEL_QUESTIONS_PROMPT` — generates N questions grounded in candidate data
+- **Max tokens**: 1000 | **Parse JSON**: true
+- **Output**: `{ questions: ["string", ...] }`
+- Session saved to `mock_panel` domain
+
+### `POST /api/ai/mock-panel/answer`
+- **Body**: `{ session_id, turn, answer }`
+- **Prompt**: `MOCK_PANEL_FOLLOWUP_PROMPT` — 1-2 sentence follow-up per answer
+- **Max tokens**: 300 | **Parse JSON**: true
+- **Output**: `{ follow_up: "string" }`
+
+### `POST /api/ai/mock-panel/debrief`
+- **Body**: `{ session_id }`
+- **Prompt**: `MOCK_PANEL_DEBRIEF_PROMPT` — full session review with per-question scores
+- **Max tokens**: 2500 | **Parse JSON**: true
+- **Output**: `{ overall_score, strengths[], improvement_areas[], question_scores[], coaching_notes }`
+
+---
+
+## Package Generator Endpoints (Layer 3B)
+
+### `POST /api/ai/package/assemble`
+- **Body**: `{ sections_enabled }`
+- **No AI call** — pure data assembly via `packageAssembly.js`
+- Loads all domains and assembles 11 sections from user data
+- **Output**: `{ package_id, sections: { [key]: { raw } } }`
+
+### `POST /api/ai/package/polish`
+- **Body**: `{ package_id, polish_level }`
+- **Prompt**: `PACKAGE_POLISH_PROMPT` — polishes all raw sections into committee-ready prose
+- **Max tokens**: 6000 | **Parse JSON**: true
+- **Output**: `{ sections: { [key]: { raw, polished } }, usage }`
+
+### `POST /api/ai/package/export-deck`
+- **Body**: `{ package_id }`
+- **No AI call** — generates PPTX via `renderPackageDeck.js`
+- Returns binary `.pptx` download

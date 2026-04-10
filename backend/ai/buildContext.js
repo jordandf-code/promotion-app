@@ -108,7 +108,7 @@ async function buildContext(userId) {
   const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'story']]
     ),
     loadFirmConfig(),
     db.query(
@@ -409,6 +409,23 @@ async function buildContext(userId) {
       };
     }
   }
+
+  // ── brand (tagline, positioning, key messages, proof points) ──
+  const rawBrand = byDomain.brand ?? {};
+  if (rawBrand.tagline || rawBrand.positioning || rawBrand.key_messages?.length) {
+    context.brand = {
+      tagline:      rawBrand.tagline ?? null,
+      positioning:  rawBrand.positioning ?? null,
+      key_messages: (rawBrand.key_messages ?? []).map(m => m.message),
+      proof_points: (rawBrand.proof_points ?? []).map(p => ({ claim: p.claim, evidence: p.evidence_summary })),
+    };
+  }
+
+  // ── story (cached AI outputs: gap analysis, narrative, 2027 plan) ──
+  const rawStory = byDomain.story ?? {};
+  if (rawStory.gap_analysis?.data)        context.gap_analysis = rawStory.gap_analysis.data;
+  if (rawStory.polished_narrative?.data)   context.polished_narrative = rawStory.polished_narrative.data;
+  if (rawStory.plan_2027?.data)            context.plan_2027 = rawStory.plan_2027.data;
 
   return removeNulls(context);
 }
