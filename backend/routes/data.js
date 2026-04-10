@@ -9,7 +9,7 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 
 const ALLOWED_DOMAINS = new Set([
-  'scorecard', 'wins', 'actions', 'goals', 'people', 'admin', 'story', 'settings', 'sharing', 'backup', 'learning', 'eminence', 'readiness', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'vault',
+  'scorecard', 'wins', 'actions', 'goals', 'people', 'admin', 'story', 'settings', 'sharing', 'backup', 'learning', 'eminence', 'readiness', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'vault', 'mock_panel', 'promotion_package',
 ]);
 
 // GET /api/data/:domain

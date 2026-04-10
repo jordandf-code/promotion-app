@@ -96,12 +96,19 @@ Migration required: `migration_layer0e.sql` (run in Supabase SQL editor)
 | **2H** | Meeting prep & debrief engine (AI prep cards, quick-capture debrief) | 1A | ✅ |
 | **2I** | Calendar integration (read-only sync, auto-detect tracked contacts) | 2H | _deferred_ |
 
-### Layer 3 — Final features (2 features)
+### Layer 3 — Final features (2 features) ✅ COMPLETE
 
 | ID | Feature | Depends on | Status |
 |----|---------|-----------|--------|
-| **3A** | AI mock promotion panel (interactive practice + debriefs) | 2B, 1J | |
-| **3B** | Promotion package generator (content assembly + export) | 2B, 1L | |
+| **3A** | AI mock promotion panel (interactive practice + debriefs) | 2B, 1J | ✅ |
+| **3B** | Promotion package generator (content assembly + export) | 2B, 1L | ✅ |
+
+### Layer 4 — Multi-user & access (deferred)
+
+| ID | Feature | Depends on | Status |
+|----|---------|-----------|--------|
+| **4A** | Viewer access rework (passwordless invite, view-only, upgrade path) | 0E, 1D | |
+| **4B** | View Others rework (sponsor/committee visibility) | 4A | |
 
 ### Dependency graph (visual)
 
@@ -125,6 +132,10 @@ LAYER 1 (parallel)               LAYER 2 (parallel)
   1J Competency Assessment ✅      LAYER 3 (parallel)
   1K Weekly Reflection ✅           3A Mock Panel ←── 2B + 1J
   1L Win Enhancement AI ✅          3B Package Gen ←── 2B + 1L
+
+                                   LAYER 4 (deferred)
+                                     4A Viewer Access ←── 0E + 1D
+                                     4B View Others ←── 4A
 ```
 
 ### New features from competitive gap analysis (2026-04-08)
@@ -153,6 +164,62 @@ Added after analyzing CCC against Lattice, Pando, BragBook, MyCareerDiary, Caree
 - AI usage log → **1G**
 - PowerPoint deck polish → absorbed into **3B** (promotion package generator)
 - 4 notification types → **1F**
+
+---
+
+## Issue triage (2026-04-09)
+
+Full review of 25 open GitHub issues through technical, business, and visionary lenses. Key decisions:
+
+### Product decisions made
+
+| Decision | Outcome |
+|----------|---------|
+| **Follow-ups (#72, #73)** | Kill auto-follow-up actions and per-person recurrence. Keep planned contacts. Add recurring option to planned contact form (user sets interval, next contact auto-creates on mark done). #79 moot. |
+| **Readiness trend (#68)** | Remove trend chart widget from dashboard. Keep readiness score widget and snapshot infrastructure (feeds sponsor views via peers.js). |
+| **AI strategy (#63, #64)** | Support both native and DIY paths. Combine prompt+JSON into single copyable block. Add JSON import on DIY tab writing to same `gap_analysis` structure. All three sources (native, DIY, manual) feed readiness identically. |
+| **AI prompt scope** | Make gap analysis firm-agnostic. Rename `ibmCriteria` → `promotionCriteria`. Prompt references user-supplied criteria, not IBM-specific language. |
+| **Dashboard pills (#69)** | Kill them. Readiness score already covers the info. |
+| **Sign out (#59)** | Mobile only — add `window.confirm` on the mobile sign-out button. No desktop change. |
+| **Emails (#84)** | Not broken — transient Resend issue. Add retry logic + failure counter. Demoted from critical. |
+| **Scheduler (#61)** | Likely working (UptimeRobot active). Add `lastSchedulerRun` to `/api/health`. Demoted from critical. |
+| **Viewer access (#19, #24)** | Moved to Layer 4. Not now. |
+
+### Prioritized bug/fix backlog
+
+**P0 — Fix immediately**
+- [ ] #62 — AI gap analysis JSON parse failure (increase maxTokens, add stop_reason guard)
+- [ ] #80 — Categories not showing in super admin (context cache coherence)
+- [ ] #55 — Tags not syncing in wins edit (same root cause as #80)
+
+**P1 — High value, next sprint**
+- [ ] #85 — Scorecard compliance thresholds (per-metric pass threshold)
+- [ ] #74 — Form validation feedback on mandatory fields
+- [ ] #78 — Opportunities table mobile card fallback
+- [ ] #60 — Configurable exchange rate in Super Admin
+- [ ] #70 — Year range display on project summaries
+- [ ] Rename `ibmCriteria` → `promotionCriteria`, make AI prompts firm-agnostic
+- [ ] Recurring planned contacts (interval field on form, auto-create next on mark done)
+
+**P2 — Polish batch**
+- [ ] #77 — Click-to-edit affordance on opportunities
+- [ ] #83 — Rename "Need help with anything?" → "notes" in Reflections
+- [ ] #64 — Combine AI prompt+JSON into single copyable block
+- [ ] #71 — Report issue auto-include page context + browser info
+- [ ] #59 — Mobile-only sign-out confirmation
+- [ ] #84 — Email retry logic + failure counter
+- [ ] #61 — Add `lastSchedulerRun` to `/api/health`
+
+**P3 — Removal/cleanup**
+- [ ] #69 — Remove dashboard pills (StatStrip items)
+- [ ] #68 — Remove ReadinessTrendWidget from Dashboard
+- [ ] #72 — Kill auto-follow-up actions + per-person recurrence UI
+
+**P4 — Strategic (future layers)**
+- [ ] #63 — JSON import on DIY tab
+- [ ] #82 — Competency radar enhancement (question bank, better assessments)
+- [ ] #81 — Security scanning (ops process, not a code feature)
+- [ ] #19 + #24 — Viewer access / View Others rework (Layer 4)
 
 ---
 

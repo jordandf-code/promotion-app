@@ -44,7 +44,8 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 | **Sharing** | Sharing.jsx — public link + feedback (sub-tabs: Links / Feedback) | `/sharing` |
 | **Import/Export** | ImportExport.jsx — CSV import and ZIP export | `/import-export` |
 
-Hidden pages (registered but not in nav): `/influence-map`, `/brand`, `/mock-panel`, `/vault`
+| **Mock Panel** | MockPanel.jsx — AI-powered promotion panel practice | `/mock-panel` |
+| **Package Generator** | PromotionPackage.jsx — assemble + polish + export promotion case | `/promotion-package` |
 
 ## Pipeline Stages & Statuses
 

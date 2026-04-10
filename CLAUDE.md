@@ -99,7 +99,7 @@ Only modify files directly required for the stated task. Do not opportunisticall
 
 ## Current status
 
-Layers 0, 1, and 2 complete (2I Calendar deferred). Layer 3 ready to start (3A Mock Panel, 3B Package Generator). See `docs/PLAN.md` for the full dependency graph. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
+Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
 
 ## Doc loading
 
