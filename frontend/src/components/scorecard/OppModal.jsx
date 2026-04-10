@@ -16,6 +16,8 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
   const ORIGIN_OPTIONS    = originTypes ?? DEFAULT_ORIGIN_TYPES;
   const STAGES            = (pipelineStages ?? DEFAULT_PIPELINE_STAGES).map(s => s.label);
 
+  const [errors, setErrors] = useState({});
+
   const [form, setForm] = useState(() => ({
     stage: 'Qualified',
     probability: '',
@@ -31,10 +33,23 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
 
   function setField(field, value) {
     setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  }
+
+  function validate() {
+    const errs = {};
+    if (!form.name?.trim()) errs.name = 'Required';
+    if (!form.client?.trim()) errs.client = 'Required';
+    if (form.totalValue === '' || form.totalValue == null) errs.totalValue = 'Required';
+    if (form.signingsValue === '' || form.signingsValue == null) errs.signingsValue = 'Required';
+    if (form.status !== 'open' && !form.winDate) errs.winDate = 'Required';
+    return errs;
   }
 
   function handleSubmit(e) {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     onSave({
       ...form,
       totalValue:    fromInputValue(form.totalValue),
@@ -56,9 +71,11 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
           <div className="form-row">
             <label>Opportunity name<span className="form-required">*</span>
               <input className="form-input" value={form.name} onChange={e => setField('name', e.target.value)} required autoFocus />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </label>
             <label>Client<span className="form-required">*</span>
               <input className="form-input" value={form.client} onChange={e => setField('client', e.target.value)} required />
+              {errors.client && <span className="field-error">{errors.client}</span>}
             </label>
           </div>
 
@@ -69,7 +86,10 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
               </select>
             </label>
             <label>Status
-              <select className="form-input" value={form.status} onChange={e => setField('status', e.target.value)}>
+              <select className="form-input" value={form.status} onChange={e => {
+                setField('status', e.target.value);
+                if (e.target.value === 'open') setErrors(prev => ({ ...prev, winDate: undefined }));
+              }}>
                 {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
               </select>
             </label>
@@ -78,6 +98,7 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
               <input className="form-input" type="date" value={form.winDate ?? ''}
                 onChange={e => setField('winDate', e.target.value)}
                 required={form.status !== 'open'} />
+              {errors.winDate && <span className="field-error">{errors.winDate}</span>}
             </label>
           </div>
 
@@ -112,12 +133,14 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
               <input className="form-input" type="number" min="0" inputMode="decimal"
                 value={form.totalValue}
                 onChange={e => setField('totalValue', e.target.value)} required />
+              {errors.totalValue && <span className="field-error">{errors.totalValue}</span>}
             </label>
             <label>Signings credit<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
               <input className="form-input" type="number" min="0" inputMode="decimal"
                 value={form.signingsValue}
                 onChange={e => setField('signingsValue', e.target.value)}
                 required placeholder="Your credited portion" />
+              {errors.signingsValue && <span className="field-error">{errors.signingsValue}</span>}
             </label>
           </div>
 

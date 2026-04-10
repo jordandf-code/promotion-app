@@ -99,7 +99,7 @@ Only modify files directly required for the stated task. Do not opportunisticall
 
 ## Current status
 
-Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
+Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-4 complete: all P0-P3 backlog items resolved (20 items). P4 deferred (#63, #82, #81, #19+#24). Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
 
 ## Doc loading
 

@@ -3,7 +3,7 @@
 // Replaces the per-component hook instances so changes in Admin reflect in the sidebar instantly.
 //
 // Data is split into two sources:
-//   - Per-user admin data: navOrder, bottomBarTabs, ibmCriteria, careerHistory, anthropicKey
+//   - Per-user admin data: navOrder, bottomBarTabs, promotionCriteria, careerHistory, anthropicKey
 //   - Platform data (site-wide): winTags, relationshipTypes, dealTypes, logoTypes, originTypes,
 //     eminenceTypes, pipelineStages, readinessWeights, deckTemplate, deckTemplateFilename,
 //     deckContentInstructions
@@ -79,12 +79,11 @@ export const DEFAULT_PIPELINE_STAGES = [
 
 // Keys that belong to per-user admin data
 const USER_DEFAULTS = {
-  ibmCriteria:       '',
+  promotionCriteria: '',
   careerHistory:     '',
   anthropicKey:      '',
   navOrder:          DEFAULT_NAV_ORDER,
   bottomBarTabs:     null,
-  autoFollowUp:      { enabled: true, intervalDays: 30 },
 };
 
 export const DEFAULT_FIRM_CONFIG = {
@@ -98,6 +97,12 @@ export const DEFAULT_FIRM_CONFIG = {
     revenue:     'Revenue',
     grossProfit: 'Gross profit',
     utilization: 'Chargeable utilization',
+  },
+  thresholds: {
+    signings:    85,
+    revenue:     85,
+    grossProfit: 80,
+    utilization: 70,
   },
 };
 
@@ -189,10 +194,41 @@ export function AdminDataProvider({ children }) {
       if (!res.ok) {
         console.error(`Platform save failed: ${res.status}`);
         if (rollback) setAdminData(rollback);
+      } else {
+        // Re-fetch platform data after successful save to ensure UI matches DB
+        await refetchPlatform();
       }
     } catch (err) {
       console.error('Failed to save platform data:', err.message);
       if (rollback) setAdminData(rollback);
+    }
+  }
+
+  // Re-fetch platform data from server and merge into state
+  async function refetchPlatform() {
+    try {
+      const { data: serverPlatform, firmConfig: serverFirmConfig } = await fetchPlatform();
+      if (serverPlatform) {
+        skipSync.current = true;
+        skipPlatformSync.current = true;
+        setAdminData(prev => {
+          const updated = { ...prev };
+          for (const k of PLATFORM_KEYS) {
+            if (serverPlatform[k] !== undefined) updated[k] = serverPlatform[k];
+          }
+          return updated;
+        });
+      }
+      if (serverFirmConfig) {
+        setFirmConfigState({
+          ...DEFAULT_FIRM_CONFIG,
+          ...serverFirmConfig,
+          metricLabels: { ...DEFAULT_FIRM_CONFIG.metricLabels, ...(serverFirmConfig.metricLabels || {}) },
+          thresholds: { ...DEFAULT_FIRM_CONFIG.thresholds, ...(serverFirmConfig.thresholds || {}) },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to refetch platform data:', err.message);
     }
   }
 
@@ -217,6 +253,7 @@ export function AdminDataProvider({ children }) {
           ...DEFAULT_FIRM_CONFIG,
           ...serverFirmConfig,
           metricLabels: { ...DEFAULT_FIRM_CONFIG.metricLabels, ...(serverFirmConfig.metricLabels || {}) },
+          thresholds: { ...DEFAULT_FIRM_CONFIG.thresholds, ...(serverFirmConfig.thresholds || {}) },
         });
       }
 
@@ -224,10 +261,18 @@ export function AdminDataProvider({ children }) {
 
       // Handle per-user admin data
       if (serverAdmin !== null) {
+        // Backward compat: migrate ibmCriteria → promotionCriteria
+        if (serverAdmin.ibmCriteria && !serverAdmin.promotionCriteria) {
+          serverAdmin.promotionCriteria = serverAdmin.ibmCriteria;
+        }
         // Migrate: if server admin data contains platform keys (old format),
         // those become fallbacks but platform data takes precedence
         merged = { ...merged, ...serverAdmin };
       } else {
+        // Backward compat: migrate ibmCriteria → promotionCriteria
+        if (local.ibmCriteria && !local.promotionCriteria) {
+          local.promotionCriteria = local.ibmCriteria;
+        }
         // No server data — use local
         merged = { ...merged, ...local };
       }
@@ -289,12 +334,11 @@ export function AdminDataProvider({ children }) {
   }, [adminData, initialized]);
 
   // ── Per-user admin setters ───────────────────────────────────────────────
-  function setIbmCriteria(text)         { setAdminData(d => ({ ...d, ibmCriteria: text })); }
+  function setPromotionCriteria(text)         { setAdminData(d => ({ ...d, promotionCriteria: text })); }
   function setCareerHistory(text)       { setAdminData(d => ({ ...d, careerHistory: text })); }
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
   function setBottomBarTabs(tabs)       { setAdminData(d => ({ ...d, bottomBarTabs: tabs })); }
-  function setAutoFollowUp(val)        { setAdminData(d => ({ ...d, autoFollowUp: val })); }
 
   // ── Platform setters (write to /api/platform instead of /api/data/admin) ──
   function savePlatformFromState(prevState, updates) {
@@ -332,6 +376,7 @@ export function AdminDataProvider({ children }) {
       ...firmConfig,
       ...newConfig,
       metricLabels: { ...(firmConfig.metricLabels || {}), ...(newConfig.metricLabels || {}) },
+      thresholds: { ...(firmConfig.thresholds || {}), ...(newConfig.thresholds || {}) },
     };
     setFirmConfigState(merged);
     try {
@@ -343,6 +388,9 @@ export function AdminDataProvider({ children }) {
       if (!res.ok) {
         console.error(`Firm config save failed: ${res.status}`);
         setFirmConfigState(firmConfig); // rollback
+      } else {
+        // Re-fetch to ensure UI matches DB
+        await refetchPlatform();
       }
     } catch (err) {
       console.error('Failed to save firm config:', err.message);
@@ -366,8 +414,8 @@ export function AdminDataProvider({ children }) {
       ...adminData,
       firmConfig, setFirmConfig,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
-      setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setAutoFollowUp, setReadinessWeights,
-      setDeckTemplate, setDeckContentInstructions,
+      setPromotionCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
+      setDeckTemplate, setDeckContentInstructions, refetchPlatform,
     }}>
       {children}
     </AdminDataContext.Provider>

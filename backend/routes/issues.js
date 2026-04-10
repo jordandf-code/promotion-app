@@ -12,7 +12,7 @@ router.use(authMiddleware);
 
 // POST /api/issues — submit an issue to GitHub
 router.post('/', async (req, res) => {
-  const { title, description, type } = req.body;
+  const { title, description, type, page, browser } = req.body;
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
@@ -55,6 +55,8 @@ router.post('/', async (req, res) => {
       `**Reporter:** ${user.name} (${user.email})`,
       `**Role:** ${user.role}`,
       `**Date:** ${new Date().toISOString()}`,
+      `**Page:** ${page || 'unknown'}`,
+      `**Browser:** ${browser || 'unknown'}`,
     ].join('\n');
 
     // Call GitHub API

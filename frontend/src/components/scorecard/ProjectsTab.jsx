@@ -9,7 +9,7 @@ import ProjectModal from './ProjectModal.jsx';
 const STATUS_LABELS = { forecast: 'Forecast', realized: 'Realized' };
 
 const EMPTY_FORM = {
-  name: '', client: '', year: new Date().getFullYear(),
+  name: '', client: '', year: new Date().getFullYear(), endYear: '',
   status: 'forecast', opportunityId: '',
   revenue:     { q1: '', q2: '', q3: '', q4: '' },
   grossProfit: { q1: '', q2: '', q3: '', q4: '' },
@@ -22,13 +22,24 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
   const [modal, setModal] = useState(null);
 
   const projects = scorecard.projects
-    .filter(p => yearFilter   === 'all' || p.year   === Number(yearFilter))
+    .filter(p => {
+      if (yearFilter === 'all') return true;
+      const filterYr = Number(yearFilter);
+      const start = p.year;
+      const end = p.endYear && p.endYear !== p.year ? p.endYear : p.year;
+      return filterYr >= start && filterYr <= end;
+    })
     .filter(p => statusFilter === 'all' || p.status === statusFilter)
     .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
 
   const summaryProjects = yearFilter === 'all'
     ? scorecard.projects
-    : scorecard.projects.filter(p => p.year === Number(yearFilter));
+    : scorecard.projects.filter(p => {
+        const filterYr = Number(yearFilter);
+        const start = p.year;
+        const end = p.endYear && p.endYear !== p.year ? p.endYear : p.year;
+        return filterYr >= start && filterYr <= end;
+      });
   const realizedRev = summaryProjects.filter(p => p.status === 'realized').reduce((s, p) => s + qSum(p.revenue), 0);
   const forecastRev = summaryProjects.filter(p => p.status === 'forecast').reduce((s, p) => s + qSum(p.revenue), 0);
   const realizedGP  = summaryProjects.filter(p => p.status === 'realized').reduce((s, p) => s + qSum(p.grossProfit), 0);
@@ -44,6 +55,7 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
     const payload = {
       ...form,
       year:          Number(form.year),
+      endYear:       form.endYear ? Number(form.endYear) : null,
       opportunityId: form.opportunityId || null,
     };
     if (modal.mode === 'add') scorecard.addProject(payload);
@@ -118,7 +130,7 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
                   <tr key={proj.id}>
                     <td className="td-primary">{proj.name}</td>
                     <td>{proj.client}</td>
-                    <td>{proj.year}</td>
+                    <td>{proj.endYear && proj.endYear !== proj.year ? `${proj.year}\u2013${proj.endYear}` : proj.year}</td>
                     <td><span className={`status-pip status-pip--${proj.status}`}>{STATUS_LABELS[proj.status]}</span></td>
                     <td>{oppName ? <span className="opp-link">{oppName}</span> : <span className="muted">—</span>}</td>
                     <td className="num-col"><QuarterBreakdown values={proj.revenue} total={rev} /></td>

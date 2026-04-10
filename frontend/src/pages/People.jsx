@@ -1,6 +1,6 @@
 // People.jsx — Relationship management with influence tiers, contact log, and planned touchpoints
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS, INFLUENCE_TIERS, INFLUENCE_TIER_LABELS, STRATEGIC_IMPORTANCE, STRATEGIC_IMPORTANCE_LABELS, DEFAULT_STAKEHOLDER_GROUPS } from '../hooks/usePeopleData.js';
 import CoverageSummary from '../components/people/CoverageSummary.jsx';
@@ -18,39 +18,8 @@ export default function People() {
     addTouchpoint, removeTouchpoint,
     addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint,
   } = usePeopleData();
-  const { relationshipTypes, autoFollowUp } = useAdminData();
-  const { actions, initialized: actionsReady, addAction, toggleDone } = useActionsData();
-  const followUpRan = useRef(false);
-
-  // Auto-create follow-up actions on mount (Issues #49 + #38)
-  useEffect(() => {
-    if (followUpRan.current || people.length === 0 || !actionsReady) return;
-    followUpRan.current = true;
-    const today = new Date().toISOString().slice(0, 10);
-
-    people.forEach(person => {
-      const title = `Follow up with ${person.name}`;
-      const hasOpenAction = actions.some(a => a.title === title && !a.done);
-      if (hasOpenAction) return;
-
-      const days = daysSinceContact(person);
-      const rec = person.recurrence;
-
-      if (rec?.enabled && rec.intervalDays > 0) {
-        // Issue #49: Recurring touchpoint overdue
-        if (days >= rec.intervalDays) {
-          addAction({ title, dueDate: today });
-        }
-      } else {
-        // Issue #38: Global follow-up safety net (contacts without explicit recurrence)
-        const globalEnabled = autoFollowUp?.enabled !== false; // default enabled
-        const globalDays = autoFollowUp?.intervalDays || 30;
-        if (globalEnabled && days > globalDays) {
-          addAction({ title, dueDate: today });
-        }
-      }
-    });
-  }, [people, actions, autoFollowUp]);
+  const { relationshipTypes } = useAdminData();
+  const { actions, addAction, toggleDone } = useActionsData();
 
   const [typeFilter,      setTypeFilter]      = useState('all');
   const [statusFilter,    setStatusFilter]    = useState('all');
@@ -61,16 +30,8 @@ export default function People() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
-  // Issue #51: Adaptive threshold per person
-  function getFollowUpThreshold(person) {
-    if (person.recurrence?.enabled && person.recurrence.intervalDays > 0) {
-      return person.recurrence.intervalDays;
-    }
-    return autoFollowUp?.intervalDays || 30;
-  }
-
   function isStale(person) {
-    return daysSinceContact(person) > getFollowUpThreshold(person);
+    return daysSinceContact(person) > 30;
   }
 
   const filtered = people
@@ -160,7 +121,6 @@ export default function People() {
             key={p.id}
             person={p}
             relationshipTypes={relationshipTypes}
-            autoFollowUp={autoFollowUp}
             onEdit={() => openEdit(p)}
             onDelete={() => handleDelete(p.id)}
             onUpdatePerson={updatePerson}
@@ -291,7 +251,24 @@ function FeedbackRequestModal({ person, onClose }) {
 
 function PersonModal({ mode, initial, relationshipTypes, stakeholderGroups, onSave, onClose }) {
   const [form, setForm] = useState({ ...initial });
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const [errors, setErrors] = useState({});
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
+  function validate() {
+    const errs = {};
+    if (!form.name?.trim()) errs.name = 'Required';
+    return errs;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    onSave(form);
+  }
 
   return (
     <div className="modal-backdrop">
@@ -300,11 +277,12 @@ function PersonModal({ mode, initial, relationshipTypes, stakeholderGroups, onSa
           <h3>{mode === 'add' ? 'Add person' : 'Edit person'}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+        <form className="modal-form" onSubmit={handleSubmit}>
           <div className="form-row">
-            <label>Name
+            <label>Name <span className="form-required">*</span>
               <input className="form-input" value={form.name}
-                onChange={e => setField('name', e.target.value)} required autoFocus />
+                onChange={e => setField('name', e.target.value)} autoFocus />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </label>
             <label>Relationship type
               <select className="form-input" value={form.type} onChange={e => setField('type', e.target.value)}>

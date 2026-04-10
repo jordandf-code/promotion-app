@@ -85,7 +85,7 @@ Many-to-many with goals via `linkedGoalIds` array.
 
 ```
 {
-  ibmCriteria:       string,
+  promotionCriteria: string,
   careerHistory:     string,
   anthropicKey:      string,
   navOrder:          [ string ],

@@ -23,6 +23,8 @@ export default function PlannedContactSection({
   const [actionMode,  setActionMode]  = useState('create');
   const [actionTitle, setActionTitle] = useState('');
   const [linkId,      setLinkId]      = useState('');
+  const [recurring,   setRecurring]   = useState(false);
+  const [intervalDays, setIntervalDays] = useState(14);
 
   // Log confirmation state — which planned touchpoint is being confirmed
   const [loggingPt,  setLoggingPt]  = useState(null);
@@ -38,6 +40,8 @@ export default function PlannedContactSection({
     setActionMode('create');
     setActionTitle(`Contact ${person.name}`);
     setLinkId('');
+    setRecurring(false);
+    setIntervalDays(14);
     setShowForm(true);
     setShowList(true);
   }
@@ -63,7 +67,8 @@ export default function PlannedContactSection({
       });
     }
 
-    onAdd(person.id, { date, note: note.trim(), actionId, prepActionId });
+    const recurrence = recurring ? { enabled: true, intervalDays } : undefined;
+    onAdd(person.id, { date, note: note.trim(), actionId, prepActionId, ...(recurrence && { recurrence }) });
 
     setShowForm(false);
   }
@@ -133,6 +138,20 @@ export default function PlannedContactSection({
                   </select>
                 </label>
               )}
+              <label className="tp-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={recurring}
+                  onChange={e => setRecurring(e.target.checked)} />
+                Recurring
+              </label>
+              {recurring && (
+                <label className="tp-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: '1.5rem' }}>
+                  Repeat every
+                  <input className="form-input" type="number" min={1} value={intervalDays}
+                    onChange={e => setIntervalDays(Math.max(1, parseInt(e.target.value) || 14))}
+                    style={{ width: '4rem', padding: '0.2rem 0.4rem' }} />
+                  <span className="form-unit">days</span>
+                </label>
+              )}
               <div className="tp-form-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
                 <button type="submit" className="btn-primary">Save</button>
@@ -152,7 +171,14 @@ export default function PlannedContactSection({
               return (
                 <div key={pt.id}>
                   <div className="tp-row tp-row--planned">
-                    <span className="tp-date-label">{fmtDate(pt.date)}</span>
+                    <span className="tp-date-label">
+                      {fmtDate(pt.date)}
+                      {pt.recurrence?.enabled && (
+                        <span style={{ marginLeft: '0.4rem', fontSize: '0.8em', opacity: 0.7 }}>
+                          ↻ every {pt.recurrence.intervalDays}d
+                        </span>
+                      )}
+                    </span>
                     <div className="tp-planned-body">
                       {pt.note && <span className="tp-note-text">{pt.note}</span>}
                       {linkedAction && (

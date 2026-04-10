@@ -818,6 +818,10 @@ function FirmConfigSection() {
   function updateMetricLabel(key, value) {
     setDraft(prev => ({ ...prev, metricLabels: { ...prev.metricLabels, [key]: value } }));
   }
+  function updateThreshold(key, value) {
+    const num = value === '' ? '' : Math.max(0, Math.min(100, Number(value)));
+    setDraft(prev => ({ ...prev, thresholds: { ...prev.thresholds, [key]: num } }));
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -888,6 +892,30 @@ function FirmConfigSection() {
               </label>
             </div>
           </fieldset>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+            <legend style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.25rem' }}>Compliance thresholds <span className="form-unit">%</span></legend>
+            <p className="admin-description" style={{ margin: '0 0 0.5rem' }}>
+              Minimum percentage of target required to be considered on track.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <label>
+                {draft.metricLabels?.signings || 'Signings'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.signings ?? 85} onChange={e => updateThreshold('signings', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.revenue || 'Revenue'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.revenue ?? 85} onChange={e => updateThreshold('revenue', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.grossProfit || 'Gross profit'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.grossProfit ?? 80} onChange={e => updateThreshold('grossProfit', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.utilization || 'Utilization'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.utilization ?? 70} onChange={e => updateThreshold('utilization', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
           <div>
             <button className="btn-primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save firm configuration'}
@@ -910,6 +938,10 @@ function PlatformTab() {
   const [resendConfigured, setResendConfigured] = useState(false);
   const [emailMsg, setEmailMsg] = useState('');
   const [emailSaving, setEmailSaving] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState(1.5);
+  const [exchangeRateDraft, setExchangeRateDraft] = useState('1.5');
+  const [erMsg, setErMsg] = useState('');
+  const [erSaving, setErSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/admin/platform-settings`, { headers: authHeaders() })
@@ -922,6 +954,16 @@ function PlatformTab() {
       })
       .catch(() => {})
       .finally(() => setGhLoading(false));
+
+    fetch(`${API_BASE}/api/platform`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.exchangeRate && d.exchangeRate > 0) {
+          setExchangeRate(d.exchangeRate);
+          setExchangeRateDraft(String(d.exchangeRate));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function saveGithubSettings(e) {
@@ -970,9 +1012,64 @@ function PlatformTab() {
     }
   }
 
+  async function saveExchangeRate(e) {
+    e.preventDefault();
+    const parsed = parseFloat(exchangeRateDraft);
+    if (isNaN(parsed) || parsed <= 0) {
+      setErMsg('Rate must be a positive number.');
+      return;
+    }
+    setErMsg('');
+    setErSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/exchange-rate`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ exchangeRate: parsed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setExchangeRate(parsed);
+      setErMsg('Exchange rate saved.');
+    } catch (err) {
+      setErMsg(err.message);
+    } finally {
+      setErSaving(false);
+    }
+  }
+
   return (
     <div className="tab-content">
       <FirmConfigSection />
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Currency</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            All values are stored in CAD. When users display in USD, this rate is used for conversion.
+          </p>
+          {erMsg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{erMsg}</p>}
+          <form onSubmit={saveExchangeRate} style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <label>
+              CAD &rarr; USD exchange rate<span className="form-unit">CAD per 1 USD</span>
+              <input
+                className="form-input"
+                type="number"
+                step="0.01"
+                min="0.01"
+                style={{ maxWidth: '200px' }}
+                value={exchangeRateDraft}
+                onChange={e => setExchangeRateDraft(e.target.value)}
+              />
+            </label>
+            <button className="btn-primary" disabled={erSaving || parseFloat(exchangeRateDraft) === exchangeRate}>
+              {erSaving ? 'Saving...' : 'Save'}
+            </button>
+          </form>
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-header">

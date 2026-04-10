@@ -26,7 +26,7 @@ export default function ReportIssueModal({ onClose }) {
       const res = await fetch(`${API_BASE}/api/issues`, {
         method: 'POST',
         headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ title, description, type }),
+        body: JSON.stringify({ title, description, type, page: window.location.pathname, browser: navigator.userAgent }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);

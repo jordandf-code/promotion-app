@@ -13,18 +13,23 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(
-      "SELECT key, value FROM app_settings WHERE key IN ('platform_categories', 'firm_config')"
+      "SELECT key, value FROM app_settings WHERE key IN ('platform_categories', 'firm_config', 'exchange_rate')"
     );
     const byKey = Object.fromEntries(result.rows.map(r => [r.key, r.value]));
     let data = null;
     let firmConfig = null;
+    let exchangeRate = 1.5; // default CAD-to-USD rate
     if (byKey.platform_categories) {
       try { data = JSON.parse(byKey.platform_categories); } catch { data = null; }
     }
     if (byKey.firm_config) {
       try { firmConfig = JSON.parse(byKey.firm_config); } catch { firmConfig = null; }
     }
-    res.json({ data, firmConfig });
+    if (byKey.exchange_rate) {
+      const parsed = parseFloat(byKey.exchange_rate);
+      if (!isNaN(parsed) && parsed > 0) exchangeRate = parsed;
+    }
+    res.json({ data, firmConfig, exchangeRate });
   } catch (err) {
     console.error('GET platform error:', err.message);
     res.status(500).json({ error: 'Failed to load platform settings' });
@@ -64,6 +69,26 @@ router.put('/firm-config', authMiddleware, requireRole('superuser'), async (req,
   } catch (err) {
     console.error('PUT firm-config error:', err.message);
     res.status(500).json({ error: 'Failed to save firm configuration' });
+  }
+});
+
+// PUT /api/platform/exchange-rate — upsert exchange rate (superuser only)
+router.put('/exchange-rate', authMiddleware, requireRole('superuser'), async (req, res) => {
+  const { exchangeRate } = req.body;
+  if (exchangeRate === undefined) return res.status(400).json({ error: 'exchangeRate field required' });
+  const parsed = parseFloat(exchangeRate);
+  if (isNaN(parsed) || parsed <= 0) return res.status(400).json({ error: 'exchangeRate must be a positive number' });
+
+  try {
+    await db.query(
+      `INSERT INTO app_settings (key, value) VALUES ('exchange_rate', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [String(parsed)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT exchange-rate error:', err.message);
+    res.status(500).json({ error: 'Failed to save exchange rate' });
   }
 });
 

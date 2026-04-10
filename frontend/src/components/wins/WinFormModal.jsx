@@ -31,8 +31,12 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
   const [suggestingImpact, setSuggestingImpact] = useState(false);
   const [impactError,     setImpactError]     = useState(null);
   const [impactUsage,     setImpactUsage]     = useState(null);
+  const [errors,          setErrors]          = useState({});
 
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
 
   async function handleSuggestImpact() {
     setSuggestingImpact(true);
@@ -84,17 +88,26 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
           <p className="win-prompt-context">{promptContext}</p>
         )}
 
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+        <form className="modal-form" onSubmit={e => {
+          e.preventDefault();
+          const errs = {};
+          if (!form.title?.trim()) errs.title = 'Required';
+          if (!form.date) errs.date = 'Required';
+          if (Object.keys(errs).length) { setErrors(errs); return; }
+          onSave(form);
+        }}>
           <label>Title<span className="form-required">*</span>
             <input className="form-input" value={form.title}
               onChange={e => setField('title', e.target.value)}
               placeholder="What did you achieve?" required autoFocus />
+            {errors.title && <span className="field-error">{errors.title}</span>}
           </label>
 
           <div className="form-row">
             <label>Date<span className="form-required">*</span>
               <input className="form-input" type="date" value={form.date}
                 onChange={e => setField('date', e.target.value)} required />
+              {errors.date && <span className="field-error">{errors.date}</span>}
             </label>
           </div>
 

@@ -31,7 +31,7 @@ function domainToCSVs(domain, data) {
         strategicNote: o.strategicNote || '',
       }));
       const projects = (data.projects || []).map(p => ({
-        id: p.id, name: p.name, client: p.client, year: p.year,
+        id: p.id, name: p.name, client: p.client, year: p.year, endYear: p.endYear || '',
         status: p.status, opportunityId: p.opportunityId || '',
         revenueQ1: p.revenue?.q1 ?? '', revenueQ2: p.revenue?.q2 ?? '',
         revenueQ3: p.revenue?.q3 ?? '', revenueQ4: p.revenue?.q4 ?? '',

@@ -105,6 +105,12 @@ async function callAnthropic({ apiKey, systemPrompt, userContent, maxTokens, par
         output_tokens: response.usage.output_tokens,
       };
 
+      // Detect truncated responses before attempting JSON parse
+      if (response.stop_reason === 'max_tokens') {
+        console.warn(`[AI] Response truncated (stop_reason=max_tokens, output_tokens=${response.usage.output_tokens})`);
+        return { ok: false, error: 'The AI response was too long and got cut off. Please try again.', code: 'PARSE_ERROR' };
+      }
+
       if (!parseJson) {
         return { ok: true, data: rawText, usage };
       }

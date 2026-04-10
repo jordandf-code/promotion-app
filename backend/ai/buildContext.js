@@ -42,7 +42,7 @@ function getSalesStats(opportunities, targets, year) {
 }
 
 function getRevenueStats(projects, targets, year) {
-  const yp = projects.filter(p => p.year === year);
+  const yp = projects.filter(p => year >= p.year && year <= (p.endYear || p.year));
   const realized = yp.filter(p => p.status === 'realized').reduce((s, p) => s + qSum(p.revenue), 0);
   const forecast = yp.filter(p => p.status === 'forecast').reduce((s, p) => s + qSum(p.revenue), 0);
   const target = targets[year]?.revenue ?? null;
@@ -50,7 +50,7 @@ function getRevenueStats(projects, targets, year) {
 }
 
 function getGPStats(projects, targets, year) {
-  const yp = projects.filter(p => p.year === year);
+  const yp = projects.filter(p => year >= p.year && year <= (p.endYear || p.year));
   const realized = yp.filter(p => p.status === 'realized').reduce((s, p) => s + qSum(p.grossProfit), 0);
   const forecast = yp.filter(p => p.status === 'forecast').reduce((s, p) => s + qSum(p.grossProfit), 0);
   const target = targets[year]?.grossProfit ?? null;
@@ -136,7 +136,7 @@ async function buildContext(userId) {
     err.code = 'NO_KEY';
     throw err;
   }
-  if (!admin.ibmCriteria) {
+  if (!admin.promotionCriteria && !admin.ibmCriteria) {
     const err = new Error(`No ${firmConfig.criteriaLabel.toLowerCase()} configured`);
     err.code = 'NO_CRITERIA';
     throw err;
@@ -166,6 +166,7 @@ async function buildContext(userId) {
     ...Object.keys(targets).map(Number),
     ...opportunities.map(o => o.year),
     ...projects.map(p => p.year),
+    ...projects.filter(p => p.endYear).map(p => p.endYear),
   ]);
 
   const scorecardYears = [...allYears].sort().map(year => {
@@ -296,7 +297,7 @@ async function buildContext(userId) {
 
   const context = {
     anthropicKey,
-    ibm_criteria: admin.ibmCriteria,
+    promotion_criteria: admin.promotionCriteria || admin.ibmCriteria,
     user_context,
     scorecard: { years: scorecardYears },
     _stats,

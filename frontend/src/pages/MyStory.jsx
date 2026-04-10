@@ -22,7 +22,7 @@ const SUBTABS = [
 ];
 
 export default function MyStory() {
-  const { ibmCriteria, anthropicKey } = useAdminData();
+  const { promotionCriteria, anthropicKey } = useAdminData();
   const { story, saveStorySection, updateManualEntries, setActiveSource } = useStoryData();
   const readiness = useReadinessScore();
   const [subtab, setSubtab] = useState('ai');
@@ -32,7 +32,7 @@ export default function MyStory() {
   const [deckError,   setDeckError]   = useState(null);
   const [deckUsage,   setDeckUsage]   = useState(null);
 
-  const configured = !!(anthropicKey && ibmCriteria);
+  const configured = !!(anthropicKey && promotionCriteria);
 
   async function generateMode(mode) {
     setLoading(prev => ({ ...prev, [mode]: true }));
@@ -138,7 +138,7 @@ export default function MyStory() {
           <h2 className="story-setup-title">Setup required</h2>
           <p>Configure two things in <strong>Admin &gt; GenAI</strong> to get started:</p>
           <ul className="story-setup-list">
-            <li><strong>IBM Partner criteria</strong> — paste from the Partner framework document</li>
+            <li><strong>Promotion criteria</strong> — paste from your firm's promotion framework document</li>
             <li><strong>Anthropic API key</strong> — your personal key for AI features</li>
           </ul>
           <p className="story-setup-hint">Career history is optional but makes the narrative significantly stronger.</p>
@@ -207,7 +207,7 @@ export default function MyStory() {
 
       {subtab === 'manual' && (
         <ManualInputTab
-          ibmCriteria={ibmCriteria}
+          promotionCriteria={promotionCriteria}
           story={story}
           updateManualEntries={updateManualEntries}
           setActiveSource={setActiveSource}
@@ -226,7 +226,7 @@ function AIGeneratedTab({ story, loading, errors, generateMode, deckLoading, dec
       <StorySection
         mode="polished_narrative"
         title="Narrative"
-        subtitle="First-person promotion case for the IBM committee"
+        subtitle="First-person promotion case for the review committee"
         loading={loading.polished_narrative}
         error={errors.polished_narrative}
         data={story?.polished_narrative}
@@ -245,7 +245,7 @@ function AIGeneratedTab({ story, loading, errors, generateMode, deckLoading, dec
       <StorySection
         mode="gap_analysis"
         title="Gap analysis"
-        subtitle="Each IBM criterion mapped to your evidence with strength ratings"
+        subtitle="Each criterion mapped to your evidence with strength ratings"
         loading={loading.gap_analysis}
         error={errors.gap_analysis}
         data={story?.gap_analysis}
@@ -382,33 +382,18 @@ function DIYPromptsTab() {
 
         {diyError && <div className="story-error" style={{ marginTop: '0.75rem' }}>{diyError}</div>}
 
-        {contextData && (
+        {contextData && promptData && (
           <div className="diy-section">
             <div className="diy-section-header">
-              <h3 className="diy-section-title">Your data context</h3>
+              <h3 className="diy-section-title">Prompt + Data</h3>
               <button
                 className="btn-secondary btn-sm"
-                onClick={() => copyToClipboard('context', contextData)}
+                onClick={() => copyToClipboard('combined', `=== SYSTEM PROMPT ===\n${promptData}\n\n=== YOUR DATA ===\n${contextData}`)}
               >
-                {copied.context ? 'Copied' : 'Copy'}
+                {copied.combined ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <pre className="diy-code-block">{contextData}</pre>
-          </div>
-        )}
-
-        {promptData && (
-          <div className="diy-section">
-            <div className="diy-section-header">
-              <h3 className="diy-section-title">System prompt</h3>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => copyToClipboard('prompt', promptData)}
-              >
-                {copied.prompt ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <pre className="diy-code-block">{promptData}</pre>
+            <pre className="diy-code-block">{`=== SYSTEM PROMPT ===\n${promptData}\n\n=== YOUR DATA ===\n${contextData}`}</pre>
           </div>
         )}
       </div>
@@ -418,13 +403,13 @@ function DIYPromptsTab() {
 
 // ── Subtab 3: Manual Input ───────────────────────────────────────────────────
 
-function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSource }) {
+function ManualInputTab({ promotionCriteria, story, updateManualEntries, setActiveSource }) {
   const activeSource = story?.activeSource ?? 'ai';
   const manualEntries = story?.manual_entries ?? {};
   const manualNarrative = manualEntries.narrative ?? '';
 
-  // Parse IBM criteria into lines
-  const criteriaLines = (ibmCriteria || '')
+  // Parse promotion criteria into lines
+  const criteriaLines = (promotionCriteria || '')
     .split('\n')
     .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
     .filter(line => line.length > 0);
@@ -455,7 +440,7 @@ function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSour
       <div className="section-header">
         <div>
           <h2 className="section-title">Manual Input</h2>
-          <span className="section-sub">Enter evidence for each IBM criterion manually</span>
+          <span className="section-sub">Enter evidence for each criterion manually</span>
         </div>
       </div>
 
@@ -492,7 +477,7 @@ function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSour
       {/* Criteria evidence form */}
       {criteriaLines.length === 0 ? (
         <div className="card">
-          <p className="muted">No IBM criteria found. Paste your criteria in Admin &gt; GenAI to populate this form.</p>
+          <p className="muted">No promotion criteria found. Paste your criteria in Admin &gt; GenAI to populate this form.</p>
         </div>
       ) : (
         <div className="card">

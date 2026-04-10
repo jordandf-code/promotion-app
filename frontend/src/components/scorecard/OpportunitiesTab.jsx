@@ -180,13 +180,13 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
             {opps.length === 0
               ? <tr><td colSpan={10} className="table-empty">No opportunities match the current filters.</td></tr>
               : opps.map(opp => (
-                <tr key={opp.id}>
+                <tr key={opp.id} className="clickable-row" onClick={() => openEdit(opp)}>
                   <td className="td-primary">
-                    <span className="td-primary-link" onClick={() => openEdit(opp)}>{opp.name}</span>
+                    <span className="td-primary-link" onClick={(e) => { e.stopPropagation(); openEdit(opp); }}>{opp.name}</span>
                   </td>
-                  <td>{opp.client}</td>
-                  <td>{opp.year}</td>
-                  <td>
+                  <td data-label="Client">{opp.client}</td>
+                  <td data-label="Year">{opp.year}</td>
+                  <td data-label="Stage" onClick={e => e.stopPropagation()}>
                     <select
                       className="inline-select"
                       value={opp.stage || ''}
@@ -195,7 +195,7 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                       {stageList.map(s => <option key={s.label} value={s.label}>{s.label}</option>)}
                     </select>
                   </td>
-                  <td>
+                  <td data-label="Status" onClick={e => e.stopPropagation()}>
                     <select
                       className="inline-select"
                       value={opp.status}
@@ -207,11 +207,12 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                       <span className="opp-win-linked" title="Win logged">W</span>
                     )}
                   </td>
-                  <td>{opp.winDate ? fmtDate(opp.winDate) : <span className="muted">—</span>}</td>
-                  <td><LogoTypePip logoType={opp.logoType} /></td>
-                  <td className="num-col">{fmtCurrency(Number(opp.totalValue) || 0)}</td>
-                  <td className="num-col font-bold">{fmtCurrency(Number(opp.signingsValue) || 0)}</td>
-                  <td className="action-col">
+                  <td data-label="Win date">{opp.winDate ? fmtDate(opp.winDate) : <span className="muted">—</span>}</td>
+                  <td data-label="Type"><LogoTypePip logoType={opp.logoType} /></td>
+                  <td className="num-col" data-label="Total value">{fmtCurrency(Number(opp.totalValue) || 0)}</td>
+                  <td className="num-col font-bold" data-label="Signings">{fmtCurrency(Number(opp.signingsValue) || 0)}</td>
+                  <td className="action-col" onClick={e => e.stopPropagation()}>
+                    <button className="row-btn" onClick={() => openEdit(opp)} title="Edit">✎</button>
                     <button className="row-btn row-btn--danger" onClick={() => handleDelete(opp.id)}>✕</button>
                   </td>
                 </tr>
