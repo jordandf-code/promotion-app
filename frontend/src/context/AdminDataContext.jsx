@@ -162,6 +162,7 @@ const AdminDataContext = createContext(null);
 export function AdminDataProvider({ children }) {
   const [adminData, setAdminData]       = useState(DEFAULTS);
   const [firmConfig, setFirmConfigState] = useState(DEFAULT_FIRM_CONFIG);
+  const [questionBank, setQuestionBank] = useState(null);
   const [initialized, setInitialized]   = useState(false);
   const skipSync                        = useRef(false);
   const serverLoaded                    = useRef(false);
@@ -174,11 +175,11 @@ export function AdminDataProvider({ children }) {
   async function fetchPlatform() {
     try {
       const res = await fetch(`${API_BASE}/api/platform`, { headers: authHeaders() });
-      if (!res.ok) return { data: null, firmConfig: null };
+      if (!res.ok) return { data: null, firmConfig: null, questionBank: null };
       const json = await res.json();
-      return { data: json.data ?? null, firmConfig: json.firmConfig ?? null };
+      return { data: json.data ?? null, firmConfig: json.firmConfig ?? null, questionBank: json.questionBank ?? null };
     } catch {
-      return { data: null, firmConfig: null };
+      return { data: null, firmConfig: null, questionBank: null };
     }
   }
 
@@ -207,7 +208,8 @@ export function AdminDataProvider({ children }) {
   // Re-fetch platform data from server and merge into state
   async function refetchPlatform() {
     try {
-      const { data: serverPlatform, firmConfig: serverFirmConfig } = await fetchPlatform();
+      const { data: serverPlatform, firmConfig: serverFirmConfig, questionBank: serverQB } = await fetchPlatform();
+      if (serverQB) setQuestionBank(serverQB);
       if (serverPlatform) {
         skipSync.current = true;
         skipPlatformSync.current = true;
@@ -246,6 +248,7 @@ export function AdminDataProvider({ children }) {
 
       const serverPlatform = platformResult.data;
       const serverFirmConfig = platformResult.firmConfig;
+      if (platformResult.questionBank) setQuestionBank(platformResult.questionBank);
 
       // Apply firm config if available (deep merge metricLabels to avoid losing defaults)
       if (serverFirmConfig) {
@@ -413,6 +416,7 @@ export function AdminDataProvider({ children }) {
     <AdminDataContext.Provider value={{
       ...adminData,
       firmConfig, setFirmConfig,
+      questionBank,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
       setPromotionCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
       setDeckTemplate, setDeckContentInstructions, refetchPlatform,

@@ -182,21 +182,46 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 {
   framework_version: "v1",
   assessments: [ {
-    id, date, type,           // type: 'self' (future: 'peer', 'sponsor')
+    id, date,
+    type,                     // 'self' | 'peer' | 'sponsor'
+    assessor_name,            // (peer/sponsor only) name of the rater
+    assessor_id,              // (peer/sponsor only) user id if authenticated
+    review_token_id,          // (peer/sponsor only) if submitted via token
     ratings: {
-      [competency_id]: {      // e.g. 'revenue_generation', 'thought_leadership'
-        level,                // 1=Developing, 2=Competent, 3=Advanced, 4=Exemplary
+      [competency_id]: {      // e.g. 'commercial_acumen', 'strategic_thinking'
+        level,                // 1=Developing, 2=Competent, 3=Advanced, 4=Exemplary (BARS level)
+        bars_level,           // same as level — explicit BARS selection
         notes,                // optional free text
-        evidence_ids[]        // links to win/eminence/feedback IDs
+        evidence_ids[],       // links to win IDs (C2 evidence linking)
+        question_responses: [ // cross-validation question answers (C1)
+          { question_id, response }  // response: 1-4
+        ],
+        question_avg,         // average of question responses
+        composite_score       // (bars_level * 0.6) + (question_avg * 0.4), fractional e.g. 2.75
       }
     },
-    overall_notes
+    overall_notes,
+    bias_flags: [ {           // C1 bias detection
+      type,                   // 'central_tendency' | 'halo_effect' | 'inflation'
+      message
+    } ]
   } ],
   competency_goals: [ {
     competency_id, target_level, target_date,
     actions[],                // free text action descriptions
     linked_action_ids[]       // links to action items
   } ],
+  composite_scores: {         // C3 weighted composite (computed client-side)
+    [competency_id]: {
+      self, evidence, rater_360, overall
+    }
+  },
+  johari_window: {            // C3 Johari quadrants (computed client-side)
+    [competency_id]: {
+      quadrant,               // 'open' | 'blind_spot' | 'hidden' | 'unknown'
+      self_score, others_score, delta
+    }
+  },
   ai_analysis: {              // cached output from /api/ai/competency-analysis
     generated_at, perception_gaps[], focus_areas[], competency_summary
   }
@@ -204,6 +229,10 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 ```
 
 Default framework categories: Commercial acumen, Client relationship, Leadership & people, Practice building, Executive presence, Strategic thinking, Delivery excellence. Configurable per firm via `firm_config` in `app_settings`.
+
+### `competency_question_bank` (app_settings key)
+
+BARS behavioral descriptions + cross-validation questions per competency. 7 competencies x 3 questions = 21 questions. Editable via Super Admin. Structure: `{ version, competencies: { [id]: { bars: { "1"-"4": desc }, questions: [{ id, type, text, anchors }] } } }`
 
 ## `reflections` domain
 

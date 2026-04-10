@@ -225,28 +225,28 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 
 Sequenced after completion of bug fix backlog (P0–P3). Full plan: `.claude/plans/fancy-questing-kernighan.md`.
 
-### Security Scan (#81)
+### Security Scan (#81) ✅ COMPLETE
 
 4-layer approach. Layers 1-2 are quick wins; Layers 3-4 are ongoing.
 
 | Step | What | Effort | Status |
 |------|------|--------|--------|
-| **S1** | Helmet.js + secret rotation + `/api/health` security indicators | 1-2 hrs | |
-| **S2** | npm audit in CI + GitHub CodeQL setup | 1 hr | |
-| **S3** | Playwright security test suite (IDOR, auth bypass, injection, rate limits, tokens) | 4-6 hrs | |
-| **S4** | Scheduled weekly scans + monitoring | 1-2 hrs | |
+| **S1** | Helmet.js + secret rotation + `/api/health` security indicators | 1-2 hrs | ✅ |
+| **S2** | npm audit in CI + GitHub CodeQL setup | 1 hr | ✅ |
+| **S3** | Playwright security test suite (IDOR, auth bypass, injection, rate limits, tokens) | 4-6 hrs | ✅ |
+| **S4** | Scheduled weekly scans + monitoring | 1-2 hrs | ✅ |
 
 Key findings from security audit: parameterized queries (no SQLi), bcrypt, rate limiting, user data isolation all solid. Gaps: no Helmet.js (missing CSP/HSTS), exposed `.env` secrets need rotation, no dependency scanning in CI.
 
-### Competency Radar v2 (#82)
+### Competency Radar v2 (#82) ✅ COMPLETE
 
 3-phase rebuild from simple 1-4 Likert to BARS + question bank + evidence linking.
 
 | Phase | What | Depends on | Status |
 |-------|------|-----------|--------|
-| **C1** | BARS + question bank (21 questions, 3/competency) + stepper wizard + composite scoring + bias detection | S1 | |
-| **C2** | Evidence auto-linking (wins→competencies) + competency goals UI + trend sparklines | C1 | |
-| **C3** | Multi-rater assessment (peer/sponsor) + Johari Window visualization + composite scoring (self 40% + evidence 30% + 360 30%) | C2, 360 feedback maturity | |
+| **C1** | BARS + question bank (21 questions, 3/competency) + stepper wizard + composite scoring + bias detection | S1 | ✅ |
+| **C2** | Evidence auto-linking (wins→competencies) + competency goals UI + trend sparklines | C1 | ✅ |
+| **C3** | Multi-rater assessment (peer/sponsor) + Johari Window visualization + composite scoring (self 40% + evidence 30% + 360 30%) | C2, 360 feedback maturity | ✅ |
 
 Key design: BARS behavioral descriptions at each level replace raw Likert. 2-3 situational/frequency questions per competency cross-validate. Composite scoring allows fractional levels (2.75). Bias detection nudges (central tendency, halo, inflation). Question bank stored in `app_settings` so Super Admin can customize per firm.
 

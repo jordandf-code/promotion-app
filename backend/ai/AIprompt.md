@@ -400,3 +400,18 @@ Three endpoints power the interactive mock promotion panel:
 - **Body**: `{ package_id }`
 - **No AI call** — generates PPTX via `renderPackageDeck.js`
 - Returns binary `.pptx` download
+
+## Competency Assessment Endpoints (C1-C3)
+
+### `POST /api/ai/competency-analysis`
+- **Body**: none (loads data server-side)
+- **Prompt**: `COMPETENCY_ANALYSIS_PROMPT` — firm-agnostic, understands BARS levels, composite scores, cross-validation questions, and bias flags
+- **Max tokens**: 2500 | **Parse JSON**: true
+- **Output**: `{ perception_gaps[], focus_areas[], competency_summary }`
+- Caches result in `competencies` domain under `ai_analysis`
+
+### `POST /api/ai/auto-link-evidence`
+- **Body**: none (loads wins server-side)
+- **Prompt**: `AUTO_LINK_EVIDENCE_PROMPT` — classifies wins to 1-3 competencies with confidence scores
+- **Max tokens**: 2000 | **Parse JSON**: true
+- **Output**: `{ links: [{ win_id, competency_ids[], confidence }] }`

@@ -14,24 +14,29 @@ export const TEST_USER = {
   securityAnswer: 'playwright',
 };
 
-export default async function globalSetup() {
-  // 1. Try to log in (user may already exist from a previous run)
+export const TEST_USER_B = {
+  email: 'e2e-test-b@promotiontracker.test',
+  password: 'TestPassB456!',
+  name: 'E2E Test User B',
+  company: 'Test Corp B',
+  securityQuestion: 'What is the second test?',
+  securityAnswer: 'security',
+};
+
+async function ensureUser(user, label) {
   const loginRes = await fetch(`${API}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: TEST_USER.email, password: TEST_USER.password }),
+    body: JSON.stringify({ email: user.email, password: user.password }),
   });
 
   if (loginRes.ok) {
-    console.log('[e2e] Test user exists, login verified');
-    process.env.TEST_EMAIL = TEST_USER.email;
-    process.env.TEST_PASSWORD = TEST_USER.password;
-    return;
+    const { token } = await loginRes.json();
+    console.log(`[e2e] ${label} exists, login verified`);
+    return token;
   }
 
-  // 2. User doesn't exist — register them
-  // If an invite code is required, set TEST_INVITE_CODE env var
-  const regPayload = { ...TEST_USER };
+  const regPayload = { ...user };
   if (process.env.TEST_INVITE_CODE) {
     regPayload.inviteCode = process.env.TEST_INVITE_CODE;
   }
@@ -43,20 +48,31 @@ export default async function globalSetup() {
   });
 
   if (regRes.ok) {
-    console.log('[e2e] Test user created');
-    process.env.TEST_EMAIL = TEST_USER.email;
-    process.env.TEST_PASSWORD = TEST_USER.password;
-    return;
+    const { token } = await regRes.json();
+    console.log(`[e2e] ${label} created`);
+    return token;
   }
 
   const body = await regRes.json();
 
   if (regRes.status === 403 && body.error?.includes('invite code')) {
     throw new Error(
-      '[e2e] Registration requires an invite code.\n' +
+      `[e2e] Registration requires an invite code.\n` +
       'Fix: set TEST_INVITE_CODE=<code> env var, or clear the invite code in Super Admin.'
     );
   }
 
-  throw new Error(`[e2e] Failed to create test user: ${regRes.status} — ${body.error}`);
+  throw new Error(`[e2e] Failed to create ${label}: ${regRes.status} — ${body.error}`);
+}
+
+export default async function globalSetup() {
+  const tokenA = await ensureUser(TEST_USER, 'Test user A');
+  process.env.TEST_EMAIL = TEST_USER.email;
+  process.env.TEST_PASSWORD = TEST_USER.password;
+  process.env.TEST_TOKEN_A = tokenA;
+
+  const tokenB = await ensureUser(TEST_USER_B, 'Test user B');
+  process.env.TEST_EMAIL_B = TEST_USER_B.email;
+  process.env.TEST_PASSWORD_B = TEST_USER_B.password;
+  process.env.TEST_TOKEN_B = tokenB;
 }

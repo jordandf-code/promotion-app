@@ -26,6 +26,7 @@ import SuperAdmin from './pages/SuperAdmin';
 import ViewOthers from './pages/ViewOthers';
 import PublicSummary from './pages/PublicSummary';
 import FeedbackForm from './pages/FeedbackForm';
+import CompetencyAssessmentPublic from './pages/CompetencyAssessmentPublic';
 import InfluenceMap from './pages/InfluenceMap';
 import BrandWorkspace from './pages/BrandWorkspace';
 import Sponsees from './pages/Sponsees';
@@ -50,6 +51,7 @@ export default function App() {
           {/* Public routes — no auth required */}
           <Route path="/share/:token"    element={<PublicSummary />} />
           <Route path="/feedback/:token" element={<FeedbackForm />} />
+          <Route path="/competency-assessment/:token" element={<CompetencyAssessmentPublic />} />
 
           <Route path="/login"           element={<Login />} />
           <Route path="/register"        element={<Register />} />

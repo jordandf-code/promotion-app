@@ -98,6 +98,7 @@ When a phase adds new tables or columns:
 | `JWT_SECRET` | Long random string — same value used locally in `backend/.env` |
 | `RESEND_API_KEY` | Resend API key for email notifications (optional — notifications disabled without it) |
 | `APP_URL` | Your app's public URL, e.g. `https://partner.jordandf.com` (used in email CTA buttons) |
+| `SECRETS_ROTATED_AT` | ISO date of last secret rotation (optional — shown in `/api/health`) |
 
 ### Vercel (frontend)
 | Variable | Value |
@@ -116,6 +117,20 @@ Each user sets their own key in the Admin tab after logging in.
 2. Add `RESEND_API_KEY` to your Render environment variables
 3. (Optional) Verify your custom domain in Resend → Domains to send from your own address
 4. In the app: Super Admin → Platform → set the "From address" (e.g. `Promotion Tracker <notifications@partner.jordandf.com>`)
+
+## Secret rotation
+
+When rotating secrets (JWT_SECRET, database password, etc.):
+
+1. Generate a new value: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+2. Update the variable in Render's Environment tab
+3. Set `SECRETS_ROTATED_AT` to the current ISO date (e.g. `2026-04-10`)
+4. Click **Manual Deploy** in Render to pick up the new values
+5. All existing JWT sessions will expire naturally (7-day window) — users will need to re-login
+
+The `/api/health` endpoint reports `secretsRotatedAt` so you can verify rotation took effect.
+
+---
 
 ## Keeping the backend warm
 

@@ -469,4 +469,195 @@ router.get('/feedback-requests', authMiddleware, async (req, res) => {
   }
 });
 
+// ── Competency assessment via token (C3) ────────────────────────────────────
+
+// POST /api/share/request-competency-assessment
+// Send a competency assessment request to a peer/sponsor via email.
+router.post('/request-competency-assessment', authMiddleware, async (req, res) => {
+  const { recipientEmail, recipientName, message } = req.body ?? {};
+  if (!recipientEmail?.trim()) return res.status(400).json({ error: 'Recipient email is required' });
+  if (!recipientName?.trim())  return res.status(400).json({ error: 'Recipient name is required' });
+
+  try {
+    const token = genToken();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    await db.query(
+      `INSERT INTO review_tokens (owner_id, token, reviewer_name, reviewer_email, purpose, expires_at)
+       VALUES ($1, $2, $3, $4, 'competency_assessment', $5)`,
+      [req.userId, token, recipientName.trim(), recipientEmail.trim(), expiresAt]
+    );
+
+    const ownerResult = await db.query('SELECT name FROM users WHERE id = $1', [req.userId]);
+    const ownerName = ownerResult.rows[0]?.name || 'A colleague';
+
+    try {
+      const { Resend } = require('resend');
+      const apiKey = process.env.RESEND_API_KEY;
+      if (apiKey) {
+        const { wrapEmail, APP_URL } = require('../notifications/emailTemplate');
+        const assessUrl = `${APP_URL}/competency-assessment/${token}`;
+        const personalMsg = message?.trim()
+          ? `<p style="margin:0 0 16px;font-size:14px;color:#555;font-style:italic;">"${message.trim()}"</p>`
+          : '';
+        const body = `
+          <p style="margin:0 0 8px;font-size:15px;">Hi ${esc(recipientName.trim())},</p>
+          <p style="margin:0 0 16px;font-size:14px;color:#333;">
+            <strong>${esc(ownerName)}</strong> has invited you to assess their competencies.
+            Your assessment helps them understand how others perceive their strengths and development areas.
+          </p>
+          ${personalMsg}
+          <p style="margin:0 0 8px;font-size:13px;color:#666;">
+            The assessment takes about 10 minutes and covers 7 leadership competencies. The link expires in 30 days.
+          </p>`;
+        const html = wrapEmail(body, {
+          subtitle: 'Competency Assessment Request',
+          ctaLabel: 'Start assessment',
+          ctaUrl: assessUrl,
+        });
+        const resend = new Resend(apiKey);
+        const fromResult = await db.query("SELECT value FROM app_settings WHERE key = 'email_from'");
+        const fromAddress = fromResult.rows[0]?.value || 'Career Command Center <notifications@partner.jordandf.com>';
+        await resend.emails.send({
+          from: fromAddress,
+          to: [recipientEmail.trim()],
+          subject: `${ownerName} is requesting your competency assessment`,
+          html,
+        });
+      }
+    } catch (emailErr) {
+      console.error('competency assessment request email error:', emailErr.message);
+    }
+
+    res.json({ ok: true, token });
+  } catch (err) {
+    console.error('request-competency-assessment error:', err.message);
+    res.status(500).json({ error: 'Failed to create assessment request' });
+  }
+});
+
+// GET /api/share/competency-assessment-info/:token
+// Returns BARS + questions for the public competency assessment form.
+router.get('/competency-assessment-info/:token', publicLimiter, async (req, res) => {
+  try {
+    const rtResult = await db.query(
+      `SELECT id, owner_id, reviewer_name, expires_at, used_at FROM review_tokens
+       WHERE token = $1 AND purpose = 'competency_assessment'`,
+      [req.params.token]
+    );
+    if (!rtResult.rows[0]) return res.status(404).json({ error: 'Assessment link not found' });
+    const rt = rtResult.rows[0];
+    if (rt.expires_at && new Date(rt.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'This assessment link has expired' });
+    }
+    if (rt.used_at) {
+      return res.status(410).json({ error: 'This assessment has already been submitted' });
+    }
+
+    const ownerResult = await db.query('SELECT name FROM users WHERE id = $1', [rt.owner_id]);
+    const ownerName = ownerResult.rows[0]?.name || 'Unknown';
+
+    // Load question bank
+    const qbResult = await db.query("SELECT value FROM app_settings WHERE key = 'competency_question_bank'");
+    let questionBank = null;
+    if (qbResult.rows[0]?.value) {
+      try { questionBank = JSON.parse(qbResult.rows[0].value); } catch {}
+    }
+
+    res.json({
+      reviewerName: rt.reviewer_name,
+      ownerName,
+      questionBank,
+    });
+  } catch (err) {
+    console.error('competency-assessment-info error:', err.message);
+    res.status(500).json({ error: 'Failed to load assessment info' });
+  }
+});
+
+// POST /api/share/competency-assessment/:token
+// Submit a competency assessment via token (public, no auth required).
+router.post('/competency-assessment/:token', publicLimiter, async (req, res) => {
+  const { ratings, overall_notes } = req.body ?? {};
+  if (!ratings || typeof ratings !== 'object' || Object.keys(ratings).length === 0) {
+    return res.status(400).json({ error: 'At least one competency rating is required' });
+  }
+
+  try {
+    const rtResult = await db.query(
+      `SELECT id, owner_id, reviewer_name, reviewer_email, expires_at, used_at FROM review_tokens
+       WHERE token = $1 AND purpose = 'competency_assessment'`,
+      [req.params.token]
+    );
+    if (!rtResult.rows[0]) return res.status(404).json({ error: 'Assessment link not found' });
+    const rt = rtResult.rows[0];
+    if (rt.expires_at && new Date(rt.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'This assessment link has expired' });
+    }
+    if (rt.used_at) {
+      return res.status(410).json({ error: 'This assessment has already been submitted' });
+    }
+
+    // Mark token as used
+    await db.query('UPDATE review_tokens SET used_at = NOW() WHERE id = $1', [rt.id]);
+
+    // Build the assessment entry
+    const uid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const assessment = {
+      id: uid,
+      date: new Date().toISOString().slice(0, 10),
+      type: 'peer', // default; could be sponsor if relationship is known
+      assessor_name: rt.reviewer_name,
+      review_token_id: rt.id,
+      ratings,
+      overall_notes: overall_notes || '',
+    };
+
+    // Append to owner's competencies domain (using SELECT FOR UPDATE to prevent races)
+    await db.query('BEGIN');
+    const dataResult = await db.query(
+      `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'competencies' FOR UPDATE`,
+      [rt.owner_id]
+    );
+    const compData = dataResult.rows[0]?.data ?? { framework_version: 'v1', assessments: [], competency_goals: [], ai_analysis: {} };
+    compData.assessments = [...(compData.assessments ?? []), assessment];
+
+    await db.query(
+      `INSERT INTO user_data (user_id, domain, data, updated_at)
+       VALUES ($1, 'competencies', $2::jsonb, NOW())
+       ON CONFLICT (user_id, domain) DO UPDATE SET data = $2::jsonb, updated_at = NOW()`,
+      [rt.owner_id, JSON.stringify(compData)]
+    );
+    await db.query('COMMIT');
+
+    // Notify owner
+    try {
+      const { sendNotification } = require('../notifications/send');
+      const { wrapEmail } = require('../notifications/emailTemplate');
+      const ratedCount = Object.keys(ratings).length;
+      const body = `
+        <p style="margin:0 0 8px;font-size:14px;"><strong>${esc(rt.reviewer_name)}</strong> completed a competency assessment:</p>
+        <p style="margin:0 0 8px;font-size:13px;color:#555;">${ratedCount} competencies rated</p>`;
+      const html = wrapEmail(body, {
+        subtitle: 'Competency Assessment Received',
+        ctaLabel: 'View assessments',
+        ctaUrl: `${process.env.APP_URL || 'https://partner.jordandf.com'}/competencies`,
+      });
+      sendNotification({
+        userId: rt.owner_id,
+        type: 'competency_assessment_received',
+        subject: `Competency assessment from ${rt.reviewer_name}`,
+        html,
+        payload: { assessorName: rt.reviewer_name, ratedCount },
+      }).catch(() => {});
+    } catch {}
+
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.message !== 'COMMIT') await db.query('ROLLBACK').catch(() => {});
+    console.error('submit competency assessment error:', err.message);
+    res.status(500).json({ error: 'Failed to submit assessment' });
+  }
+});
+
 module.exports = router;

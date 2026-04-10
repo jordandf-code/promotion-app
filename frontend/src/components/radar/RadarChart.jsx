@@ -40,7 +40,7 @@ function abbreviate(label) {
   return label.split(/[\s&]+/).map(w => w[0]).join('').toUpperCase();
 }
 
-export default function RadarChart({ ratings = {}, previousRatings, competencies = [], size = DEFAULT_SIZE }) {
+export default function RadarChart({ ratings = {}, previousRatings, othersRatings, competencies = [], size = DEFAULT_SIZE }) {
   if (!competencies.length) return null;
 
   const n = competencies.length;
@@ -81,6 +81,18 @@ export default function RadarChart({ ratings = {}, previousRatings, competencies
           />
         );
       })}
+
+      {/* Others (360) overlay polygon */}
+      {othersRatings && (
+        <polygon
+          points={buildPolygonPoints(competencies, othersRatings)}
+          fill="rgba(21, 128, 61, 0.1)"
+          stroke="#15803d"
+          strokeWidth="1.5"
+          strokeDasharray="6,3"
+          opacity="0.7"
+        />
+      )}
 
       {/* Previous assessment polygon (if provided) */}
       {previousRatings && (

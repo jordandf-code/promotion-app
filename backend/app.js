@@ -3,12 +3,18 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 
 const { getSchedulerStatus } = require('./notifications/scheduler');
 
 const app = express();
 
 // --- MIDDLEWARE ---
+// Security headers (must come before CORS so all responses get headers)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
   : ['http://localhost:5173', 'https://promotion-app-lovat.vercel.app', 'https://partner.jordandf.com'];
@@ -30,6 +36,12 @@ app.get('/api/health', (_req, res) => {
     message: 'Backend is running',
     scheduler: getSchedulerStatus(),
     timestamp: new Date().toISOString(),
+    security: {
+      helmet: true,
+      rateLimiting: true,
+      corsConfigured: true,
+      secretsRotatedAt: process.env.SECRETS_ROTATED_AT || null,
+    },
   });
 });
 
