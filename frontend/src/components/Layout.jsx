@@ -2,7 +2,7 @@
 // App shell: fixed sidebar with nav + scrollable main content area.
 // Child pages render via <Outlet />.
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSettings } from '../context/SettingsContext.jsx';
@@ -10,39 +10,12 @@ import { useAdminData } from '../hooks/useAdminData.js';
 import BottomTabBar, { useBottomTabRoutes, STAR_ELIGIBLE } from './BottomTabBar.jsx';
 import ReportIssueModal from './ReportIssueModal.jsx';
 import PWAInstallBanner from './PWAInstallBanner.jsx';
-
-const ALL_NAV_ITEMS = [
-  { to: '/',          label: 'Dashboard',   end: true },
-  { to: '/scorecard', label: 'Scorecard'             },
-  { to: '/opportunities', label: 'Opportunities'      },
-  { to: '/goals',     label: 'Goals'                 },
-  { to: '/people',    label: 'People'                },
-  { to: '/wins',      label: 'Wins'                  },
-  { to: '/eminence',  label: 'Eminence'              },
-  { to: '/actions',   label: 'Action items'          },
-  { to: '/reflections',  label: 'Reflections'          },
-  { to: '/competencies', label: 'Competencies'         },
-  { to: '/learning',  label: 'Learning'              },
-  { to: '/story',     label: 'Narrative + Gaps'       },
-  { to: '/influence-map', label: 'Influence Map'                },
-  { to: '/brand',     label: 'Brand'                            },
-  { to: '/mock-panel', label: 'Mock Panel'                       },
-  { to: '/promotion-package', label: 'Package Generator'        },
-  { to: '/vault',     label: 'Documents'                        },
-  { to: '/import-export', label: 'Import / Export' },
-  { to: '/sponsees',  label: 'Sponsees'                          },
-  { to: '/benchmark', label: 'Benchmarking'                      },
-  { to: '/calendar',  label: 'Calendar'              },
-  { to: '/sharing',   label: 'Sharing'               },
-  { to: '/view-others', label: 'View others'         },
-  { to: '/admin',     label: 'Admin'                 },
-];
+import CommandPalette from './CommandPalette.jsx';
+import NAV_GROUPS, { DEFAULT_GROUP_ORDER } from '../navGroups.js';
 
 // Routes that viewers can access (everything else is hidden)
 const VIEWER_ROUTES = new Set(['/view-others', '/admin']);
 
-// These tabs are not reorderable via navOrder — they sit in fixed positions
-const NON_REORDERABLE = new Set(['/view-others', '/super-admin']);
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -51,30 +24,91 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showIssueModal, setShowIssueModal] = useState(false);
 
-  // Filter nav items by role and hidden flag
-  let baseItems;
-  if (user.role === 'viewer') {
-    baseItems = ALL_NAV_ITEMS.filter(n => VIEWER_ROUTES.has(n.to));
-  } else {
-    baseItems = ALL_NAV_ITEMS.filter(n => !n.hidden);
-  }
+  // Collapsible sidebar — persisted in localStorage
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === 'true'; }
+    catch { return false; }
+  });
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  }, []);
 
-  // Apply user's custom tab ordering (only for reorderable items)
-  let navItems;
-  if ((navOrder ?? []).length && user.role !== 'viewer') {
-    const reorderable = baseItems.filter(n => !NON_REORDERABLE.has(n.to));
-    navItems = [
-      ...navOrder.map(route => reorderable.find(n => n.to === route)).filter(Boolean),
-      ...reorderable.filter(n => !(navOrder ?? []).includes(n.to)),
+  // Collapsed nav groups — persisted in localStorage
+  const [collapsedGroups, setCollapsedGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nav_collapsed');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const toggleGroup = useCallback((groupId) => {
+    setCollapsedGroups(prev => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      localStorage.setItem('nav_collapsed', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Build grouped nav: filter by role, apply saved ordering, handle superuser groups
+  const isViewer = user.role === 'viewer';
+  const isSuperuser = user.role === 'superuser';
+
+  // 1. Filter groups by role
+  let visibleGroups = NAV_GROUPS
+    .filter(g => {
+      if (g.superuserOnly && !isSuperuser) return false;
+      return true;
+    })
+    .map(group => ({
+      ...group,
+      items: group.items.filter(n => {
+        if (isViewer) return VIEWER_ROUTES.has(n.to);
+        return !n.hidden;
+      }),
+    }))
+    .filter(g => g.items.length > 0);
+
+  // 2. Apply saved group order
+  const savedGroupOrder = navOrder?.groupOrder;
+  if (savedGroupOrder?.length) {
+    const groupMap = Object.fromEntries(visibleGroups.map(g => [g.id, g]));
+    visibleGroups = [
+      ...savedGroupOrder.map(id => groupMap[id]).filter(Boolean),
+      ...visibleGroups.filter(g => !savedGroupOrder.includes(g.id)),
     ];
-  } else {
-    navItems = baseItems;
   }
 
-  // Superuser gets "Super Admin" tab always last
-  if (user.role === 'superuser') {
-    navItems = [...navItems, { to: '/super-admin', label: 'Super Admin' }];
+  // 3. Apply saved item order within each group
+  const savedItemOrder = navOrder?.itemOrder;
+  if (savedItemOrder) {
+    visibleGroups = visibleGroups.map(group => {
+      const order = savedItemOrder[group.id];
+      if (!order?.length) return group;
+      const itemMap = Object.fromEntries(group.items.map(n => [n.to, n]));
+      return {
+        ...group,
+        items: [
+          ...order.map(route => itemMap[route]).filter(Boolean),
+          ...group.items.filter(n => !order.includes(n.to)),
+        ],
+      };
+    });
   }
+
+  // 4. Superuser gets "Super Admin" in the settings group
+  if (isSuperuser) {
+    const settingsGroup = visibleGroups.find(g => g.id === 'settings');
+    if (settingsGroup) {
+      settingsGroup.items.push({ to: '/super-admin', label: 'Super Admin' });
+    }
+  }
+
+  // Flat list for current tab label detection
+  const navItems = visibleGroups.flatMap(g => g.items);
 
   // Display-friendly role label
   const roleLabel = user.role === 'superuser' ? 'Superuser'
@@ -132,8 +166,16 @@ export default function Layout() {
       {/* Backdrop */}
       {menuOpen && <div className="sidebar-backdrop" onClick={closeMenu} />}
 
-      <aside className={`sidebar ${menuOpen ? 'sidebar--open' : ''}`}>
+      <aside className={`sidebar ${menuOpen ? 'sidebar--open' : ''}${sidebarCollapsed ? ' sidebar--collapsed' : ''}`}>
         <div className="sidebar-top">
+          <button
+            className="sidebar-collapse-toggle"
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? '»' : '«'}
+          </button>
           <div className="sidebar-brand">
             <img src="/icon.svg" alt="" className="sidebar-brand-icon" />
             <div>
@@ -143,31 +185,49 @@ export default function Layout() {
           </div>
 
           <nav className="sidebar-nav">
-            {navItems.map(({ to, label, end }) => {
-              const canStar = STAR_ELIGIBLE.has(to);
-              const isStarred = bottomTabRoutes.has(to);
+            {visibleGroups.map(group => {
+              const isCollapsed = !!collapsedGroups[group.id];
               return (
-                <div key={to} className="nav-item-row">
-                  <NavLink
-                    to={to}
-                    end={end}
-                    className={({ isActive }) =>
-                      'nav-item' + (isActive ? ' nav-item--active' : '')
-                    }
-                    onClick={closeMenu}
-                  >
-                    {label}
-                  </NavLink>
-                  {canStar && to !== '/' && (
+                <div key={group.id} className="nav-group">
+                  {group.label && (
                     <button
-                      className={`nav-star ${isStarred ? 'nav-star--active' : ''}`}
-                      onClick={(e) => { e.stopPropagation(); toggleBottomBar(to); }}
-                      title={isStarred ? 'Remove from quick access' : 'Add to quick access'}
-                      aria-label={isStarred ? 'Remove from quick access' : 'Add to quick access'}
+                      className="nav-group-header"
+                      onClick={() => toggleGroup(group.id)}
+                      aria-expanded={!isCollapsed}
                     >
-                      {isStarred ? '★' : '☆'}
+                      <span className="nav-group-label">{group.label}</span>
+                      <svg className={`nav-group-chevron ${isCollapsed ? 'nav-group-chevron--collapsed' : ''}`} width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="2 4 6 8 10 4"/></svg>
                     </button>
                   )}
+                  {(!isCollapsed || sidebarCollapsed) && group.items.map(({ to, label, end }) => {
+                    const canStar = STAR_ELIGIBLE.has(to);
+                    const isStarred = bottomTabRoutes.has(to);
+                    return (
+                      <div key={to} className="nav-item-row">
+                        <NavLink
+                          to={to}
+                          end={end}
+                          className={({ isActive }) =>
+                            'nav-item' + (isActive ? ' nav-item--active' : '')
+                          }
+                          onClick={closeMenu}
+                          title={sidebarCollapsed ? label : undefined}
+                        >
+                          {label}
+                        </NavLink>
+                        {canStar && to !== '/' && (
+                          <button
+                            className={`nav-star ${isStarred ? 'nav-star--active' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); toggleBottomBar(to); }}
+                            title={isStarred ? 'Remove from quick access' : 'Add to quick access'}
+                            aria-label={isStarred ? 'Remove from quick access' : 'Add to quick access'}
+                          >
+                            {isStarred ? '★' : '☆'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -199,13 +259,15 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="main-content">
+      <main className={`main-content${sidebarCollapsed ? ' main-content--sidebar-collapsed' : ''}`}>
         <Outlet />
       </main>
 
       <BottomTabBar onReportIssue={() => setShowIssueModal(true)} />
 
       {showIssueModal && <ReportIssueModal onClose={() => setShowIssueModal(false)} />}
+
+      <CommandPalette />
     </div>
   );
 }

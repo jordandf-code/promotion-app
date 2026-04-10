@@ -6,6 +6,7 @@ import { useLearningData, CERT_STATUS_LABELS, COURSE_STATUS_LABELS,
 import { fmtDate } from '../data/sampleData.js';
 import CertFormModal   from '../components/learning/CertFormModal.jsx';
 import CourseFormModal  from '../components/learning/CourseFormModal.jsx';
+import EmptyState      from '../components/EmptyState.jsx';
 
 export default function Learning() {
   const {
@@ -84,7 +85,7 @@ export default function Learning() {
               onDelete={() => handleDeleteCert(cert.id)} />
           ))}
           {certifications.length === 0 && (
-            <p className="list-empty">No certifications yet. Add one to start tracking credentials.</p>
+            <EmptyState title="No certifications yet" description="Track your professional certifications and their renewal dates." />
           )}
         </div>
       </section>
@@ -107,7 +108,7 @@ export default function Learning() {
               onDelete={() => handleDeleteCourse(course.id)} />
           ))}
           {courses.length === 0 && (
-            <p className="list-empty">No courses yet. Add one to log your training.</p>
+            <EmptyState title="No courses yet" description="Log training courses, workshops, and other learning activities." />
           )}
         </div>
       </section>

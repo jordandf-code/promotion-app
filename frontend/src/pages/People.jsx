@@ -8,6 +8,7 @@ import MeetingPrepModal from '../components/people/MeetingPrepModal.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import PersonCard from '../components/people/PersonCard.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 import { API_BASE, authHeaders } from '../utils/api.js';
 
 const EMPTY_FORM = { name: '', title: '', org: '', type: '', relationshipStatus: 'in-progress', email: '', phone: '', need: '', influenceTier: '', strategicImportance: '', stakeholderGroup: '' };
@@ -137,7 +138,13 @@ export default function People() {
           />
         ))}
         {filtered.length === 0 && (
-          <p className="list-empty">No people match the current filter.</p>
+          <EmptyState
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>}
+            title={people.length === 0 ? 'No people yet' : 'No people match the current filter'}
+            description={people.length === 0 ? 'Add sponsors, mentors, and key stakeholders to track your relationship network.' : 'Try adjusting your filters to see more people.'}
+            action={people.length === 0 ? openAdd : undefined}
+            actionLabel="Add your first contact"
+          />
         )}
       </div>
 

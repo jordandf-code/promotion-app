@@ -127,6 +127,30 @@ Same pattern for `.super-admin-table`.
 - Disabled in dev (`devOptions: { enabled: false }`)
 - Icons: 192px and 512px PNG in `frontend/public/`
 
+## Typography scaling
+
+- Body text stays 14px (`var(--text-base)`) on mobile — do not scale down further
+- Page titles scale from `var(--text-lg)` (20px) to 18px on mobile
+- Hero numbers in widgets scale from `var(--text-xl)` (28px) to 24px on mobile
+- Labels and metadata stay at `var(--text-xs)` (12px) — minimum readable size
+
+## Collapsed sections on mobile
+
+- Secondary content sections (e.g., dashboard Tier 2 widgets, competency detail panels) default to collapsed on mobile
+- Use `<CollapsibleSection>` component with `defaultOpen={false}` for mobile-secondary content
+- Collapsible state persists in localStorage — user preference is respected across sessions
+
+## Filter patterns
+
+- On mobile, inline filter bars become a single "Filter" button that opens a bottom sheet or modal
+- Active filter count shown as badge on the button: "Filters (2)"
+- Minimum 8px spacing between tappable filter chips to prevent mis-taps
+
+## Overflow indicators
+
+- Horizontal scroll containers (e.g., scorecard tables) should show a gradient fade on the right edge to indicate more content
+- Use `mask-image: linear-gradient(to right, black 90%, transparent)` on the scroll wrapper
+
 ## Checklist for any new UI component
 
 1. Does it fit within 375px without horizontal scroll?
@@ -136,3 +160,5 @@ Same pattern for `.super-admin-table`.
 5. If it has a table, does it convert to cards at 768px?
 6. Are number inputs using the correct `inputMode`?
 7. Does it account for the bottom tab bar height in fixed positioning?
+8. Do secondary sections use `<CollapsibleSection>` with `defaultOpen={false}`?
+9. Is there at least 8px between adjacent tap targets?

@@ -7,6 +7,7 @@ import { useWinsData }     from '../hooks/useWinsData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { mapAiError }      from '../utils/aiErrors.js';
 import GoalCard            from '../components/goals/GoalCard.jsx';
+import EmptyState          from '../components/EmptyState.jsx';
 import WinFormModal        from '../components/wins/WinFormModal.jsx';
 import SuggestGoalsModal   from '../components/goals/SuggestGoalsModal.jsx';
 
@@ -130,7 +131,10 @@ export default function Goals() {
         <div className="goal-list">
           {milestones.map(g => <GoalCard key={g.id} {...buildCardProps(g)} />)}
           {milestones.length === 0 && (
-            <p className="list-empty">No IBM milestones set. Add a goal and mark it as an IBM milestone.</p>
+            <EmptyState
+              title="No IBM milestones set"
+              description="Add a goal and mark it as an IBM milestone to track firm-specific requirements."
+            />
           )}
         </div>
       </section>
@@ -145,7 +149,11 @@ export default function Goals() {
         <div className="goal-list">
           {otherGoals.map(g => <GoalCard key={g.id} {...buildCardProps(g)} />)}
           {otherGoals.length === 0 && (
-            <p className="list-empty">No other goals yet. Add one to start tracking.</p>
+            <EmptyState
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
+              title="No goals yet"
+              description="Set goals to track your progress toward promotion milestones."
+            />
           )}
         </div>
       </section>

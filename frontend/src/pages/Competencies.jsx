@@ -14,6 +14,7 @@ import TrendSparkline from '../components/competencies/TrendSparkline.jsx';
 import JohariWindow, { computeJohariWindow } from '../components/competencies/JohariWindow.jsx';
 import CompositeScoreCard, { computeCompositeScores } from '../components/competencies/CompositeScoreCard.jsx';
 import MultiRaterRequest from '../components/competencies/MultiRaterRequest.jsx';
+import CollapsibleSection from '../components/CollapsibleSection.jsx';
 
 const COMPETENCIES = [
   { id: 'commercial_acumen',   label: 'Commercial acumen'    },
@@ -281,9 +282,8 @@ export default function Competencies() {
 
       {/* Section 3: Evidence Linking + Trends */}
       {latestAssessment && (
-        <section className="section">
-          <div className="section-header">
-            <h2 className="section-title">Evidence & trends</h2>
+        <CollapsibleSection id="comp-evidence" title="Evidence & trends" defaultOpen={false}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
             <AutoLinkButton />
           </div>
           <div className="card" style={{ padding: '1rem' }}>
@@ -318,7 +318,7 @@ export default function Competencies() {
               );
             })}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Section 4: Development Goals */}
@@ -333,40 +333,26 @@ export default function Competencies() {
 
       {/* Section 5: Johari Window (shown when multi-rater data exists) */}
       {johariData && (
-        <section className="section">
-          <div className="section-header">
-            <h2 className="section-title">Perception map</h2>
-            <span className="muted" style={{ fontSize: '0.8rem' }}>
-              Based on {otherAssessments.length} rater{otherAssessments.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+        <CollapsibleSection id="comp-johari" title="Perception map" defaultOpen={false}>
+          <p className="muted" style={{ fontSize: 'var(--text-sm)', marginBottom: '0.5rem' }}>
+            Based on {otherAssessments.length} rater{otherAssessments.length !== 1 ? 's' : ''}
+          </p>
           <JohariWindow johariData={johariData} competencies={COMPETENCIES} />
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Section 6: Composite Score Breakdown */}
       {Object.keys(compositeScores).length > 0 && (
-        <section className="section">
-          <div className="section-header">
-            <h2 className="section-title">Composite scores</h2>
-            <span className="muted" style={{ fontSize: '0.8rem' }}>
-              Self {otherAssessments.length > 0 ? '40%' : '60%'} + Evidence {otherAssessments.length > 0 ? '30%' : '40%'}{otherAssessments.length > 0 ? ' + 360 30%' : ''}
-            </span>
-          </div>
+        <CollapsibleSection id="comp-composite" title="Composite scores" defaultOpen={false}>
+          <p className="muted" style={{ fontSize: 'var(--text-sm)', marginBottom: '0.5rem' }}>
+            Self {otherAssessments.length > 0 ? '40%' : '60%'} + Evidence {otherAssessments.length > 0 ? '30%' : '40%'}{otherAssessments.length > 0 ? ' + 360 30%' : ''}
+          </p>
           <CompositeScoreCard compositeScores={compositeScores} competencies={COMPETENCIES} />
-        </section>
+        </CollapsibleSection>
       )}
 
       {/* Section 7: Request Assessments */}
-      <section className="section">
-        <div className="section-header">
-          <h2 className="section-title">Multi-rater assessments</h2>
-          {otherAssessments.length > 0 && (
-            <span className="muted" style={{ fontSize: '0.8rem' }}>
-              {otherAssessments.length} received
-            </span>
-          )}
-        </div>
+      <CollapsibleSection id="comp-multirater" title="Multi-rater assessments" count={otherAssessments.length > 0 ? otherAssessments.length : undefined} defaultOpen={false}>
         <div className="card" style={{ padding: '1rem' }}>
           <MultiRaterRequest />
           {otherAssessments.length > 0 && (
@@ -384,13 +370,10 @@ export default function Competencies() {
             </div>
           )}
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Section 8: AI Analysis */}
-      <section className="section">
-        <div className="section-header">
-          <h2 className="section-title">AI analysis</h2>
-        </div>
+      <CollapsibleSection id="comp-ai" title="AI analysis" defaultOpen={!!aiAnalysis.competency_summary}>
         <div className="card" style={{ padding: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
@@ -484,7 +467,7 @@ export default function Competencies() {
             </div>
           )}
         </div>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }
