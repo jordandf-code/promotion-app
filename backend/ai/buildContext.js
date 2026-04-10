@@ -369,14 +369,16 @@ async function buildContext(userId) {
     }));
   }
 
-  // ── competency self-assessment (latest) ──
+  // ── competency self-assessment (latest self-type) ──
   const rawCompetencies = byDomain.competencies ?? { assessments: [] };
-  if (rawCompetencies.assessments?.length) {
-    const latest = rawCompetencies.assessments[rawCompetencies.assessments.length - 1];
+  const selfAssessments = (rawCompetencies.assessments ?? []).filter(a => a.type === 'self');
+  if (selfAssessments.length) {
+    const latest = selfAssessments[selfAssessments.length - 1];
     context.competency_self_assessment = {
       date: latest.date,
       ratings: latest.ratings,
       overall_notes: latest.overall_notes,
+      bias_flags: latest.bias_flags,
     };
   }
 

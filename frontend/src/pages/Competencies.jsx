@@ -1,10 +1,19 @@
-// Competencies.jsx — Competency self-assessment, radar chart, and AI perception-gap analysis
+// Competencies.jsx — Competency self-assessment with BARS wizard, radar chart, and AI analysis
 
 import { useState } from 'react';
 import { useCompetenciesData } from '../hooks/useCompetenciesData.js';
+import { useWinsData } from '../hooks/useWinsData.js';
+import { useAdminData } from '../context/AdminDataContext.jsx';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import RadarChart from '../components/radar/RadarChart.jsx';
+import StepperWizard from '../components/competencies/StepperWizard.jsx';
+import CompetencyGoals from '../components/competencies/CompetencyGoals.jsx';
+import EvidenceLinker from '../components/competencies/EvidenceLinker.jsx';
+import TrendSparkline from '../components/competencies/TrendSparkline.jsx';
+import JohariWindow, { computeJohariWindow } from '../components/competencies/JohariWindow.jsx';
+import CompositeScoreCard, { computeCompositeScores } from '../components/competencies/CompositeScoreCard.jsx';
+import MultiRaterRequest from '../components/competencies/MultiRaterRequest.jsx';
 
 const COMPETENCIES = [
   { id: 'commercial_acumen',   label: 'Commercial acumen'    },
@@ -35,13 +44,52 @@ const PRIORITY_LABELS = {
 };
 
 // Build a ratings-only object from a full assessment for radar chart
+// Uses composite_score if available (fractional), otherwise falls back to level
 function extractRatings(assessment) {
   if (!assessment) return {};
   const out = {};
   for (const [id, val] of Object.entries(assessment.ratings ?? {})) {
-    out[id] = val.level ?? 0;
+    out[id] = val.composite_score ?? val.level ?? 0;
   }
   return out;
+}
+
+function AutoLinkButton() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function handleAutoLink() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ai/auto-link-evidence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
+      const d = await res.json();
+      if (!d.ok) { setError(mapAiError(d.code, d.error)); return; }
+      setResult(d.data);
+    } catch {
+      setError('Could not reach the AI service');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <button className="btn-secondary" onClick={handleAutoLink} disabled={loading} style={{ fontSize: '0.8rem' }}>
+        {loading ? 'Linking...' : 'Auto-link with AI'}
+      </button>
+      {error && <span className="form-field-error" style={{ fontSize: '0.75rem' }}>{error}</span>}
+      {result?.links?.length > 0 && (
+        <span className="muted" style={{ fontSize: '0.75rem' }}>
+          {result.links.length} suggestion{result.links.length !== 1 ? 's' : ''} — apply below
+        </span>
+      )}
+    </div>
+  );
 }
 
 export default function Competencies() {
@@ -52,24 +100,56 @@ export default function Competencies() {
     updateAssessment,
     removeAssessment,
     updateAiAnalysis,
+    addCompetencyGoal,
+    updateCompetencyGoal,
+    removeCompetencyGoal,
   } = useCompetenciesData();
 
+  const { data: winsRaw, initialized: winsInit } = useWinsData();
+  const wins = Array.isArray(winsRaw) ? winsRaw : (winsRaw?.wins ?? []);
+
+  const { questionBank } = useAdminData();
+
   const assessments   = data.assessments ?? [];
+  const selfAssessments = assessments.filter(a => a.type === 'self');
+  const otherAssessments = assessments.filter(a => a.type === 'peer' || a.type === 'sponsor');
   const aiAnalysis    = data.ai_analysis ?? {};
 
   const today = new Date().toISOString().slice(0, 10);
-  const todayAssessment = assessments.find(a => a.date === today && a.type === 'self');
-  const latestAssessment = assessments.length
-    ? assessments[assessments.length - 1]
+  const todayAssessment = selfAssessments.find(a => a.date === today);
+  const latestAssessment = selfAssessments.length
+    ? selfAssessments[selfAssessments.length - 1]
     : null;
-  const previousAssessment = assessments.length >= 2
-    ? assessments[assessments.length - 2]
+  const previousAssessment = selfAssessments.length >= 2
+    ? selfAssessments[selfAssessments.length - 2]
     : null;
 
-  const [showForm, setShowForm]   = useState(!todayAssessment && assessments.length === 0);
+  const [showForm, setShowForm]   = useState(!todayAssessment && selfAssessments.length === 0);
+  const [show360Overlay, setShow360Overlay] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiError, setAiError]     = useState(null);
   const [aiUsage, setAiUsage]     = useState(null);
+
+  // Compute multi-rater derived data
+  const competencyIds = COMPETENCIES.map(c => c.id);
+  const compositeScores = latestAssessment
+    ? computeCompositeScores(latestAssessment, otherAssessments, competencyIds)
+    : {};
+  const johariData = latestAssessment && otherAssessments.length > 0
+    ? computeJohariWindow(latestAssessment, otherAssessments, COMPETENCIES)
+    : null;
+
+  // Build 360 average ratings for radar overlay
+  const othersRatings = otherAssessments.length > 0 ? (() => {
+    const avg = {};
+    for (const comp of COMPETENCIES) {
+      const scores = otherAssessments
+        .map(a => a.ratings?.[comp.id]?.composite_score ?? a.ratings?.[comp.id]?.level)
+        .filter(v => v != null);
+      if (scores.length) avg[comp.id] = scores.reduce((s, v) => s + v, 0) / scores.length;
+    }
+    return avg;
+  })() : null;
 
   async function handleAnalyze() {
     setAnalyzing(true);
@@ -90,31 +170,31 @@ export default function Competencies() {
     }
   }
 
-  if (!initialized) return <div className="page"><p className="muted">Loading…</p></div>;
+  if (!initialized) return <div className="page"><p className="muted">Loading...</p></div>;
 
   return (
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Competencies</h1>
         <span className="page-count">
-          {assessments.length} assessment{assessments.length !== 1 ? 's' : ''}
+          {selfAssessments.length} assessment{selfAssessments.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {/* ── Section 1: Self-Assessment Form ── */}
+      {/* Section 1: Self-Assessment */}
       <section className="section">
         <div className="section-header">
           <h2 className="section-title">Self-assessment</h2>
-          {assessments.length > 0 && !showForm && (
+          {selfAssessments.length > 0 && !showForm && (
             <button className="btn-secondary" onClick={() => setShowForm(true)}>
-              {todayAssessment ? 'Edit today\'s assessment' : 'New assessment'}
+              {todayAssessment ? "Edit today's assessment" : 'New assessment'}
             </button>
           )}
         </div>
 
-        {assessments.length === 0 && !showForm && (
+        {selfAssessments.length === 0 && !showForm && (
           <div className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-            <p style={{ marginBottom: '0.75rem' }}>Rate yourself against IBM's 7 leadership competencies.</p>
+            <p style={{ marginBottom: '0.75rem' }}>Rate yourself against 7 leadership competencies using behavioral anchors.</p>
             <button className="btn-primary" onClick={() => setShowForm(true)}>
               Start your first self-assessment
             </button>
@@ -122,7 +202,9 @@ export default function Competencies() {
         )}
 
         {showForm && (
-          <AssessmentForm
+          <StepperWizard
+            competencies={COMPETENCIES}
+            questionBank={questionBank}
             existing={todayAssessment}
             onSave={(fields) => {
               if (todayAssessment) {
@@ -132,59 +214,63 @@ export default function Competencies() {
               }
               setShowForm(false);
             }}
-            onCancel={assessments.length > 0 ? () => setShowForm(false) : null}
+            onCancel={selfAssessments.length > 0 ? () => setShowForm(false) : null}
           />
         )}
 
         {!showForm && latestAssessment && (
           <AssessmentSummary
             assessment={latestAssessment}
-            onEdit={() => {
-              if (latestAssessment.date === today) {
-                setShowForm(true);
-              } else {
-                setShowForm(true);
-              }
-            }}
+            onEdit={() => setShowForm(true)}
             onRemove={() => {
               if (confirm('Remove this assessment?')) removeAssessment(latestAssessment.id);
             }}
           />
         )}
 
-        {!showForm && assessments.length > 1 && (
+        {!showForm && selfAssessments.length > 1 && (
           <AssessmentHistory
-            assessments={assessments.slice(0, -1).reverse()}
+            assessments={selfAssessments.slice(0, -1).reverse()}
             onRemove={(id) => { if (confirm('Remove this assessment?')) removeAssessment(id); }}
           />
         )}
       </section>
 
-      {/* ── Section 2: Radar Chart ── */}
+      {/* Section 2: Radar Chart */}
       {latestAssessment && (
         <section className="section">
           <div className="section-header">
             <h2 className="section-title">Competency radar</h2>
-            {previousAssessment && (
-              <span className="muted" style={{ fontSize: '0.8rem' }}>
-                Blue = latest · Dashed = previous ({previousAssessment.date})
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {othersRatings && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={show360Overlay} onChange={e => setShow360Overlay(e.target.checked)} />
+                  Show 360 overlay
+                </label>
+              )}
+              {previousAssessment && (
+                <span className="muted" style={{ fontSize: '0.8rem' }}>
+                  Blue = latest{show360Overlay ? ' · Green = 360 avg' : ''} · Dashed = previous
+                </span>
+              )}
+            </div>
           </div>
           <div className="card" style={{ padding: '1rem' }}>
             <RadarChart
               ratings={extractRatings(latestAssessment)}
               previousRatings={previousAssessment ? extractRatings(previousAssessment) : undefined}
+              othersRatings={show360Overlay ? othersRatings : undefined}
               competencies={COMPETENCIES}
               size={300}
             />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'center' }}>
               {COMPETENCIES.map(comp => {
                 const r = latestAssessment.ratings?.[comp.id];
+                const composite = r?.composite_score;
                 const level = r?.level;
                 return (
                   <span key={comp.id} className="badge" style={{ fontSize: '0.75rem' }}>
-                    {comp.label}: {level ? LEVEL_LABELS[level] : '—'}
+                    {comp.label}: {composite != null ? composite.toFixed(2) : (level ? LEVEL_LABELS[level] : '—')}
                   </span>
                 );
               })}
@@ -193,7 +279,114 @@ export default function Competencies() {
         </section>
       )}
 
-      {/* ── Section 3: AI Analysis ── */}
+      {/* Section 3: Evidence Linking + Trends */}
+      {latestAssessment && (
+        <section className="section">
+          <div className="section-header">
+            <h2 className="section-title">Evidence & trends</h2>
+            <AutoLinkButton />
+          </div>
+          <div className="card" style={{ padding: '1rem' }}>
+            {COMPETENCIES.map(comp => {
+              const r = latestAssessment.ratings?.[comp.id];
+              if (!r) return null;
+              const trendData = selfAssessments.map(a => {
+                const cr = a.ratings?.[comp.id];
+                return cr?.composite_score ?? cr?.level ?? null;
+              }).filter(v => v != null);
+              return (
+                <div key={comp.id} style={{ marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '0.85rem' }}>{comp.label}</strong>
+                    <span className="badge" style={{ fontSize: '0.75rem' }}>
+                      {r.composite_score != null ? r.composite_score.toFixed(2) : LEVEL_LABELS[r.level]}
+                    </span>
+                    {trendData.length >= 2 && <TrendSparkline data={trendData} />}
+                  </div>
+                  <EvidenceLinker
+                    competencyId={comp.id}
+                    competencyLabel={comp.label}
+                    evidenceIds={r.evidence_ids ?? []}
+                    wins={wins}
+                    onUpdate={(newIds) => {
+                      const updatedRatings = { ...latestAssessment.ratings };
+                      updatedRatings[comp.id] = { ...updatedRatings[comp.id], evidence_ids: newIds };
+                      updateAssessment(latestAssessment.id, { ratings: updatedRatings });
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Section 4: Development Goals */}
+      <CompetencyGoals
+        goals={data.competency_goals ?? []}
+        competencies={COMPETENCIES}
+        currentRatings={latestAssessment?.ratings ?? {}}
+        onAdd={addCompetencyGoal}
+        onUpdate={updateCompetencyGoal}
+        onRemove={removeCompetencyGoal}
+      />
+
+      {/* Section 5: Johari Window (shown when multi-rater data exists) */}
+      {johariData && (
+        <section className="section">
+          <div className="section-header">
+            <h2 className="section-title">Perception map</h2>
+            <span className="muted" style={{ fontSize: '0.8rem' }}>
+              Based on {otherAssessments.length} rater{otherAssessments.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <JohariWindow johariData={johariData} competencies={COMPETENCIES} />
+        </section>
+      )}
+
+      {/* Section 6: Composite Score Breakdown */}
+      {Object.keys(compositeScores).length > 0 && (
+        <section className="section">
+          <div className="section-header">
+            <h2 className="section-title">Composite scores</h2>
+            <span className="muted" style={{ fontSize: '0.8rem' }}>
+              Self {otherAssessments.length > 0 ? '40%' : '60%'} + Evidence {otherAssessments.length > 0 ? '30%' : '40%'}{otherAssessments.length > 0 ? ' + 360 30%' : ''}
+            </span>
+          </div>
+          <CompositeScoreCard compositeScores={compositeScores} competencies={COMPETENCIES} />
+        </section>
+      )}
+
+      {/* Section 7: Request Assessments */}
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Multi-rater assessments</h2>
+          {otherAssessments.length > 0 && (
+            <span className="muted" style={{ fontSize: '0.8rem' }}>
+              {otherAssessments.length} received
+            </span>
+          )}
+        </div>
+        <div className="card" style={{ padding: '1rem' }}>
+          <MultiRaterRequest />
+          {otherAssessments.length > 0 && (
+            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-color, #e2e8f0)', paddingTop: '0.75rem' }}>
+              <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.4rem' }}>Received assessments</p>
+              {otherAssessments.map(a => (
+                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
+                  <span>
+                    {a.assessor_name ?? 'Anonymous'}
+                    <span className="badge" style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>{a.type}</span>
+                  </span>
+                  <span className="muted">{a.date}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Section 8: AI Analysis */}
       <section className="section">
         <div className="section-header">
           <h2 className="section-title">AI analysis</h2>
@@ -203,11 +396,11 @@ export default function Competencies() {
             <button
               className="btn-primary"
               onClick={handleAnalyze}
-              disabled={analyzing || assessments.length === 0}
+              disabled={analyzing || selfAssessments.length === 0}
             >
-              {analyzing ? 'Analyzing…' : 'Analyze my competencies'}
+              {analyzing ? 'Analyzing...' : 'Analyze my competencies'}
             </button>
-            {assessments.length === 0 && (
+            {selfAssessments.length === 0 && (
               <span className="muted" style={{ fontSize: '0.8rem' }}>Complete a self-assessment first</span>
             )}
             {aiAnalysis.generated_at && (
@@ -296,157 +489,11 @@ export default function Competencies() {
   );
 }
 
-// ── Assessment Form ────────────────────────────────────────────────────────────
-
-function AssessmentForm({ existing, onSave, onCancel }) {
-  const initialRatings = {};
-  for (const comp of COMPETENCIES) {
-    initialRatings[comp.id] = existing?.ratings?.[comp.id] ?? { level: null, notes: '' };
-  }
-
-  const [ratings, setRatings]       = useState(initialRatings);
-  const [overallNotes, setOverallNotes] = useState(existing?.overall_notes ?? '');
-  const [expandedNotes, setExpandedNotes] = useState({});
-
-  function setLevel(compId, level) {
-    setRatings(r => ({
-      ...r,
-      [compId]: { ...r[compId], level },
-    }));
-  }
-
-  function setNotes(compId, notes) {
-    setRatings(r => ({
-      ...r,
-      [compId]: { ...r[compId], notes },
-    }));
-  }
-
-  function toggleNotes(compId) {
-    setExpandedNotes(e => ({ ...e, [compId]: !e[compId] }));
-  }
-
-  function handleSave(e) {
-    e.preventDefault();
-    // Clean ratings: only include competencies that have been rated
-    const cleanRatings = {};
-    for (const [id, val] of Object.entries(ratings)) {
-      if (val.level != null) {
-        cleanRatings[id] = {
-          level: val.level,
-          notes: val.notes || '',
-          evidence_ids: existing?.ratings?.[id]?.evidence_ids ?? [],
-        };
-      }
-    }
-    onSave({ ratings: cleanRatings, overall_notes: overallNotes });
-  }
-
-  const ratedCount = Object.values(ratings).filter(r => r.level != null).length;
-
-  return (
-    <div className="card" style={{ padding: '1rem' }}>
-      {existing && (
-        <p className="muted" style={{ marginBottom: '0.75rem', fontSize: '0.85rem' }}>
-          Editing today's assessment.
-        </p>
-      )}
-      <form onSubmit={handleSave}>
-        {COMPETENCIES.map(comp => {
-          const r = ratings[comp.id];
-          const notesExpanded = expandedNotes[comp.id];
-          return (
-            <div key={comp.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color, #e2e8f0)' }}>
-              <p style={{ fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem' }}>{comp.label}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {[1, 2, 3, 4].map(level => (
-                  <label
-                    key={level}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      padding: '0.3rem 0.6rem',
-                      borderRadius: '4px',
-                      border: `1px solid ${r.level === level ? 'var(--blue, #3b82f6)' : 'var(--border-color, #e2e8f0)'}`,
-                      background: r.level === level ? 'var(--blue-light, rgba(59,130,246,0.1))' : 'transparent',
-                      transition: 'all 0.1s',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name={`level-${comp.id}`}
-                      value={level}
-                      checked={r.level === level}
-                      onChange={() => setLevel(comp.id, level)}
-                      style={{ display: 'none' }}
-                    />
-                    <span style={{ fontWeight: r.level === level ? 600 : 400 }}>
-                      {level} — {LEVEL_LABELS[level]}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div style={{ marginTop: '0.4rem' }}>
-                <button
-                  type="button"
-                  className="row-btn"
-                  style={{ fontSize: '0.8rem' }}
-                  onClick={() => toggleNotes(comp.id)}
-                >
-                  {notesExpanded ? 'Hide notes' : 'Add notes'}
-                </button>
-                {notesExpanded && (
-                  <textarea
-                    className="form-input form-textarea"
-                    value={r.notes}
-                    onChange={e => setNotes(comp.id, e.target.value)}
-                    rows={2}
-                    placeholder="Optional context or evidence…"
-                    style={{ marginTop: '0.4rem' }}
-                  />
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        <label style={{ display: 'block', marginBottom: '1rem' }}>
-          Overall notes
-          <textarea
-            className="form-input form-textarea"
-            value={overallNotes}
-            onChange={e => setOverallNotes(e.target.value)}
-            rows={3}
-            placeholder="Any overall reflections on this assessment…"
-          />
-        </label>
-
-        <div className="modal-actions" style={{ justifyContent: 'flex-start' }}>
-          <button type="submit" className="btn-primary" disabled={ratedCount === 0}>
-            {existing ? 'Update assessment' : 'Save assessment'}
-          </button>
-          {onCancel && (
-            <button type="button" className="btn-secondary" onClick={onCancel}>
-              Cancel
-            </button>
-          )}
-          <span className="muted" style={{ fontSize: '0.8rem' }}>
-            {ratedCount}/{COMPETENCIES.length} rated
-          </span>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-// ── Assessment Summary (latest) ───────────────────────────────────────────────
-
+// Assessment Summary (latest)
 function AssessmentSummary({ assessment, onEdit, onRemove }) {
   const a = assessment;
   const ratedCount = Object.keys(a.ratings ?? {}).length;
+  const hasComposite = Object.values(a.ratings ?? {}).some(r => r.composite_score != null);
 
   return (
     <div className="card" style={{ padding: '1rem', marginBottom: '0.5rem' }}>
@@ -465,6 +512,22 @@ function AssessmentSummary({ assessment, onEdit, onRemove }) {
           <button className="row-btn row-btn--danger" onClick={onRemove}>Remove</button>
         </div>
       </div>
+
+      {/* Bias flags */}
+      {a.bias_flags?.length > 0 && (
+        <div style={{ marginTop: '0.5rem' }}>
+          {a.bias_flags.map((flag, i) => (
+            <p key={i} style={{
+              fontSize: '0.8rem', margin: '0.25rem 0', padding: '0.3rem 0.5rem',
+              background: 'rgba(234, 179, 8, 0.1)', borderRadius: '4px',
+              color: 'var(--text-primary)',
+            }}>
+              <strong style={{ textTransform: 'capitalize' }}>{flag.type.replace(/_/g, ' ')}:</strong> {flag.message}
+            </p>
+          ))}
+        </div>
+      )}
+
       {ratedCount > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.75rem' }}>
           {COMPETENCIES.map(comp => {
@@ -472,7 +535,9 @@ function AssessmentSummary({ assessment, onEdit, onRemove }) {
             if (!r) return null;
             return (
               <span key={comp.id} className="badge" style={{ fontSize: '0.75rem' }}>
-                {comp.label}: {LEVEL_LABELS[r.level] ?? r.level}
+                {comp.label}: {hasComposite && r.composite_score != null
+                  ? r.composite_score.toFixed(2)
+                  : (LEVEL_LABELS[r.level] ?? r.level)}
               </span>
             );
           })}
@@ -487,8 +552,7 @@ function AssessmentSummary({ assessment, onEdit, onRemove }) {
   );
 }
 
-// ── Assessment History ─────────────────────────────────────────────────────────
-
+// Assessment History
 function AssessmentHistory({ assessments, onRemove }) {
   const [expandedId, setExpandedId] = useState(null);
 
@@ -502,6 +566,7 @@ function AssessmentHistory({ assessments, onRemove }) {
       {assessments.map(a => {
         const ratedCount = Object.keys(a.ratings ?? {}).length;
         const expanded = expandedId === a.id;
+        const hasComposite = Object.values(a.ratings ?? {}).some(r => r.composite_score != null);
         return (
           <div
             key={a.id}
@@ -528,7 +593,9 @@ function AssessmentHistory({ assessments, onRemove }) {
                     if (!r) return null;
                     return (
                       <span key={comp.id} className="badge" style={{ fontSize: '0.75rem' }}>
-                        {comp.label}: {LEVEL_LABELS[r.level] ?? r.level}
+                        {comp.label}: {hasComposite && r.composite_score != null
+                          ? r.composite_score.toFixed(2)
+                          : (LEVEL_LABELS[r.level] ?? r.level)}
                       </span>
                     );
                   })}

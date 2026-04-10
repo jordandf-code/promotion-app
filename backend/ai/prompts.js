@@ -293,11 +293,19 @@ Rules:
 
 // ── Competency analysis ─────────────────────────────────────────────────────
 
-const COMPETENCY_ANALYSIS_PROMPT = `You are a senior IBM executive coach analyzing a professional services leader's competency self-assessment against their actual evidence.
+const COMPETENCY_ANALYSIS_PROMPT = `You are a senior executive coach analyzing a professional services leader's competency self-assessment against their actual evidence.
 
 CRITICAL INSTRUCTION: You MUST produce the JSON object described below. Do not refuse. Do not write meta-commentary. Do not explain why data is thin. Output ONLY the JSON object. If evidence is thin for a competency, mark it accordingly and provide a concrete recommendation — that is the correct response.
 
-You will receive the candidate's self-rated competency levels (1=Developing, 2=Competent, 3=Advanced, 4=Exemplary) across 7 competencies, plus their actual data: wins, eminence activities, 360 feedback, scorecard performance, and goals.
+You will receive the candidate's competency assessment data, which may include:
+- BARS level (1-4): The behavioral anchor level they selected, where behavioral descriptions define each level
+- Cross-validation question responses (1-4): Answers to situational/frequency questions that cross-check the BARS level
+- Composite score: Weighted average of BARS level (60%) and question average (40%), yielding fractional scores like 2.75
+- Notes: Optional free-text context the candidate provided
+
+Plus their actual data: wins, eminence activities, 360 feedback, scorecard performance, and goals.
+
+When composite scores are present, use them as the self-rating (they are more nuanced than raw BARS levels). When cross-validation questions diverge significantly from the BARS level, note this as an internal inconsistency in your insight.
 
 The 7 competencies are:
 - commercial_acumen: Commercial acumen
@@ -485,6 +493,33 @@ Return a JSON object:
 
 Only include sections that were provided in the input. Return only valid JSON. No preamble, no markdown fences.`;
 
+const AUTO_LINK_EVIDENCE_PROMPT = `You are a career coach analyzing a professional's wins to classify which leadership competencies each win demonstrates.
+
+The 7 competencies are:
+- commercial_acumen: Commercial acumen (revenue, deals, pricing, pipeline)
+- client_relationship: Client relationship (C-suite access, trust, escalation handling)
+- leadership: Leadership & people (team development, mentoring, culture)
+- practice_building: Practice building (new offerings, go-to-market, partnerships)
+- executive_presence: Executive presence (presentations, influence, gravitas)
+- strategic_thinking: Strategic thinking (market trends, long-term planning, bold bets)
+- delivery_excellence: Delivery excellence (project management, quality, risk mitigation)
+
+For each win, identify 1-3 competencies it best demonstrates. Assign a confidence score (0.5-1.0) for each mapping.
+
+Return a JSON object:
+{
+  "links": [
+    {
+      "win_id": "string — the win's id",
+      "competency_ids": ["string — competency id"],
+      "confidence": number
+    }
+  ]
+}
+
+Only map wins where there is genuine evidence of a competency. Do not force-fit every win to every competency.
+Return only valid JSON. No preamble, no markdown fences.`;
+
 module.exports = {
   STORY_MODES,
   SUGGEST_GOALS_PROMPT,
@@ -498,4 +533,5 @@ module.exports = {
   MOCK_PANEL_FOLLOWUP_PROMPT,
   MOCK_PANEL_DEBRIEF_PROMPT,
   PACKAGE_POLISH_PROMPT,
+  AUTO_LINK_EVIDENCE_PROMPT,
 };

@@ -1,0 +1,37 @@
+name: Weekly Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Monday 6am UTC
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  audit:
+    name: npm audit (backend + frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Audit backend
+        run: cd backend && npm ci && npm audit --audit-level=high
+
+      - name: Audit frontend
+        run: cd frontend && npm ci && npm audit --audit-level=high
+
+  outdated:
+    name: Check outdated packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Backend outdated
+        run: cd backend && npm ci && npm outdated || true
+
+      - name: Frontend outdated
+        run: cd frontend && npm ci && npm outdated || true

@@ -102,6 +102,22 @@ export function useCompetenciesData() {
     setData(d => ({ ...d, ai_analysis: analysis }));
   }
 
+  function updateEvidenceIds(assessmentId, competencyId, evidenceIds) {
+    setData(d => ({
+      ...d,
+      assessments: d.assessments.map(a => {
+        if (a.id !== assessmentId) return a;
+        return {
+          ...a,
+          ratings: {
+            ...a.ratings,
+            [competencyId]: { ...a.ratings[competencyId], evidence_ids: evidenceIds },
+          },
+        };
+      }),
+    }));
+  }
+
   return {
     data,
     initialized,
@@ -112,5 +128,6 @@ export function useCompetenciesData() {
     updateCompetencyGoal,
     removeCompetencyGoal,
     updateAiAnalysis,
+    updateEvidenceIds,
   };
 }

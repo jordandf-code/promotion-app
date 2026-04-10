@@ -9,16 +9,17 @@ const { requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/platform — returns platform categories + firm config (all authenticated users)
+// GET /api/platform — returns platform categories + firm config + question bank (all authenticated users)
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(
-      "SELECT key, value FROM app_settings WHERE key IN ('platform_categories', 'firm_config', 'exchange_rate')"
+      "SELECT key, value FROM app_settings WHERE key IN ('platform_categories', 'firm_config', 'exchange_rate', 'competency_question_bank')"
     );
     const byKey = Object.fromEntries(result.rows.map(r => [r.key, r.value]));
     let data = null;
     let firmConfig = null;
     let exchangeRate = 1.5; // default CAD-to-USD rate
+    let questionBank = null;
     if (byKey.platform_categories) {
       try { data = JSON.parse(byKey.platform_categories); } catch { data = null; }
     }
@@ -29,7 +30,10 @@ router.get('/', authMiddleware, async (req, res) => {
       const parsed = parseFloat(byKey.exchange_rate);
       if (!isNaN(parsed) && parsed > 0) exchangeRate = parsed;
     }
-    res.json({ data, firmConfig, exchangeRate });
+    if (byKey.competency_question_bank) {
+      try { questionBank = JSON.parse(byKey.competency_question_bank); } catch { questionBank = null; }
+    }
+    res.json({ data, firmConfig, exchangeRate, questionBank });
   } catch (err) {
     console.error('GET platform error:', err.message);
     res.status(500).json({ error: 'Failed to load platform settings' });
@@ -89,6 +93,24 @@ router.put('/exchange-rate', authMiddleware, requireRole('superuser'), async (re
   } catch (err) {
     console.error('PUT exchange-rate error:', err.message);
     res.status(500).json({ error: 'Failed to save exchange rate' });
+  }
+});
+
+// PUT /api/platform/question-bank — upsert competency question bank (superuser only)
+router.put('/question-bank', authMiddleware, requireRole('superuser'), async (req, res) => {
+  const { questionBank } = req.body;
+  if (questionBank === undefined) return res.status(400).json({ error: 'questionBank field required' });
+
+  try {
+    await db.query(
+      `INSERT INTO app_settings (key, value) VALUES ('competency_question_bank', $1)
+       ON CONFLICT (key) DO UPDATE SET value = $1`,
+      [JSON.stringify(questionBank)]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT question-bank error:', err.message);
+    res.status(500).json({ error: 'Failed to save question bank' });
   }
 });
 

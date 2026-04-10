@@ -1070,6 +1070,48 @@ router.post('/package/export-deck', async (req, res) => {
   }
 });
 
+// ── POST /api/ai/auto-link-evidence ────────────────────────────────────────
+// Classifies wins to competencies via AI, returning suggested evidence links.
+
+router.post('/auto-link-evidence', async (req, res) => {
+  // Load wins
+  const winsResult = await db.query(
+    `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'wins'`,
+    [req.userId]
+  );
+  const allWins = winsResult.rows[0]?.data ?? [];
+  if (!Array.isArray(allWins) || allWins.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No wins to link', code: 'INSUFFICIENT_DATA' });
+  }
+
+  let ctx;
+  try { ctx = await buildContext(req.userId); }
+  catch (err) { return handleContextError(err, res); }
+
+  const winsSummary = allWins.map(w => ({
+    id: w.id,
+    title: w.title,
+    description: w.description,
+    tags: w.tags,
+    impact: w.impact,
+    date: w.date,
+  }));
+
+  const result = await callAnthropic({
+    apiKey:       ctx.anthropicKey,
+    systemPrompt: require('../ai/prompts').AUTO_LINK_EVIDENCE_PROMPT,
+    userContent:  JSON.stringify({ wins: winsSummary }),
+    maxTokens:    2000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'auto-link-evidence',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  res.json({ ok: true, data: result.data, usage: result.usage });
+});
+
 // ── GET /api/ai/usage ───────────────────────────────────────────────────────
 // Returns AI usage stats for the current user.
 // Query: ?days=30 (default 30, max 365)

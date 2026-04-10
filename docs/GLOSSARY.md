@@ -46,6 +46,7 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 
 | **Mock Panel** | MockPanel.jsx — AI-powered promotion panel practice | `/mock-panel` |
 | **Package Generator** | PromotionPackage.jsx — assemble + polish + export promotion case | `/promotion-package` |
+| **Competency Assessment (public)** | CompetencyAssessmentPublic.jsx — token-based external rater form | `/competency-assessment/:token` |
 
 ## Pipeline Stages & Statuses
 
@@ -66,6 +67,18 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 | **Tags / pills** | Colored category badges (win tags, eminence types) |
 | **Quick add** | FAB button + modal on Dashboard for creating items |
 | **Readiness widget** | Circular progress chart with 5 weighted dimensions |
+
+## Competency Assessment Terms
+
+| Term | Meaning |
+|------|---------|
+| **BARS** | Behaviorally Anchored Rating Scale — behavioral descriptions at each of 4 levels per competency |
+| **Composite score** | Weighted average: BARS level (60%) + cross-validation question avg (40%). Yields fractional scores like 2.75 |
+| **Question bank** | 21 cross-validation questions (3 per competency) stored in `app_settings`. Editable in Super Admin |
+| **Bias detection** | Flags central tendency, halo effect, and inflation patterns in self-assessments |
+| **Multi-rater / 360** | Peer/sponsor assessments submitted via token-based public form |
+| **Johari Window** | 2x2 perception map: Open, Blind Spot, Hidden, Unknown — based on self vs others delta |
+| **3-source composite** | Overall score: self (40%) + evidence (30%) + 360 raters (30%). Falls back to self 60% + evidence 40% without raters |
 
 ## Confusable Terms
 
