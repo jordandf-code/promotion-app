@@ -186,13 +186,33 @@ function ActivityCard({ activity, eminenceTypes, winTags, onEdit, onDelete }) {
 
 function EminenceModal({ mode, initial, eminenceTypes, winTags, onSave, onClose }) {
   const [form, setForm] = useState({ ...initial });
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const [errors, setErrors] = useState({});
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
 
   function toggleTag(label) {
     setForm(f => {
       const tags = f.tags ?? [];
       return { ...f, tags: tags.includes(label) ? tags.filter(t => t !== label) : [...tags, label] };
     });
+  }
+
+  function validate() {
+    const errs = {};
+    if (!form.title?.trim()) errs.title = 'Required';
+    if (!form.type?.trim()) errs.type = 'Required';
+    if (!form.date?.trim()) errs.date = 'Required';
+    if (!form.audience?.trim()) errs.audience = 'Required';
+    return errs;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    onSave(form);
   }
 
   return (
@@ -202,22 +222,25 @@ function EminenceModal({ mode, initial, eminenceTypes, winTags, onSave, onClose 
           <h3>{mode === 'add' ? 'Add eminence activity' : 'Edit eminence activity'}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+        <form className="modal-form" onSubmit={handleSubmit}>
           <label>Title <span className="form-required">*</span>
             <input className="form-input" value={form.title}
-              onChange={e => setField('title', e.target.value)} required autoFocus />
+              onChange={e => setField('title', e.target.value)} autoFocus />
+            {errors.title && <span className="field-error">{errors.title}</span>}
           </label>
 
           <div className="form-row">
             <label>Type <span className="form-required">*</span>
-              <select className="form-input" value={form.type} onChange={e => setField('type', e.target.value)} required>
+              <select className="form-input" value={form.type} onChange={e => setField('type', e.target.value)}>
                 <option value="" disabled>Select type</option>
                 {eminenceTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
+              {errors.type && <span className="field-error">{errors.type}</span>}
             </label>
             <label>Date <span className="form-required">*</span>
               <input className="form-input" type="date" value={form.date}
-                onChange={e => setField('date', e.target.value)} required />
+                onChange={e => setField('date', e.target.value)} />
+              {errors.date && <span className="field-error">{errors.date}</span>}
             </label>
           </div>
 
@@ -228,6 +251,7 @@ function EminenceModal({ mode, initial, eminenceTypes, winTags, onSave, onClose 
               <button type="button" className={`seg-btn ${form.audience === 'internal' ? 'seg-btn--active' : ''}`}
                 onClick={() => setField('audience', 'internal')}>Internal</button>
             </div>
+            {errors.audience && <span className="field-error">{errors.audience}</span>}
           </label>
 
           <label>Venue

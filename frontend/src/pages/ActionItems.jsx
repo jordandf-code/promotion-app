@@ -169,7 +169,11 @@ export default function ActionItems() {
 
 function ActionModal({ mode, initial, goals, onSave, onClose }) {
   const [form, setForm] = useState({ ...initial });
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const [errors, setErrors] = useState({});
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
 
   function toggleGoal(goalId) {
     setForm(f => ({
@@ -180,6 +184,19 @@ function ActionModal({ mode, initial, goals, onSave, onClose }) {
     }));
   }
 
+  function validate() {
+    const errs = {};
+    if (!form.title?.trim()) errs.title = 'Required';
+    return errs;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    onSave(form);
+  }
+
   return (
     <div className="modal-backdrop">
       <div className="modal" onClick={e => e.stopPropagation()}>
@@ -187,11 +204,12 @@ function ActionModal({ mode, initial, goals, onSave, onClose }) {
           <h3>{mode === 'add' ? 'Add action item' : 'Edit action item'}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
-          <label>Title
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <label>Title <span className="form-required">*</span>
             <input className="form-input" value={form.title}
               onChange={e => setField('title', e.target.value)}
-              placeholder="What needs to be done?" required autoFocus />
+              placeholder="What needs to be done?" autoFocus />
+            {errors.title && <span className="field-error">{errors.title}</span>}
           </label>
 
           <label>Due date

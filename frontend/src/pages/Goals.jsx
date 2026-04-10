@@ -188,7 +188,24 @@ export default function Goals() {
 
 function GoalModal({ mode, initial, onSave, onClose }) {
   const [form, setForm] = useState({ ...initial });
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const [errors, setErrors] = useState({});
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
+  function validate() {
+    const errs = {};
+    if (!form.title?.trim()) errs.title = 'Required';
+    return errs;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    onSave(form);
+  }
 
   return (
     <div className="modal-backdrop">
@@ -197,11 +214,12 @@ function GoalModal({ mode, initial, onSave, onClose }) {
           <h3>{mode === 'add' ? 'Add goal' : 'Edit goal'}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
-          <label>Title
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <label>Title <span className="form-required">*</span>
             <input className="form-input" value={form.title}
               onChange={e => setField('title', e.target.value)}
-              placeholder="What do you want to achieve?" required autoFocus />
+              placeholder="What do you want to achieve?" autoFocus />
+            {errors.title && <span className="field-error">{errors.title}</span>}
           </label>
           <div className="form-row">
             <label>Target date

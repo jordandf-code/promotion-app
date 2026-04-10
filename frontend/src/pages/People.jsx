@@ -251,7 +251,24 @@ function FeedbackRequestModal({ person, onClose }) {
 
 function PersonModal({ mode, initial, relationshipTypes, stakeholderGroups, onSave, onClose }) {
   const [form, setForm] = useState({ ...initial });
-  const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
+  const [errors, setErrors] = useState({});
+  const setField = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+
+  function validate() {
+    const errs = {};
+    if (!form.name?.trim()) errs.name = 'Required';
+    return errs;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    onSave(form);
+  }
 
   return (
     <div className="modal-backdrop">
@@ -260,11 +277,12 @@ function PersonModal({ mode, initial, relationshipTypes, stakeholderGroups, onSa
           <h3>{mode === 'add' ? 'Add person' : 'Edit person'}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <form className="modal-form" onSubmit={e => { e.preventDefault(); onSave(form); }}>
+        <form className="modal-form" onSubmit={handleSubmit}>
           <div className="form-row">
-            <label>Name
+            <label>Name <span className="form-required">*</span>
               <input className="form-input" value={form.name}
-                onChange={e => setField('name', e.target.value)} required autoFocus />
+                onChange={e => setField('name', e.target.value)} autoFocus />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </label>
             <label>Relationship type
               <select className="form-input" value={form.type} onChange={e => setField('type', e.target.value)}>

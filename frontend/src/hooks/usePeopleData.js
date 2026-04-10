@@ -203,14 +203,27 @@ export function usePeopleData() {
 
   // Converts a planned touchpoint into a real one.
   // date/note override the planned values (from the confirmation form).
+  // If the planned contact has recurrence enabled, auto-creates the next one.
   function logPlannedTouchpoint(personId, plannedId, { date, note } = {}) {
     setPeople(p => p.map(x => {
       if (x.id !== personId) return x;
       const pt = (x.plannedTouchpoints || []).find(t => t.id === plannedId);
       if (!pt) return x;
+      const remaining = (x.plannedTouchpoints || []).filter(t => t.id !== plannedId);
+      // Auto-create next planned contact if recurrence is set
+      if (pt.recurrence?.enabled && pt.recurrence.intervalDays > 0) {
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + pt.recurrence.intervalDays);
+        remaining.push({
+          id: uid(),
+          date: nextDate.toISOString().slice(0, 10),
+          note: pt.note || '',
+          recurrence: pt.recurrence,
+        });
+      }
       return {
         ...x,
-        plannedTouchpoints: (x.plannedTouchpoints || []).filter(t => t.id !== plannedId),
+        plannedTouchpoints: remaining,
         touchpoints: [{ id: uid(), date: date || pt.date, note: note || pt.note || '' }, ...x.touchpoints],
       };
     }));

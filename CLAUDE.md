@@ -99,7 +99,7 @@ Only modify files directly required for the stated task. Do not opportunisticall
 
 ## Current status
 
-Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-3 complete: P0 bugs fixed (#62, #80, #55); P1 features (#85, #60, #70, #78, ibmCriteria rename, #71); P2 polish (#77, #83, #64, #84, #61, #59); P3 removals (#69, #68, #72); #74 form validation Phase 1 done (3 modals). Remaining: #74-P2, recurring contacts, #60 SuperAdmin UI. Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
+Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-4 complete: all P0-P3 backlog items resolved (20 items). P4 deferred (#63, #82, #81, #19+#24). Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`.
 
 ## Doc loading
 

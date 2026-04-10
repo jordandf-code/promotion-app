@@ -194,12 +194,12 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 
 **P1 — High value, next sprint**
 - [x] #85 — Scorecard compliance thresholds (per-metric pass threshold)
-- [~] #74 — Form validation feedback on mandatory fields (Phase 1: Wins, Opportunities, Projects done)
+- [x] #74 — Form validation feedback on mandatory fields
 - [x] #78 — Opportunities table mobile card fallback
 - [x] #60 — Configurable exchange rate in Super Admin
 - [x] #70 — Year range display on project summaries
 - [x] Rename `ibmCriteria` → `promotionCriteria`, make AI prompts firm-agnostic
-- [ ] Recurring planned contacts (interval field on form, auto-create next on mark done)
+- [x] Recurring planned contacts (interval field on form, auto-create next on mark done)
 
 **P2 — Polish batch**
 - [x] #77 — Click-to-edit affordance on opportunities
