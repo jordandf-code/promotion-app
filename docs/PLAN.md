@@ -194,26 +194,26 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 
 **P1 — High value, next sprint**
 - [x] #85 — Scorecard compliance thresholds (per-metric pass threshold)
-- [ ] #74 — Form validation feedback on mandatory fields
-- [ ] #78 — Opportunities table mobile card fallback
+- [~] #74 — Form validation feedback on mandatory fields (Phase 1: Wins, Opportunities, Projects done)
+- [x] #78 — Opportunities table mobile card fallback
 - [x] #60 — Configurable exchange rate in Super Admin
 - [x] #70 — Year range display on project summaries
 - [x] Rename `ibmCriteria` → `promotionCriteria`, make AI prompts firm-agnostic
 - [ ] Recurring planned contacts (interval field on form, auto-create next on mark done)
 
 **P2 — Polish batch**
-- [ ] #77 — Click-to-edit affordance on opportunities
+- [x] #77 — Click-to-edit affordance on opportunities
 - [x] #83 — Rename "Need help with anything?" → "notes" in Reflections
-- [ ] #64 — Combine AI prompt+JSON into single copyable block
+- [x] #64 — Combine AI prompt+JSON into single copyable block
 - [x] #71 — Report issue auto-include page context + browser info
 - [x] #59 — Mobile-only sign-out confirmation
 - [x] #84 — Email retry logic + failure counter
 - [x] #61 — Add `lastSchedulerRun` to `/api/health`
 
 **P3 — Removal/cleanup**
-- [ ] #69 — Remove dashboard pills (StatStrip items)
-- [ ] #68 — Remove ReadinessTrendWidget from Dashboard
-- [ ] #72 — Kill auto-follow-up actions + per-person recurrence UI
+- [x] #69 — Remove dashboard pills (StatStrip items)
+- [x] #68 — Remove ReadinessTrendWidget from Dashboard
+- [x] #72 — Kill auto-follow-up actions + per-person recurrence UI
 
 **P4 — Strategic (future layers)**
 - [ ] #63 — JSON import on DIY tab

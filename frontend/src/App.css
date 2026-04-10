@@ -381,40 +381,6 @@
    DASHBOARD
 ═══════════════════════════════════════════════════════════ */
 
-.stat-strip {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.stat-card--qual  { border-left: 4px solid var(--qual); }
-.stat-card--green { border-left: 4px solid var(--green); }
-.stat-card--red   { border-left: 4px solid var(--red); }
-.stat-card--amber { border-left: 4px solid var(--amber); }
-.stat-card--link  { cursor: pointer; }
-.stat-card--link:hover { filter: brightness(0.96); }
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--text);
-}
-
-.stat-label {
-  font-size: 0.825rem;
-  color: var(--text-muted);
-  margin-top: 0.3rem;
-}
 
 /* Snapshot grid */
 
@@ -2814,6 +2780,10 @@ tr:last-child .sc-td { border-bottom: none; }
 .row-btn--danger { color: var(--red); }
 .row-btn--danger:hover { background: var(--red-bg); }
 
+/* Clickable table rows */
+.clickable-row { cursor: pointer; }
+.clickable-row:hover td { background: var(--brand-light) !important; }
+
 /* Inline select — looks like plain text until clicked */
 .inline-select {
   font-size: inherit;
@@ -2969,6 +2939,7 @@ tr:last-child .sc-td { border-bottom: none; }
 }
 .form-hint { font-weight: 400; color: var(--text-light); font-size: 0.78rem; }
 .form-field-error { font-size: 0.78rem; color: var(--red); margin-top: 0.25rem; }
+.field-error { color: var(--danger, #e24b4a); font-size: 0.8rem; margin-top: 0.15rem; display: block; }
 .form-required { color: #dc2626; margin-left: 0.15rem; font-weight: 700; }
 .form-unit { font-weight: 400; color: var(--text-muted); font-size: 0.78rem; margin-left: 0.2rem; }
 
@@ -4436,6 +4407,12 @@ tr:last-child .sc-td { border-bottom: none; }
     padding-top: 0.35rem;
     border-top: 1px solid var(--border);
   }
+  .data-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
   .data-table .table-empty {
     width: 100%;
     text-align: center;
@@ -5066,109 +5043,6 @@ tr:last-child .sc-td { border-bottom: none; }
 
 /* ── 1B: Readiness trend chart ───────────────────────────────────────────── */
 
-.readiness-trend {
-  margin-bottom: 1rem;
-}
-.readiness-trend-empty {
-  text-align: center;
-  color: #9ca3af;
-  padding: 2rem 1rem;
-  font-size: 0.95rem;
-}
-.readiness-trend-chart-wrap {
-  position: relative;
-}
-.readiness-trend-svg {
-  width: 100%;
-  height: auto;
-  min-height: 200px;
-  display: block;
-}
-
-/* Tooltip */
-.readiness-trend-tooltip {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  background: #1f2937;
-  color: #fff;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 10;
-  line-height: 1.5;
-}
-.readiness-trend-tooltip-date {
-  font-weight: 600;
-  margin-bottom: 0.15rem;
-}
-.readiness-trend-tooltip-score {
-  margin-bottom: 0.25rem;
-}
-.readiness-trend-tooltip-dim {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.readiness-trend-tooltip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-/* Legend */
-.readiness-trend-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  padding: 0.5rem 0 0;
-  justify-content: center;
-}
-.readiness-trend-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: #4b5563;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-.readiness-trend-legend-item:hover {
-  background: #f3f4f6;
-}
-.readiness-trend-legend-overall {
-  cursor: default;
-  font-weight: 600;
-}
-.readiness-trend-legend-item.active {
-  background: #e5e7eb;
-}
-.readiness-trend-legend-line {
-  width: 18px;
-  height: 3px;
-  border-radius: 2px;
-  display: inline-block;
-}
-
-/* ── 1B responsive ──────────────────────────────────────────────────────── */
-
-@media (max-width: 768px) {
-  .readiness-trend-legend {
-    gap: 0.35rem 0.6rem;
-  }
-  .readiness-trend-tooltip {
-    font-size: 0.72rem;
-    padding: 0.4rem 0.6rem;
-  }
-}
 
 /* ── Phase 18: Super Admin, Peer views, btn-danger ─────────────────────────── */
 
@@ -5416,25 +5290,6 @@ tr:last-child .sc-td { border-bottom: none; }
   font-size: 0.825rem;
   white-space: nowrap;
 }
-
-/* ═══════════════════════════════════════════════════════════
-   Compliance threshold dots (#85)
-═══════════════════════════════════════════════════════════ */
-.sc-cell-with-compliance {
-  position: relative;
-}
-.compliance-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  position: absolute;
-  top: 4px;
-  right: 4px;
-}
-.compliance-dot--exceeded { background: #639922; }
-.compliance-dot--on-track { background: #BA7517; }
-.compliance-dot--below    { background: #E24B4A; }
 
 /* ═══════════════════════════════════════════════════════════
    Prevent iOS Safari auto-zoom on input focus (Issue #36)

@@ -1,4 +1,4 @@
-// Dashboard.jsx — Career Command Center dashboard with stat strip, readiness widget, and pluggable widget slots
+// Dashboard.jsx — Career Command Center dashboard with readiness widget and pluggable widget slots
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -9,13 +9,11 @@ import { useActionsData } from '../hooks/useActionsData.js';
 import { useWinsData } from '../hooks/useWinsData.js';
 import { useGoalsData } from '../hooks/useGoalsData.js';
 import { daysUntil } from '../data/sampleData.js';
-import { usePeopleData, daysSinceContact } from '../hooks/usePeopleData.js';
+import { usePeopleData } from '../hooks/usePeopleData.js';
 import { useReadinessScore } from '../hooks/useReadinessScore.js';
 
 import WelcomeWizard from '../components/WelcomeWizard.jsx';
-import StatStrip from '../components/dashboard/StatStrip.jsx';
 import ReadinessWidget from '../components/readiness/ReadinessWidget.jsx';
-import ReadinessTrendWidget from '../components/dashboard/ReadinessTrendWidget.jsx';
 import { useReadinessSnapshots } from '../hooks/useReadinessSnapshots.js';
 import ScorecardWidget from '../components/dashboard/ScorecardWidget.jsx';
 import ActionsWidget from '../components/dashboard/ActionsWidget.jsx';
@@ -48,15 +46,13 @@ export default function Dashboard() {
   const { data: reflectionsData } = useReflectionsData();
   const { people, addPerson } = usePeopleData();
   const readiness = useReadinessScore();
-  const { snapshots, takeSnapshot } = useReadinessSnapshots(readiness);
+  const { takeSnapshot } = useReadinessSnapshots(readiness);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const deadline = `${qualifyingYear}-12-31`;
   const daysLeft = daysUntil(deadline);
 
   const overdueActions = actions.filter(a => !a.done && new Date(a.dueDate) < TODAY);
-  const staleContacts  = people.filter(p => daysSinceContact(p) > 30);
-
   const upcomingActions = actions
     .filter(a => !a.done && new Date(a.dueDate) >= TODAY)
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
@@ -88,14 +84,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Stat strip ── */}
-      <StatStrip
-        daysLeft={daysLeft}
-        qualifyingYear={qualifyingYear}
-        overdueCount={overdueActions.length}
-        staleCount={staleContacts.length}
-      />
-
       {/* ── Nudges widget ── */}
       <NudgesWidget
         actions={actions}
@@ -110,8 +98,6 @@ export default function Dashboard() {
 
       {/* ── Primary widgets (full-width) ── */}
       <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} onSnapshot={takeSnapshot} />
-
-      <ReadinessTrendWidget snapshots={snapshots} />
 
       <ScorecardWidget scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
 

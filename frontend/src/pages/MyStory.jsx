@@ -226,7 +226,7 @@ function AIGeneratedTab({ story, loading, errors, generateMode, deckLoading, dec
       <StorySection
         mode="polished_narrative"
         title="Narrative"
-        subtitle="First-person promotion case for the IBM committee"
+        subtitle="First-person promotion case for the review committee"
         loading={loading.polished_narrative}
         error={errors.polished_narrative}
         data={story?.polished_narrative}
@@ -245,7 +245,7 @@ function AIGeneratedTab({ story, loading, errors, generateMode, deckLoading, dec
       <StorySection
         mode="gap_analysis"
         title="Gap analysis"
-        subtitle="Each IBM criterion mapped to your evidence with strength ratings"
+        subtitle="Each criterion mapped to your evidence with strength ratings"
         loading={loading.gap_analysis}
         error={errors.gap_analysis}
         data={story?.gap_analysis}
@@ -382,33 +382,18 @@ function DIYPromptsTab() {
 
         {diyError && <div className="story-error" style={{ marginTop: '0.75rem' }}>{diyError}</div>}
 
-        {contextData && (
+        {contextData && promptData && (
           <div className="diy-section">
             <div className="diy-section-header">
-              <h3 className="diy-section-title">Your data context</h3>
+              <h3 className="diy-section-title">Prompt + Data</h3>
               <button
                 className="btn-secondary btn-sm"
-                onClick={() => copyToClipboard('context', contextData)}
+                onClick={() => copyToClipboard('combined', `=== SYSTEM PROMPT ===\n${promptData}\n\n=== YOUR DATA ===\n${contextData}`)}
               >
-                {copied.context ? 'Copied' : 'Copy'}
+                {copied.combined ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <pre className="diy-code-block">{contextData}</pre>
-          </div>
-        )}
-
-        {promptData && (
-          <div className="diy-section">
-            <div className="diy-section-header">
-              <h3 className="diy-section-title">System prompt</h3>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => copyToClipboard('prompt', promptData)}
-              >
-                {copied.prompt ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-            <pre className="diy-code-block">{promptData}</pre>
+            <pre className="diy-code-block">{`=== SYSTEM PROMPT ===\n${promptData}\n\n=== YOUR DATA ===\n${contextData}`}</pre>
           </div>
         )}
       </div>
@@ -423,7 +408,7 @@ function ManualInputTab({ promotionCriteria, story, updateManualEntries, setActi
   const manualEntries = story?.manual_entries ?? {};
   const manualNarrative = manualEntries.narrative ?? '';
 
-  // Parse IBM criteria into lines
+  // Parse promotion criteria into lines
   const criteriaLines = (promotionCriteria || '')
     .split('\n')
     .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
@@ -455,7 +440,7 @@ function ManualInputTab({ promotionCriteria, story, updateManualEntries, setActi
       <div className="section-header">
         <div>
           <h2 className="section-title">Manual Input</h2>
-          <span className="section-sub">Enter evidence for each promotion criterion manually</span>
+          <span className="section-sub">Enter evidence for each criterion manually</span>
         </div>
       </div>
 

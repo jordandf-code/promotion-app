@@ -23,6 +23,8 @@ function convertQuarters(q, convertFn) {
 export default function ProjectModal({ mode, initial, scorecardYears, opportunities, onSave, onClose }) {
   const { currencySymbol, toInputValue, fromInputValue } = useSettings();
 
+  const [errors, setErrors] = useState({});
+
   const [form, setForm] = useState(() => {
     const base = JSON.parse(JSON.stringify(initial));
     return {
@@ -34,6 +36,7 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
 
   function setField(field, value) {
     setForm(f => ({ ...f, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
   }
 
   function setQuarterField(metric, quarter, value) {
@@ -42,6 +45,10 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
 
   function handleSubmit(e) {
     e.preventDefault();
+    const errs = {};
+    if (!form.name?.trim()) errs.name = 'Required';
+    if (!form.client?.trim()) errs.client = 'Required';
+    if (Object.keys(errs).length) { setErrors(errs); return; }
     onSave({
       ...form,
       revenue:     convertQuarters(form.revenue,     fromInputValue),
@@ -73,25 +80,20 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
             <label>Project name<span className="form-required">*</span>
               <input className="form-input" value={form.name}
                 onChange={e => setField('name', e.target.value)} required />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </label>
             <label>Client<span className="form-required">*</span>
               <input className="form-input" value={form.client}
                 onChange={e => setField('client', e.target.value)} required />
+              {errors.client && <span className="field-error">{errors.client}</span>}
             </label>
           </div>
 
           <div className="form-row">
-            <label>Start year
+            <label>Year
               <select className="form-input" value={form.year}
                 onChange={e => setField('year', e.target.value)}>
                 {scorecardYears.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-              </select>
-            </label>
-            <label>End year
-              <select className="form-input" value={form.endYear ?? ''}
-                onChange={e => setField('endYear', e.target.value)}>
-                <option value="">Same as start</option>
-                {scorecardYears.filter(yr => yr >= Number(form.year)).map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
             </label>
             <label>Status

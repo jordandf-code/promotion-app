@@ -529,8 +529,7 @@ function GenAITab() {
 // ── Tab 2: User Settings ────────────────────────────────────────────────────
 
 function SettingsTab() {
-  const { navOrder, setNavOrder, autoFollowUp, setAutoFollowUp } = useAdminData();
-  const followUp = autoFollowUp ?? { enabled: true, intervalDays: 30 };
+  const { navOrder, setNavOrder } = useAdminData();
   const [showModeShift, setShowModeShift] = useState(false);
 
   const NAV_LABELS = {
@@ -609,41 +608,6 @@ function SettingsTab() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-header">
-          <h2 className="section-title">Follow-up actions</h2>
-        </div>
-        <div className="card admin-card">
-          <p className="admin-description">
-            Automatically create follow-up action items for contacts you haven't reached out to in a while.
-          </p>
-          <label className="sharing-toggle" style={{ marginBottom: '0.75rem' }}>
-            <input
-              type="checkbox"
-              checked={followUp.enabled !== false}
-              onChange={e => setAutoFollowUp({ ...followUp, enabled: e.target.checked })}
-            />
-            <strong>Auto-create follow-up actions</strong>
-          </label>
-          {followUp.enabled !== false && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
-              Days without contact before creating follow-up
-              <input
-                className="form-input"
-                type="number"
-                min={1}
-                value={followUp.intervalDays || 30}
-                onChange={e => setAutoFollowUp({
-                  ...followUp,
-                  intervalDays: Math.max(1, parseInt(e.target.value) || 30),
-                })}
-                style={{ width: '5rem' }}
-              />
-            </label>
-          )}
         </div>
       </section>
 

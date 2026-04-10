@@ -84,7 +84,6 @@ const USER_DEFAULTS = {
   anthropicKey:      '',
   navOrder:          DEFAULT_NAV_ORDER,
   bottomBarTabs:     null,
-  autoFollowUp:      { enabled: true, intervalDays: 30 },
 };
 
 export const DEFAULT_FIRM_CONFIG = {
@@ -340,7 +339,6 @@ export function AdminDataProvider({ children }) {
   function setAnthropicKey(key)         { setAdminData(d => ({ ...d, anthropicKey: key })); }
   function setNavOrder(order)           { setAdminData(d => ({ ...d, navOrder: order })); }
   function setBottomBarTabs(tabs)       { setAdminData(d => ({ ...d, bottomBarTabs: tabs })); }
-  function setAutoFollowUp(val)        { setAdminData(d => ({ ...d, autoFollowUp: val })); }
 
   // ── Platform setters (write to /api/platform instead of /api/data/admin) ──
   function savePlatformFromState(prevState, updates) {
@@ -416,7 +414,7 @@ export function AdminDataProvider({ children }) {
       ...adminData,
       firmConfig, setFirmConfig,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
-      setPromotionCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setAutoFollowUp, setReadinessWeights,
+      setPromotionCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
       setDeckTemplate, setDeckContentInstructions, refetchPlatform,
     }}>
       {children}
