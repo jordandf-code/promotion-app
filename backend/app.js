@@ -4,6 +4,8 @@
 const express = require('express');
 const cors = require('cors');
 
+const { getSchedulerStatus } = require('./notifications/scheduler');
+
 const app = express();
 
 // --- MIDDLEWARE ---
@@ -23,7 +25,12 @@ app.set('trust proxy', 1);
 
 // Health check — no CORS restriction, no auth (used by keep-alive pings)
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running' });
+  res.json({
+    status: 'ok',
+    message: 'Backend is running',
+    scheduler: getSchedulerStatus(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // --- ROUTES ---

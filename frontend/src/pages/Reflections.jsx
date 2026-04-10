@@ -223,10 +223,10 @@ function CheckinForm({ existing, onSubmit }) {
             style={{ width: '100%' }} />
         </div>
 
-        <label>Need help with anything?
+        <label>Notes
           <textarea className="form-input form-textarea" value={form.need_help}
             onChange={e => setField('need_help', e.target.value)}
-            rows={2} placeholder="Anything you need support on" />
+            rows={2} placeholder="Additional thoughts or context" />
         </label>
 
         <div className="modal-actions" style={{ justifyContent: 'flex-start' }}>

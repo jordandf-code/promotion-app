@@ -6,6 +6,24 @@ const db = require('../db');
 
 const DEFAULT_FROM = 'Career Command Center <notifications@partner.jordandf.com>';
 
+/**
+ * Retry an async function with exponential backoff.
+ * Only retries on transient errors (network errors, 5xx). Stops on 4xx.
+ */
+async function withRetry(fn, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await fn();
+    if (!result.error) return result;
+    // Don't retry on 4xx client errors
+    if (result.error?.statusCode >= 400 && result.error?.statusCode < 500) return result;
+    if (attempt < maxAttempts) {
+      const delay = Math.pow(4, attempt - 1) * 1000; // 1s, 4s
+      console.warn(`Email send attempt ${attempt} failed, retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
 // Minimum intervals between sends of the same type (prevents duplicates)
 const MIN_INTERVALS = {
   weekly_digest:     6 * 24 * 60 * 60 * 1000, // 6 days
@@ -82,17 +100,19 @@ async function sendNotification({ userId, type, subject, html, payload, force })
     );
     const fromAddress = fromResult.rows[0]?.value || DEFAULT_FROM;
 
-    // Send via Resend
+    // Send via Resend (with retry on transient errors)
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: fromAddress,
-      to: [user.email],
-      subject,
-      html,
-    });
+    const result = await withRetry(() =>
+      resend.emails.send({
+        from: fromAddress,
+        to: [user.email],
+        subject,
+        html,
+      })
+    );
 
-    if (error) {
-      console.error(`Notification send error (${type} to user ${userId}):`, error);
+    if (result?.error) {
+      console.error(`Notification send error (${type} to user ${userId}):`, result.error);
       return { sent: false, reason: 'resend_error' };
     }
 

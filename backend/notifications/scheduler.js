@@ -10,6 +10,16 @@ const { runAllTriggers } = require('./triggers');
 
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
+// Track last successful run timestamps for health check visibility
+let lastRuns = { digest: null, triggers: null };
+
+/**
+ * Return last successful run timestamps for each scheduled job.
+ */
+function getSchedulerStatus() {
+  return { ...lastRuns };
+}
+
 /**
  * Initialize the notification scheduler. Call once on server startup.
  */
@@ -18,6 +28,7 @@ function initScheduler() {
   cron.schedule('0 * * * *', async () => {
     try {
       await runDigestCheck();
+      lastRuns.digest = new Date().toISOString();
     } catch (err) {
       console.error('Scheduler digest check error:', err.message);
     }
@@ -27,6 +38,7 @@ function initScheduler() {
   cron.schedule('0 8 * * *', async () => {
     try {
       await runAllTriggers();
+      lastRuns.triggers = new Date().toISOString();
     } catch (err) {
       console.error('Scheduler trigger check error:', err.message);
     }
@@ -77,4 +89,4 @@ async function runDigestCheck() {
   }
 }
 
-module.exports = { initScheduler, runDigestCheck };
+module.exports = { initScheduler, runDigestCheck, getSchedulerStatus };

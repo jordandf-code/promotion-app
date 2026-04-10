@@ -188,9 +188,9 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 ### Prioritized bug/fix backlog
 
 **P0 — Fix immediately**
-- [ ] #62 — AI gap analysis JSON parse failure (increase maxTokens, add stop_reason guard)
-- [ ] #80 — Categories not showing in super admin (context cache coherence)
-- [ ] #55 — Tags not syncing in wins edit (same root cause as #80)
+- [x] #62 — AI gap analysis JSON parse failure (increase maxTokens, add stop_reason guard)
+- [x] #80 — Categories not showing in super admin (context cache coherence)
+- [x] #55 — Tags not syncing in wins edit (same root cause as #80)
 
 **P1 — High value, next sprint**
 - [ ] #85 — Scorecard compliance thresholds (per-metric pass threshold)
@@ -203,12 +203,12 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 
 **P2 — Polish batch**
 - [ ] #77 — Click-to-edit affordance on opportunities
-- [ ] #83 — Rename "Need help with anything?" → "notes" in Reflections
+- [x] #83 — Rename "Need help with anything?" → "notes" in Reflections
 - [ ] #64 — Combine AI prompt+JSON into single copyable block
 - [ ] #71 — Report issue auto-include page context + browser info
-- [ ] #59 — Mobile-only sign-out confirmation
-- [ ] #84 — Email retry logic + failure counter
-- [ ] #61 — Add `lastSchedulerRun` to `/api/health`
+- [x] #59 — Mobile-only sign-out confirmation
+- [x] #84 — Email retry logic + failure counter
+- [x] #61 — Add `lastSchedulerRun` to `/api/health`
 
 **P3 — Removal/cleanup**
 - [ ] #69 — Remove dashboard pills (StatStrip items)

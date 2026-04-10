@@ -189,10 +189,40 @@ export function AdminDataProvider({ children }) {
       if (!res.ok) {
         console.error(`Platform save failed: ${res.status}`);
         if (rollback) setAdminData(rollback);
+      } else {
+        // Re-fetch platform data after successful save to ensure UI matches DB
+        await refetchPlatform();
       }
     } catch (err) {
       console.error('Failed to save platform data:', err.message);
       if (rollback) setAdminData(rollback);
+    }
+  }
+
+  // Re-fetch platform data from server and merge into state
+  async function refetchPlatform() {
+    try {
+      const { data: serverPlatform, firmConfig: serverFirmConfig } = await fetchPlatform();
+      if (serverPlatform) {
+        skipSync.current = true;
+        skipPlatformSync.current = true;
+        setAdminData(prev => {
+          const updated = { ...prev };
+          for (const k of PLATFORM_KEYS) {
+            if (serverPlatform[k] !== undefined) updated[k] = serverPlatform[k];
+          }
+          return updated;
+        });
+      }
+      if (serverFirmConfig) {
+        setFirmConfigState({
+          ...DEFAULT_FIRM_CONFIG,
+          ...serverFirmConfig,
+          metricLabels: { ...DEFAULT_FIRM_CONFIG.metricLabels, ...(serverFirmConfig.metricLabels || {}) },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to refetch platform data:', err.message);
     }
   }
 
@@ -343,6 +373,9 @@ export function AdminDataProvider({ children }) {
       if (!res.ok) {
         console.error(`Firm config save failed: ${res.status}`);
         setFirmConfigState(firmConfig); // rollback
+      } else {
+        // Re-fetch to ensure UI matches DB
+        await refetchPlatform();
       }
     } catch (err) {
       console.error('Failed to save firm config:', err.message);
@@ -367,7 +400,7 @@ export function AdminDataProvider({ children }) {
       firmConfig, setFirmConfig,
       setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
       setIbmCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setAutoFollowUp, setReadinessWeights,
-      setDeckTemplate, setDeckContentInstructions,
+      setDeckTemplate, setDeckContentInstructions, refetchPlatform,
     }}>
       {children}
     </AdminDataContext.Provider>

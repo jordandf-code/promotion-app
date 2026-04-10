@@ -13,7 +13,8 @@ a structured JSON payload from the user's app data via `buildContext.js`, select
 appropriate system prompt, and passes both to the API. Results are cached in `storyData_v1`.
 
 **Model**: `claude-sonnet-4-6`
-**Max tokens**: 2000 (gap analysis), 1500 (polished narrative), 3000 (2027 plan)
+**Max tokens**: 6000 (gap analysis), 2500 (polished narrative), 3000 (2027 plan)
+**Truncation guard**: `callAnthropic.js` checks `stop_reason === 'max_tokens'` and returns `PARSE_ERROR` before attempting JSON parse
 
 ---
 
