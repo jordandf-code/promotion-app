@@ -10,7 +10,8 @@
 - Scorecard metric labels are configurable via firm config in Super Admin. Defaults: "Signings", "Revenue", "Gross profit", "Chargeable utilization"
 - Narrative page has 3 subtabs with an "active source" toggle that controls which source feeds the readiness score's evidence dimension
 - User relationships use `user_relationships` table (sponsor/peer types). Old `viewer_access` table kept for backward compat — both written to during transition
-- New pages (influence-map, brand, mock-panel, vault) are registered in App.jsx and Layout.jsx but hidden in nav. When building these features, flip `hidden: false` in Layout.jsx `ALL_NAV_ITEMS`
+- New pages/tabs MUST be added to the `testing` group in `frontend/src/navGroups.js` (superuser-only). Move to the appropriate group only after validation. Nav groups are defined in `navGroups.js`, NOT in Layout.jsx
+- The `testing` nav group is only visible to superuser role. Use it as a staging area for new features
 - Dashboard uses widget slot pattern — add new widgets as components in `components/dashboard/`, import and place them in Dashboard.jsx
 - Sharing page has sub-tabs (Links | Feedback). Feedback tab has request tracking, expandable inbox, and AI synthesis
 - Feedback form supports both legacy (single star rating via `feedback_token`) and structured 360 (5 dimensions via `review_tokens`). Token type determines form mode

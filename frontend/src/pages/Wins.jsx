@@ -8,6 +8,7 @@ import { fmtDate } from '../data/sampleData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import WinFormModal from '../components/wins/WinFormModal.jsx';
+import EmptyState from '../components/EmptyState.jsx';
 
 const SOURCE_LABEL = {
   opportunity: 'Opportunity',
@@ -109,11 +110,11 @@ export default function Wins() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="list-empty">
-            {tagFilter === 'all'
-              ? 'No wins logged yet. Add one above or mark an opportunity as won.'
-              : `No wins tagged "${tagFilter}".`}
-          </div>
+          <EmptyState
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+            title={tagFilter === 'all' ? 'No wins logged yet' : `No wins tagged "${tagFilter}"`}
+            description={tagFilter === 'all' ? 'Capture your achievements to build your promotion case. Add a win above or mark an opportunity as won.' : 'Try selecting a different tag filter.'}
+          />
         )}
       </div>
 

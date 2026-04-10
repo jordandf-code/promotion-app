@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useAdminData, DEFAULT_NAV_ORDER } from '../hooks/useAdminData.js';
+import { useAdminData } from '../hooks/useAdminData.js';
+import NAV_GROUPS, { DEFAULT_GROUP_ORDER } from '../navGroups.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import WipeSection from '../components/admin/WipeSection.jsx';
 import AIUsageLog from '../components/admin/AIUsageLog.jsx';
@@ -531,52 +532,57 @@ function GenAITab() {
 function SettingsTab() {
   const { navOrder, setNavOrder } = useAdminData();
   const [showModeShift, setShowModeShift] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
 
-  const NAV_LABELS = {
-    '/': 'Dashboard', '/scorecard': 'Scorecard', '/opportunities': 'Opportunities', '/goals': 'Goals',
-    '/people': 'People', '/wins': 'Wins', '/eminence': 'Eminence', '/actions': 'Action items', '/learning': 'Learning',
-    '/story': 'Narrative + Gaps', '/calendar': 'Calendar', '/sharing': 'Sharing', '/admin': 'Admin',
-  };
-
-  const allRoutes = Object.keys(NAV_LABELS);
-  const savedOrder = navOrder ?? DEFAULT_NAV_ORDER;
-  const order = [
-    ...savedOrder,
-    ...allRoutes.filter(r => !savedOrder.includes(r)),
+  // Current group order (from saved or default)
+  const savedGroupOrder = navOrder?.groupOrder ?? DEFAULT_GROUP_ORDER;
+  const allGroupIds = NAV_GROUPS.map(g => g.id);
+  const groupOrder = [
+    ...savedGroupOrder,
+    ...allGroupIds.filter(id => !savedGroupOrder.includes(id)),
   ];
 
-  const dragIdx = useRef(null);
-  const dragRoute = useRef(null);
-  const [dragOver, setDragOver] = useState(null);
+  const groupMap = Object.fromEntries(NAV_GROUPS.map(g => [g.id, g]));
 
-  function moveTab(idx, dir) {
-    const next = [...order];
+  function updateNavOrder(patch) {
+    setNavOrder({ ...(navOrder ?? {}), ...patch });
+  }
+
+  // ── Group reordering ──
+  function moveGroup(idx, dir) {
+    const next = [...groupOrder];
     const swap = idx + dir;
     if (swap < 0 || swap >= next.length) return;
     [next[idx], next[swap]] = [next[swap], next[idx]];
-    setNavOrder(next);
+    updateNavOrder({ groupOrder: next });
   }
 
-  function handleDragStart(idx)   { dragIdx.current = idx; dragRoute.current = order[idx]; }
-  function handleDragOver(e, idx) { e.preventDefault(); setDragOver(idx); }
-  function handleDragEnd()        { dragIdx.current = null; dragRoute.current = null; setDragOver(null); }
+  // ── Item reordering within a group ──
+  function getItemOrder(groupId) {
+    const group = groupMap[groupId];
+    if (!group) return [];
+    const savedItems = navOrder?.itemOrder?.[groupId];
+    const defaultItems = group.items.map(n => n.to);
+    if (!savedItems?.length) return defaultItems;
+    return [
+      ...savedItems.filter(r => defaultItems.includes(r)),
+      ...defaultItems.filter(r => !savedItems.includes(r)),
+    ];
+  }
 
-  function handleDrop(e, idx) {
-    e.preventDefault();
-    const fromRoute = dragRoute.current;
-    const toRoute = order[idx];
-    if (!fromRoute || fromRoute === toRoute) { setDragOver(null); return; }
+  function moveItem(groupId, idx, dir) {
+    const order = getItemOrder(groupId);
+    const swap = idx + dir;
+    if (swap < 0 || swap >= order.length) return;
     const next = [...order];
-    const fromIdx = next.indexOf(fromRoute);
-    if (fromIdx === -1) { setDragOver(null); return; }
-    next.splice(fromIdx, 1);
-    const toIdx = next.indexOf(toRoute);
-    next.splice(toIdx === -1 ? idx : toIdx, 0, fromRoute);
-    setNavOrder(next);
-    dragIdx.current = null;
-    dragRoute.current = null;
-    setDragOver(null);
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    updateNavOrder({
+      itemOrder: { ...(navOrder?.itemOrder ?? {}), [groupId]: next },
+    });
   }
+
+  // Label lookup
+  const itemLabelMap = Object.fromEntries(NAV_GROUPS.flatMap(g => g.items.map(n => [n.to, n.label])));
 
   return (
     <div className="tab-content">
@@ -586,28 +592,62 @@ function SettingsTab() {
         </div>
         <div className="card admin-card">
           <p className="admin-description">
-            Drag or use the arrows to reorder the sidebar navigation tabs.
+            Reorder sidebar groups, then select a group to reorder tabs within it.
           </p>
+
+          {/* Group-level reorder */}
+          <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', margin: '0.75rem 0 0.35rem' }}>Groups</h3>
           <div className="admin-list">
-            {order.map((route, idx) => (
-              <div key={route}
-                className={`admin-list-item${dragOver === idx ? ' admin-list-item--dragover' : ''}`}
-                draggable
-                onDragStart={() => handleDragStart(idx)}
-                onDragOver={e => handleDragOver(e, idx)}
-                onDrop={e => handleDrop(e, idx)}
-                onDragEnd={handleDragEnd}>
-                <div className="admin-list-row">
-                  <span className="tab-order-handle">⠿</span>
-                  <span className="admin-list-label">{NAV_LABELS[route] ?? route}</span>
-                  <div className="admin-list-btns">
-                    <button className="admin-list-btn" onClick={() => moveTab(idx, -1)} disabled={idx === 0}>↑</button>
-                    <button className="admin-list-btn" onClick={() => moveTab(idx, 1)}  disabled={idx === order.length - 1}>↓</button>
+            {groupOrder.map((gid, idx) => {
+              const group = groupMap[gid];
+              if (!group) return null;
+              return (
+                <div key={gid} className={`admin-list-item${selectedGroup === gid ? ' admin-list-item--dragover' : ''}`}>
+                  <div className="admin-list-row">
+                    <span className="tab-order-handle">⠿</span>
+                    <span
+                      className="admin-list-label"
+                      style={{ cursor: 'pointer', fontWeight: selectedGroup === gid ? 700 : 500 }}
+                      onClick={() => setSelectedGroup(gid === selectedGroup ? null : gid)}
+                    >
+                      {group.label ?? 'Home'}
+                      {group.superuserOnly && <span className="badge" style={{ marginLeft: '0.4rem', fontSize: '0.65rem' }}>superuser</span>}
+                      <span style={{ color: 'var(--text-light)', marginLeft: '0.35rem', fontSize: 'var(--text-xs)' }}>
+                        ({group.items.length})
+                      </span>
+                    </span>
+                    <div className="admin-list-btns">
+                      <button className="admin-list-btn" onClick={() => moveGroup(idx, -1)} disabled={idx === 0}>↑</button>
+                      <button className="admin-list-btn" onClick={() => moveGroup(idx, 1)} disabled={idx === groupOrder.length - 1}>↓</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Item-level reorder within selected group */}
+          {selectedGroup && groupMap[selectedGroup] && (
+            <>
+              <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', margin: '1rem 0 0.35rem' }}>
+                Tabs in "{groupMap[selectedGroup].label ?? 'Home'}"
+              </h3>
+              <div className="admin-list">
+                {getItemOrder(selectedGroup).map((route, idx) => (
+                  <div key={route} className="admin-list-item">
+                    <div className="admin-list-row">
+                      <span className="tab-order-handle">⠿</span>
+                      <span className="admin-list-label">{itemLabelMap[route] ?? route}</span>
+                      <div className="admin-list-btns">
+                        <button className="admin-list-btn" onClick={() => moveItem(selectedGroup, idx, -1)} disabled={idx === 0}>↑</button>
+                        <button className="admin-list-btn" onClick={() => moveItem(selectedGroup, idx, 1)} disabled={idx === getItemOrder(selectedGroup).length - 1}>↓</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
 

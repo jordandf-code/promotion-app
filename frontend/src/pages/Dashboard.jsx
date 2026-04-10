@@ -22,6 +22,7 @@ import ReflectionsWidget from '../components/dashboard/ReflectionsWidget.jsx';
 import { useReflectionsData } from '../hooks/useReflectionsData.js';
 import NudgesWidget from '../components/dashboard/NudgesWidget.jsx';
 import QuickAddModal from '../components/dashboard/QuickAddModal.jsx';
+import CollapsibleSection from '../components/CollapsibleSection.jsx';
 
 // ── Widget slot registry ────────────────────────────────────────────────────
 // To add a new dashboard widget:
@@ -96,18 +97,22 @@ export default function Dashboard() {
         qualifyingYear={qualifyingYear}
       />
 
-      {/* ── Primary widgets (full-width) ── */}
+      {/* ── Tier 1: Always visible (glanceable KPIs) ── */}
       <ReadinessWidget readiness={readiness} daysLeft={daysLeft} qualifyingYear={qualifyingYear} onSnapshot={takeSnapshot} />
 
       <ScorecardWidget scorecard={scorecard} qualifyingYear={qualifyingYear} scorecardYears={scorecardYears} />
 
-      {/* ── Secondary widgets (two-column) ── */}
-      <div className="two-col">
-        <ActionsWidget overdueActions={overdueActions} upcomingActions={upcomingActions} toggleDone={toggleDone} />
-        <RecentWinsWidget recentWins={recentWins} />
-      </div>
+      {/* ── Tier 2: Collapsible detail sections ── */}
+      <CollapsibleSection id="dash-actions" title="Action Items" count={overdueActions.length + upcomingActions.length} defaultOpen={overdueActions.length > 0}>
+        <div className="two-col">
+          <ActionsWidget overdueActions={overdueActions} upcomingActions={upcomingActions} toggleDone={toggleDone} />
+          <RecentWinsWidget recentWins={recentWins} />
+        </div>
+      </CollapsibleSection>
 
-      <ReflectionsWidget checkins={reflectionsData.checkins} />
+      <CollapsibleSection id="dash-reflections" title="Recent Reflections" count={reflectionsData.checkins?.length ?? 0} defaultOpen={false}>
+        <ReflectionsWidget checkins={reflectionsData.checkins} />
+      </CollapsibleSection>
 
       {/* ── FAB for mobile ── */}
       <button className="fab-quick-add" onClick={() => setShowQuickAdd(true)} aria-label="Quick add">

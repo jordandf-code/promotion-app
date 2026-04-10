@@ -5,6 +5,7 @@ import { useEminenceData } from '../hooks/useEminenceData.js';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { fmtDate } from '../data/sampleData.js';
+import EmptyState from '../components/EmptyState.jsx';
 
 const EMPTY_FORM = {
   title: '', type: '', date: '', venue: '', audience: 'external',
@@ -88,7 +89,7 @@ export default function Eminence() {
               onEdit={() => openEdit(a)} onDelete={() => handleDelete(a.id)} />
           ))}
           {external.length === 0 && (
-            <p className="list-empty">No external eminence activities yet.</p>
+            <EmptyState title="No external activities yet" description="Log speaking engagements, publications, and industry panels to demonstrate your market presence." />
           )}
         </div>
       </section>
@@ -105,7 +106,7 @@ export default function Eminence() {
               onEdit={() => openEdit(a)} onDelete={() => handleDelete(a.id)} />
           ))}
           {internal.length === 0 && (
-            <p className="list-empty">No internal eminence activities yet.</p>
+            <EmptyState title="No internal activities yet" description="Track internal presentations, training sessions, and practice-building contributions." />
           )}
         </div>
       </section>

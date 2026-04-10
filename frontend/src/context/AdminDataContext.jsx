@@ -82,7 +82,7 @@ const USER_DEFAULTS = {
   promotionCriteria: '',
   careerHistory:     '',
   anthropicKey:      '',
-  navOrder:          DEFAULT_NAV_ORDER,
+  navOrder:          null, // { groupOrder: [...], itemOrder: { groupId: [...] } }
   bottomBarTabs:     null,
 };
 
@@ -297,7 +297,15 @@ export function AdminDataProvider({ children }) {
 
       // Migrate /pursuits → /opportunities in saved nav preferences
       if (merged.navOrder) {
-        merged.navOrder = merged.navOrder.map(r => r === '/pursuits' ? '/opportunities' : r);
+        // Legacy: navOrder was a flat array — convert to null (use defaults)
+        if (Array.isArray(merged.navOrder)) {
+          merged.navOrder = null;
+        } else if (merged.navOrder?.itemOrder) {
+          // Migrate route renames within itemOrder
+          for (const [gid, routes] of Object.entries(merged.navOrder.itemOrder)) {
+            merged.navOrder.itemOrder[gid] = routes.map(r => r === '/pursuits' ? '/opportunities' : r);
+          }
+        }
       }
       if (merged.bottomBarTabs) {
         merged.bottomBarTabs = merged.bottomBarTabs.map(r => r === '/pursuits' ? '/opportunities' : r);
