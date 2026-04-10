@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { useScorecardData, METRIC_KEYS, METRIC_LABELS } from '../hooks/useScorecardData.js';
+import { getComplianceStatus } from '../hooks/scorecard/statsHelpers.js';
+import { useAdminData, DEFAULT_FIRM_CONFIG } from '../context/AdminDataContext.jsx';
 import StackedCell      from '../components/scorecard/StackedCell.jsx';
 import OpportunitiesTab from '../components/scorecard/OpportunitiesTab.jsx';
 import ProjectsTab      from '../components/scorecard/ProjectsTab.jsx';
@@ -55,7 +57,12 @@ function useIsMobile(breakpoint = 768) {
 
 // ── Overview grid ──────────────────────────────────────────────────────────
 
+// Map metric keys to threshold keys (sales → signings)
+const METRIC_TO_THRESHOLD = { sales: 'signings', revenue: 'revenue', grossProfit: 'grossProfit', utilization: 'utilization' };
+
 function ScorecardOverview({ scorecard, scorecardYears, promotionYear }) {
+  const { firmConfig } = useAdminData();
+  const thresholds = firmConfig?.thresholds ?? DEFAULT_FIRM_CONFIG.thresholds;
   const isMobile = useIsMobile();
   const windowSize = isMobile ? 1 : WINDOW_SIZE;
 
@@ -139,15 +146,26 @@ function ScorecardOverview({ scorecard, scorecardYears, promotionYear }) {
                 <td className="sc-td sc-td--metric">{METRIC_LABELS[metric]}</td>
                 {visibleYears.map(yr => {
                   const stats = getStatsForCell(yr, metric);
+                  const thresholdKey = METRIC_TO_THRESHOLD[metric];
+                  const thresholdPct = thresholds[thresholdKey] ?? 85;
+                  const compliance = getComplianceStatus(stats.total, stats.target, thresholdPct);
                   return (
                     <td key={yr} className={`sc-td ${yearCellClass(yr, promotionYear)}`}>
-                      <StackedCell
-                        realized={stats.realized}
-                        forecast={stats.forecast}
-                        target={stats.target}
-                        unit={metric === 'utilization' ? 'hours' : 'currency'}
-                        year={yr}
-                      />
+                      <div className="sc-cell-with-compliance">
+                        <StackedCell
+                          realized={stats.realized}
+                          forecast={stats.forecast}
+                          target={stats.target}
+                          unit={metric === 'utilization' ? 'hours' : 'currency'}
+                          year={yr}
+                        />
+                        {compliance !== 'neutral' && (
+                          <span
+                            className={`compliance-dot compliance-dot--${compliance}`}
+                            title={compliance === 'exceeded' ? 'Target exceeded' : compliance === 'on-track' ? `Above ${thresholdPct}% threshold` : `Below ${thresholdPct}% threshold`}
+                          />
+                        )}
+                      </div>
                     </td>
                   );
                 })}

@@ -27,7 +27,7 @@ export default function Admin() {
   async function startJourney() {
     if (!window.confirm(
       'This will clear all sample data so you can start entering your real promotion data.\n\n' +
-      'Your admin settings (categories, API key, IBM criteria) are kept.\n\nContinue?'
+      'Your admin settings (categories, API key, promotion criteria) are kept.\n\nContinue?'
     )) return;
 
     setJourneyLoading(true);
@@ -75,7 +75,7 @@ export default function Admin() {
           <h3 style={{ margin: '0 0 0.5rem', color: '#1e40af' }}>Ready to use your real data?</h3>
           <p className="muted" style={{ margin: '0 0 1rem' }}>
             You're currently viewing sample data. Click below to clear it and start tracking your real promotion journey.
-            Your admin settings (categories, API key, IBM criteria) will be kept.
+            Your admin settings (categories, API key, promotion criteria) will be kept.
           </p>
           <button className="btn-primary" onClick={startJourney} disabled={journeyLoading}>
             {journeyLoading ? 'Clearing sample data…' : 'Start your promotion journey'}
@@ -469,7 +469,7 @@ function NotificationPrefsSection() {
 
 function GenAITab() {
   const {
-    ibmCriteria, setIbmCriteria, careerHistory, setCareerHistory,
+    promotionCriteria, setPromotionCriteria, careerHistory, setCareerHistory,
     anthropicKey, setAnthropicKey,
   } = useAdminData();
 
@@ -490,15 +490,15 @@ function GenAITab() {
 
       <section className="section">
         <div className="section-header">
-          <h2 className="section-title">IBM Partner criteria</h2>
+          <h2 className="section-title">Promotion criteria</h2>
         </div>
         <div className="card admin-card">
           <p className="admin-description">
-            Paste the IBM Partner framework criteria here. Used by the AI to map your evidence,
+            Paste your firm's promotion criteria here. Used by the AI to map your evidence,
             identify gaps, and suggest goals.
           </p>
-          <TextSection value={ibmCriteria} onSave={setIbmCriteria}
-            placeholder="Paste IBM Partner criteria here..." rows={10} />
+          <TextSection value={promotionCriteria} onSave={setPromotionCriteria}
+            placeholder="Paste your firm's promotion criteria here..." rows={10} />
         </div>
       </section>
 

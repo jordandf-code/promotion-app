@@ -61,8 +61,8 @@ function buildScorecardSummary(scorecard, userSettings) {
   const salesR = wonOpps.reduce((s, o)  => s + (Number(o.signingsValue) || 0), 0);
   const salesF = openOpps.reduce((s, o) => s + (Number(o.signingsValue) || 0), 0);
 
-  const realProj = projects.filter(p => p.year === qualifyingYear && p.status === 'realized');
-  const foreProj = projects.filter(p => p.year === qualifyingYear && p.status === 'forecast');
+  const realProj = projects.filter(p => qualifyingYear >= p.year && qualifyingYear <= (p.endYear || p.year) && p.status === 'realized');
+  const foreProj = projects.filter(p => qualifyingYear >= p.year && qualifyingYear <= (p.endYear || p.year) && p.status === 'forecast');
   const qRev = p => ['q1','q2','q3','q4'].reduce((s, q) => s + (Number(p.revenue?.[q])    || 0), 0);
   const qGP  = p => ['q1','q2','q3','q4'].reduce((s, q) => s + (Number(p.grossProfit?.[q]) || 0), 0);
   const revR = realProj.reduce((s, p) => s + qRev(p), 0);

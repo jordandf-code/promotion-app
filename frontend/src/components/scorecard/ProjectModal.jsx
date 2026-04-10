@@ -81,10 +81,17 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
           </div>
 
           <div className="form-row">
-            <label>Year
+            <label>Start year
               <select className="form-input" value={form.year}
                 onChange={e => setField('year', e.target.value)}>
                 {scorecardYears.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+              </select>
+            </label>
+            <label>End year
+              <select className="form-input" value={form.endYear ?? ''}
+                onChange={e => setField('endYear', e.target.value)}>
+                <option value="">Same as start</option>
+                {scorecardYears.filter(yr => yr >= Number(form.year)).map(yr => <option key={yr} value={yr}>{yr}</option>)}
               </select>
             </label>
             <label>Status

@@ -22,7 +22,7 @@ const SUBTABS = [
 ];
 
 export default function MyStory() {
-  const { ibmCriteria, anthropicKey } = useAdminData();
+  const { promotionCriteria, anthropicKey } = useAdminData();
   const { story, saveStorySection, updateManualEntries, setActiveSource } = useStoryData();
   const readiness = useReadinessScore();
   const [subtab, setSubtab] = useState('ai');
@@ -32,7 +32,7 @@ export default function MyStory() {
   const [deckError,   setDeckError]   = useState(null);
   const [deckUsage,   setDeckUsage]   = useState(null);
 
-  const configured = !!(anthropicKey && ibmCriteria);
+  const configured = !!(anthropicKey && promotionCriteria);
 
   async function generateMode(mode) {
     setLoading(prev => ({ ...prev, [mode]: true }));
@@ -138,7 +138,7 @@ export default function MyStory() {
           <h2 className="story-setup-title">Setup required</h2>
           <p>Configure two things in <strong>Admin &gt; GenAI</strong> to get started:</p>
           <ul className="story-setup-list">
-            <li><strong>IBM Partner criteria</strong> — paste from the Partner framework document</li>
+            <li><strong>Promotion criteria</strong> — paste from your firm's promotion framework document</li>
             <li><strong>Anthropic API key</strong> — your personal key for AI features</li>
           </ul>
           <p className="story-setup-hint">Career history is optional but makes the narrative significantly stronger.</p>
@@ -207,7 +207,7 @@ export default function MyStory() {
 
       {subtab === 'manual' && (
         <ManualInputTab
-          ibmCriteria={ibmCriteria}
+          promotionCriteria={promotionCriteria}
           story={story}
           updateManualEntries={updateManualEntries}
           setActiveSource={setActiveSource}
@@ -418,13 +418,13 @@ function DIYPromptsTab() {
 
 // ── Subtab 3: Manual Input ───────────────────────────────────────────────────
 
-function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSource }) {
+function ManualInputTab({ promotionCriteria, story, updateManualEntries, setActiveSource }) {
   const activeSource = story?.activeSource ?? 'ai';
   const manualEntries = story?.manual_entries ?? {};
   const manualNarrative = manualEntries.narrative ?? '';
 
   // Parse IBM criteria into lines
-  const criteriaLines = (ibmCriteria || '')
+  const criteriaLines = (promotionCriteria || '')
     .split('\n')
     .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
     .filter(line => line.length > 0);
@@ -455,7 +455,7 @@ function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSour
       <div className="section-header">
         <div>
           <h2 className="section-title">Manual Input</h2>
-          <span className="section-sub">Enter evidence for each IBM criterion manually</span>
+          <span className="section-sub">Enter evidence for each promotion criterion manually</span>
         </div>
       </div>
 
@@ -492,7 +492,7 @@ function ManualInputTab({ ibmCriteria, story, updateManualEntries, setActiveSour
       {/* Criteria evidence form */}
       {criteriaLines.length === 0 ? (
         <div className="card">
-          <p className="muted">No IBM criteria found. Paste your criteria in Admin &gt; GenAI to populate this form.</p>
+          <p className="muted">No promotion criteria found. Paste your criteria in Admin &gt; GenAI to populate this form.</p>
         </div>
       ) : (
         <div className="card">

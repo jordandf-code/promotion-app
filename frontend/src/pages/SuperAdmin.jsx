@@ -818,6 +818,10 @@ function FirmConfigSection() {
   function updateMetricLabel(key, value) {
     setDraft(prev => ({ ...prev, metricLabels: { ...prev.metricLabels, [key]: value } }));
   }
+  function updateThreshold(key, value) {
+    const num = value === '' ? '' : Math.max(0, Math.min(100, Number(value)));
+    setDraft(prev => ({ ...prev, thresholds: { ...prev.thresholds, [key]: num } }));
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -885,6 +889,30 @@ function FirmConfigSection() {
               <label>
                 Utilization
                 <input className="form-input" value={draft.metricLabels?.utilization ?? ''} onChange={e => updateMetricLabel('utilization', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+            <legend style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.25rem' }}>Compliance thresholds <span className="form-unit">%</span></legend>
+            <p className="admin-description" style={{ margin: '0 0 0.5rem' }}>
+              Minimum percentage of target required to be considered on track.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <label>
+                {draft.metricLabels?.signings || 'Signings'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.signings ?? 85} onChange={e => updateThreshold('signings', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.revenue || 'Revenue'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.revenue ?? 85} onChange={e => updateThreshold('revenue', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.grossProfit || 'Gross profit'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.grossProfit ?? 80} onChange={e => updateThreshold('grossProfit', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.utilization || 'Utilization'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.utilization ?? 70} onChange={e => updateThreshold('utilization', e.target.value)} />
               </label>
             </div>
           </fieldset>

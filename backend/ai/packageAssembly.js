@@ -7,7 +7,7 @@ const { fmtCurrency } = require('./formatUtils');
 function assemblePackage(ctx, extras) {
   // ctx = buildContext result (has: scorecard, wins, goals, people, eminence, learning,
   //   competency_self_assessment, feedback_360, brand, gap_analysis, polished_narrative, plan_2027,
-  //   user_context, ibm_criteria, _stats)
+  //   user_context, promotion_criteria, _stats)
   // extras = { readiness, competencies, allWins }
 
   const sections = {};

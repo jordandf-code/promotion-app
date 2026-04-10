@@ -25,7 +25,7 @@ Pass it as the `user` message content, serialized as JSON.
 
 ```json
 {
-  "ibm_criteria": "string — pasted text from IBM Partner criteria doc",
+  "promotion_criteria": "string — pasted text from user's firm promotion criteria",
 
   "user_context": {
     "name": "string",

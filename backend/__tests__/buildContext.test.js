@@ -20,16 +20,16 @@ function mockDomains(domains) {
 
 const MINIMAL_ADMIN = {
   anthropicKey: 'sk-ant-test',
-  ibmCriteria: 'Some criteria text',
+  promotionCriteria: 'Some criteria text',
 };
 
 describe('buildContext', () => {
   test('throws NO_KEY when anthropicKey is missing', async () => {
-    mockDomains({ admin: { ibmCriteria: 'text' } });
+    mockDomains({ admin: { promotionCriteria: 'text' } });
     await expect(buildContext(1)).rejects.toMatchObject({ code: 'NO_KEY' });
   });
 
-  test('throws NO_CRITERIA when ibmCriteria is missing', async () => {
+  test('throws NO_CRITERIA when promotionCriteria is missing', async () => {
     mockDomains({ admin: { anthropicKey: 'sk-ant-test' } });
     await expect(buildContext(1)).rejects.toMatchObject({ code: 'NO_CRITERIA' });
   });
@@ -40,7 +40,7 @@ describe('buildContext', () => {
     const ctx = await buildContext(1);
 
     expect(ctx.anthropicKey).toBe('sk-ant-test');
-    expect(ctx.ibm_criteria).toBe('Some criteria text');
+    expect(ctx.promotion_criteria).toBe('Some criteria text');
     expect(ctx.user_context.current_role).toBe('Associate Partner');
     expect(ctx.user_context.target_role).toBe('Partner');
     expect(ctx.scorecard.years).toEqual([]);

@@ -26,7 +26,7 @@ export function getSalesStats(opportunities, targets, year) {
  * Realized projects → realized. Forecast projects → forecast.
  */
 export function getRevenueStats(projects, targets, year) {
-  const yearProjects = projects.filter(p => p.year === year);
+  const yearProjects = projects.filter(p => year >= p.year && year <= (p.endYear || p.year));
   const realized = yearProjects
     .filter(p => p.status === 'realized')
     .reduce((sum, p) => sum + qSum(p.revenue), 0);
@@ -42,7 +42,7 @@ export function getRevenueStats(projects, targets, year) {
  * Realized projects → realized. Forecast projects → forecast.
  */
 export function getGPStats(projects, targets, year) {
-  const yearProjects = projects.filter(p => p.year === year);
+  const yearProjects = projects.filter(p => year >= p.year && year <= (p.endYear || p.year));
   const realized = yearProjects
     .filter(p => p.status === 'realized')
     .reduce((sum, p) => sum + qSum(p.grossProfit), 0);
@@ -81,4 +81,16 @@ export function getUtilStats(utilization, targets, year) {
 
   const pct = target ? Math.round((projection / target) * 100) : null;
   return { hoursToDate, projection, target, pct };
+}
+
+/**
+ * Compliance status for a metric against its threshold.
+ * thresholdPct is e.g. 85, meaning "must hit 85% of target to pass".
+ */
+export function getComplianceStatus(actual, target, thresholdPct) {
+  if (!target || target === 0) return 'neutral';
+  const pct = (actual / target) * 100;
+  if (pct >= 100) return 'exceeded';
+  if (pct >= thresholdPct) return 'on-track';
+  return 'below';
 }
