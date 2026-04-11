@@ -15,7 +15,14 @@ beforeEach(() => {
 
 function mockDomains(domains) {
   const rows = Object.entries(domains).map(([domain, data]) => ({ domain, data }));
-  db.query.mockResolvedValueOnce({ rows });
+  // buildContext calls db.query 3 times via Promise.all:
+  //   1. user_data domains query
+  //   2. app_settings firm config query (inside loadFirmConfig)
+  //   3. feedback query
+  db.query
+    .mockResolvedValueOnce({ rows })          // user_data
+    .mockResolvedValueOnce({ rows: [] })      // app_settings (firm config)
+    .mockResolvedValueOnce({ rows: [] });     // feedback
 }
 
 const MINIMAL_ADMIN = {
