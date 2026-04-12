@@ -215,7 +215,26 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #68 — Remove ReadinessTrendWidget from Dashboard
 - [x] #72 — Kill auto-follow-up actions + per-person recurrence UI
 
+**Issue sweep (2026-04-12)** — closed 18 of 26 open issues
+- [x] #96 — Planned contact date editing (inline date picker)
+- [x] #94 — Stakeholder groups moved to platform setting (Super Admin > Categories)
+- [x] #90 — Email error logging improved (ops pending: Resend domain verification)
+- [x] #61 — Scheduler startup/run logging improved (ops pending: Render keep-alive)
+- [x] #55 — Win tags stale data investigated (optimistic update correct, closed)
+- [x] #89 — Security headers (already done — helmet)
+- [x] #82 — Competency Radar v2 (already done — C1-C3)
+- [x] #81 — Security Scan (already done — S1-S4)
+- [x] #80 — Categories in Super Admin (resolved by #94)
+- [x] #83 — Reflections field rename (already done)
+- [x] #78 — Opportunities table mobile (already done)
+- [x] #77 — Opportunities click-to-edit affordance (already done)
+- [x] #64 — DIY AI combined prompt (already done)
+- [x] #60 — Exchange rate configurable (already done)
+
 **P4 — Strategic (future layers)**
+- [ ] #101 — Per-tab import/export with CSV template validation
+- [ ] #92 — AI-generated action items from pasted text
+- [ ] #85 — Scorecard per-metric compliance thresholds
 - [ ] #63 — JSON import on DIY tab
 - [ ] #19 + #24 — Viewer access / View Others rework (Layer 4)
 
