@@ -232,10 +232,10 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #60 — Exchange rate configurable (already done)
 
 **P4 — Strategic (future layers)**
-- [ ] #101 — Per-tab import/export with CSV template validation
-- [ ] #92 — AI-generated action items from pasted text
-- [ ] #85 — Scorecard per-metric compliance thresholds
-- [ ] #63 — JSON import on DIY tab
+- [x] #101 — Per-tab import/export with CSV template validation
+- [x] #92 — AI-generated action items from pasted text
+- [x] #85 — Scorecard per-metric compliance thresholds (was already done)
+- [x] #63 — JSON import on DIY tab
 - [ ] #19 + #24 — Viewer access / View Others rework (Layer 4)
 
 ---

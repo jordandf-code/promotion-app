@@ -91,24 +91,12 @@ Before modifying any file, identify every surface that consumes the same data or
 ### Check all surfaces
 Every UI change must be verified at 375px and 768px before considering it complete. Every new data field must be added to: the hook, the form, the card/display, the CSV export, and `buildContext.js` (if AI-relevant). Missing any surface is a bug.
 
-### Re-investigate when challenged
-When the user says something is wrong ("are you sure?", "that doesn't seem right"), re-read the actual files before responding. Never defend prior work from memory — verify against current code.
-
-### Scope discipline
-Only modify files directly required for the stated task. Do not opportunistically refactor, rename, or clean up adjacent code unless asked. If you notice a problem outside scope, mention it instead of fixing it.
-
-### Feature atomicity
-Features are atomic — build all surfaces in one pass. Do not split naturally cohesive features across sessions to save time. If a feature is too large to land as one unit, scope it smaller upfront — don't stop mid-wire.
-
-### Quality line
-"Rough" means feature-complete and minimal — no bells and whistles, no extra configurability. It does NOT mean broken. Silent data loss, race conditions, and logic bugs are never acceptable. Cosmetic quality comes from following established standards and patterns in the codebase, not from a separate polish pass.
-
 ### Build order
 `docs/PLAN.md` dependency graph determines what gets built next. Do not reorder based on ease, impressiveness, or external deadlines. If unsure what's next, read PLAN.md.
 
 ## Current status
 
-Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-4 complete: all P0-P3 backlog items resolved (20 items). Security Scan (#81) complete: S1-S4 (Helmet.js, CI/CodeQL, Playwright security tests, weekly scans). Competency Radar v2 (#82) complete: C1-C3 (BARS wizard, evidence linking, multi-rater + Johari Window). P4 deferred (#63, #19+#24). UI overhaul complete: design tokens (spacing/typography/shadow/color), grouped sidebar nav (7 groups, collapsible), button consolidation (3 variants), progressive disclosure (Dashboard, Competencies), Cmd+K command palette, collapsible sidebar rail, empty states, design system docs. Nav groups defined in `frontend/src/navGroups.js`. New tabs go to `testing` group (superuser-only). Issue sweep (2026-04-12): closed 18 of 26 issues — #59 sign-out confirm, #74 validation UX, #70 year labels, #96 planned contact date edit, #94 stakeholder groups now platform setting, #90/#61 notification logging improved (ops pending: Resend domain verification + Render keep-alive). Stakeholder groups configurable via Super Admin > Categories. 8 issues remain open: #101 import/export, #92 AI action items, #85 scorecard thresholds, #63 external AI gap analysis, #90/#61 ops tasks, #24/#19 viewer access (deferred). Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`, `migration_c1_question_bank.sql`.
+Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-4 complete: all P0-P3 backlog items resolved (20 items). Security Scan (#81) complete: S1-S4 (Helmet.js, CI/CodeQL, Playwright security tests, weekly scans). Competency Radar v2 (#82) complete: C1-C3 (BARS wizard, evidence linking, multi-rater + Johari Window). UI overhaul complete: design tokens (spacing/typography/shadow/color), grouped sidebar nav (7 groups, collapsible), button consolidation (3 variants), progressive disclosure (Dashboard, Competencies), Cmd+K command palette, collapsible sidebar rail, empty states, design system docs. Nav groups defined in `frontend/src/navGroups.js`. New tabs go to `testing` group (superuser-only). Issue sweep (2026-04-12): closed 18 of 26 issues. P4 batch (2026-04-12): #63 DIY JSON import, #92 AI action item extraction, #101 per-domain import/export (goals, actions, learning, eminence), #85 already done (closed). 5 issues remain open: #90/#61 ops tasks (Resend domain + Render keep-alive), #24/#19 viewer access (Layer 4, deferred), 2I calendar integration (deferred). Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`, `migration_c1_question_bank.sql`.
 
 ## Doc loading
 
@@ -119,7 +107,4 @@ Read only what the task requires — do not load docs speculatively.
 - Ambiguous terms: check `docs/GLOSSARY.md` first
 - Phase history: `docs/PHASES_COMPLETE.md` (archive only — ~4,500 tokens, do not load unless debugging legacy behavior)
 
-If you need a credential, config value, or invite code to proceed — ask immediately. Do not guess or search for it.
-
-When compacting, preserve: the current task, which files have been modified, which checklist items are done vs remaining, and any failing tests or blockers.
 

@@ -1,7 +1,7 @@
 // People.jsx — Relationship management with influence tiers, contact log, and planned touchpoints
 
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS, INFLUENCE_TIERS, INFLUENCE_TIER_LABELS, STRATEGIC_IMPORTANCE, STRATEGIC_IMPORTANCE_LABELS } from '../hooks/usePeopleData.js';
 import CoverageSummary from '../components/people/CoverageSummary.jsx';
 import MeetingPrepModal from '../components/people/MeetingPrepModal.jsx';
@@ -22,6 +22,7 @@ export default function People() {
   const { relationshipTypes, stakeholderGroups: platformGroups } = useAdminData();
   const { actions, addAction, toggleDone } = useActionsData();
 
+  const navigate = useNavigate();
   const [typeFilter,      setTypeFilter]      = useState('all');
   const [statusFilter,    setStatusFilter]    = useState('all');
   const [influenceFilter, setInfluenceFilter] = useState('all');
@@ -81,7 +82,10 @@ export default function People() {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">People</h1>
-        <button className="btn-primary" onClick={openAdd}>+ Add person</button>
+        <div className="page-header-actions">
+          <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
+          <button className="btn-primary" onClick={openAdd}>+ Add person</button>
+        </div>
       </div>
 
       {filterStale && (

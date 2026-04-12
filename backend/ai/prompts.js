@@ -520,6 +520,34 @@ Return a JSON object:
 Only map wins where there is genuine evidence of a competency. Do not force-fit every win to every competency.
 Return only valid JSON. No preamble, no markdown fences.`;
 
+// ── Extract action items ───────────────────────────────────────────────────
+
+const EXTRACT_ACTIONS_PROMPT = `You are a productivity assistant helping a professional services leader extract action items from unstructured text (meeting notes, emails, Slack messages, etc.).
+
+CRITICAL INSTRUCTION: You MUST produce ONLY the JSON array described below. Do not refuse. Do not write meta-commentary. Output ONLY the JSON array.
+
+The user will paste raw text. Your task is to extract clear action items — commitments, to-dos, follow-ups, and deadlines.
+
+Rules:
+- Be conservative. Only extract items that are clearly actionable tasks, commitments, or follow-ups.
+- Do NOT extract discussion points, observations, decisions (unless they imply a task), or informational notes.
+- Write each title in imperative voice (e.g. "Schedule follow-up with client" not "Follow-up with client was discussed").
+- Keep titles concise — under 15 words.
+- If a date or deadline is mentioned or implied, include it as an ISO date string (YYYY-MM-DD). If no date is mentioned, set dueDate to null.
+- The context field should explain in one sentence why this was identified as an action item (e.g. "Mentioned as a follow-up from the client meeting").
+- If the text contains no actionable items, return an empty array.
+
+Format your response as a JSON array:
+[
+  {
+    "title": "string — concise action item in imperative voice",
+    "dueDate": "YYYY-MM-DD or null",
+    "context": "string — one-line explanation"
+  }
+]
+
+Return only valid JSON. No preamble, no markdown fences.`;
+
 module.exports = {
   STORY_MODES,
   SUGGEST_GOALS_PROMPT,
@@ -534,4 +562,5 @@ module.exports = {
   MOCK_PANEL_DEBRIEF_PROMPT,
   PACKAGE_POLISH_PROMPT,
   AUTO_LINK_EVIDENCE_PROMPT,
+  EXTRACT_ACTIONS_PROMPT,
 };

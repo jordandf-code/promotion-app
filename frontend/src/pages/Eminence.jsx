@@ -1,6 +1,7 @@
 // Eminence.jsx — Speaking, publications, panels, awards, and other visibility activities
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEminenceData } from '../hooks/useEminenceData.js';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
@@ -17,6 +18,7 @@ export default function Eminence() {
   const { eminenceTypes, winTags } = useAdminData();
   const { qualifyingYear } = useSettings();
 
+  const navigate = useNavigate();
   const [modal, setModal]       = useState(null);
   const [yearFilter, setYearFilter] = useState('qualifying');
 
@@ -61,7 +63,10 @@ export default function Eminence() {
     <div className="page">
       <div className="page-header">
         <h1 className="page-title">Eminence</h1>
-        <button className="btn-primary" onClick={openAdd}>+ Add activity</button>
+        <div className="page-header-actions">
+          <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
+          <button className="btn-primary" onClick={openAdd}>+ Add activity</button>
+        </div>
       </div>
 
       {/* ── Year filter ── */}
