@@ -15,6 +15,7 @@ export default function ReportIssueModal({ onClose }) {
   const [type, setType] = useState('bug');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null); // { issueUrl, issueNumber }
 
@@ -65,7 +66,7 @@ export default function ReportIssueModal({ onClose }) {
             <label>
               Title<span className="form-required">*</span>
               <input
-                className="form-input"
+                className={`form-input${attemptedSubmit && !title.trim() ? ' form-input--error' : ''}`}
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -73,6 +74,7 @@ export default function ReportIssueModal({ onClose }) {
                 required
                 autoFocus
               />
+              {attemptedSubmit && !title.trim() && <span className="form-error">Required</span>}
             </label>
 
             <label>
@@ -91,7 +93,7 @@ export default function ReportIssueModal({ onClose }) {
             <label>
               Description<span className="form-required">*</span>
               <textarea
-                className="form-input"
+                className={`form-input${attemptedSubmit && !description.trim() ? ' form-input--error' : ''}`}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="What happened? What did you expect?"
@@ -99,13 +101,16 @@ export default function ReportIssueModal({ onClose }) {
                 rows={5}
                 style={{ minHeight: '100px', resize: 'vertical' }}
               />
+              {attemptedSubmit && !description.trim() && <span className="form-error">Required</span>}
             </label>
 
             <div className="modal-actions">
               <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn-primary" disabled={submitting || !title.trim() || !description.trim()}>
-                {submitting ? 'Submitting…' : 'Submit issue'}
-              </button>
+              <div onClick={() => setAttemptedSubmit(true)} style={{ display: 'inline-block' }}>
+                <button type="submit" className="btn-primary" disabled={submitting || !title.trim() || !description.trim()}>
+                  {submitting ? 'Submitting…' : 'Submit issue'}
+                </button>
+              </div>
             </div>
           </form>
         )}

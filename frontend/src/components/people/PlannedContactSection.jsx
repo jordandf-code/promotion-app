@@ -13,6 +13,7 @@ export default function PlannedContactSection({
   onAdd,
   onRemove,
   onLog,
+  onUpdateDate,
   onAddAction,
   onToggleActionDone,
 }) {
@@ -30,6 +31,10 @@ export default function PlannedContactSection({
   const [loggingPt,  setLoggingPt]  = useState(null);
   const [logDate,    setLogDate]    = useState('');
   const [logNote,    setLogNote]    = useState('');
+
+  // Inline date edit state
+  const [editingDateId, setEditingDateId] = useState(null);
+  const [editDateValue, setEditDateValue] = useState('');
 
   const planned          = person.plannedTouchpoints || [];
   const incompleteActions = actions.filter(a => !a.done);
@@ -172,11 +177,40 @@ export default function PlannedContactSection({
                 <div key={pt.id}>
                   <div className="tp-row tp-row--planned">
                     <span className="tp-date-label">
-                      {fmtDate(pt.date)}
-                      {pt.recurrence?.enabled && (
-                        <span style={{ marginLeft: '0.4rem', fontSize: '0.8em', opacity: 0.7 }}>
-                          ↻ every {pt.recurrence.intervalDays}d
-                        </span>
+                      {editingDateId === pt.id ? (
+                        <input
+                          className="form-input"
+                          type="date"
+                          value={editDateValue}
+                          onChange={e => setEditDateValue(e.target.value)}
+                          onBlur={() => {
+                            if (editDateValue && editDateValue !== pt.date && onUpdateDate) {
+                              onUpdateDate(person.id, pt.id, editDateValue);
+                            }
+                            setEditingDateId(null);
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') e.target.blur();
+                            if (e.key === 'Escape') setEditingDateId(null);
+                          }}
+                          autoFocus
+                          style={{ width: '9rem', padding: '0.15rem 0.3rem', fontSize: '0.85rem' }}
+                        />
+                      ) : (
+                        <>
+                          <span
+                            onClick={() => { setEditingDateId(pt.id); setEditDateValue(pt.date); }}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to edit date"
+                          >
+                            {fmtDate(pt.date)}
+                          </span>
+                          {pt.recurrence?.enabled && (
+                            <span style={{ marginLeft: '0.4rem', fontSize: '0.8em', opacity: 0.7 }}>
+                              ↻ every {pt.recurrence.intervalDays}d
+                            </span>
+                          )}
+                        </>
                       )}
                     </span>
                     <div className="tp-planned-body">

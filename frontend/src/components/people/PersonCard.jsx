@@ -20,6 +20,7 @@ export default function PersonCard({
   onAddPlannedTouchpoint,
   onRemovePlannedTouchpoint,
   onLogPlannedTouchpoint,
+  onUpdatePlannedDate,
   onRequestFeedback,
   onPrepMeeting,
   actions,
@@ -132,6 +133,7 @@ export default function PersonCard({
         onAdd={onAddPlannedTouchpoint}
         onRemove={onRemovePlannedTouchpoint}
         onLog={onLogPlannedTouchpoint}
+        onUpdateDate={onUpdatePlannedDate}
         onAddAction={onAddAction}
         onToggleActionDone={onToggleActionDone}
       />

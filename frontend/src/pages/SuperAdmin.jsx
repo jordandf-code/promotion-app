@@ -615,6 +615,7 @@ function CategoriesTab() {
     logoTypes,         setLogoTypes,
     originTypes,       setOriginTypes,
     eminenceTypes,     setEminenceTypes,
+    stakeholderGroups, setStakeholderGroups,
     readinessWeights,  setReadinessWeights,
     deckTemplate, deckTemplateFilename, setDeckTemplate,
     deckContentInstructions, setDeckContentInstructions,
@@ -703,6 +704,18 @@ function CategoriesTab() {
             How opportunities and wins originated (e.g. referral, cold outreach).
           </p>
           <EditableValueList items={originTypes ?? []} onChange={setOriginTypes} />
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Stakeholder groups</h2>
+        </div>
+        <div className="card admin-card">
+          <p className="admin-description">
+            Groups for categorising people in the Influence Map (e.g. Practice leadership, Client).
+          </p>
+          <EditableValueList items={stakeholderGroups ?? []} onChange={setStakeholderGroups} />
         </div>
       </section>
 

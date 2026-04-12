@@ -75,6 +75,9 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
   return (
     <div className="tab-content">
       <div className="opp-summary">
+        <div className="opp-summary-year-label">
+          {yearFilter === 'all' ? 'All years' : yearFilter}
+        </div>
         <div className="opp-summary-stat">
           <div className="opp-summary-value won-color">{fmtCurrency(realizedRev)}</div>
           <div className="opp-summary-label">Realized revenue</div>

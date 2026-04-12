@@ -77,6 +77,15 @@ export const DEFAULT_PIPELINE_STAGES = [
   { label: 'Closed',     color: '#15803d' },
 ];
 
+export const DEFAULT_STAKEHOLDER_GROUPS = [
+  { value: 'practice-leadership',  label: 'Practice leadership' },
+  { value: 'geography-leadership', label: 'Geography leadership' },
+  { value: 'client',               label: 'Client' },
+  { value: 'hr-talent',            label: 'HR / Talent' },
+  { value: 'peer-network',         label: 'Peer network' },
+  { value: 'external',             label: 'External' },
+];
+
 // Keys that belong to per-user admin data
 const USER_DEFAULTS = {
   promotionCriteria: '',
@@ -115,6 +124,7 @@ const PLATFORM_DEFAULTS = {
   originTypes:       DEFAULT_ORIGIN_TYPES,
   eminenceTypes:     DEFAULT_EMINENCE_TYPES,
   pipelineStages:    DEFAULT_PIPELINE_STAGES,
+  stakeholderGroups: DEFAULT_STAKEHOLDER_GROUPS,
   readinessWeights:  null,
   deckTemplate:           '',
   deckTemplateFilename:   '',
@@ -416,6 +426,7 @@ export function AdminDataProvider({ children }) {
   const setOriginTypes        = makePlatformSetter('originTypes');
   const setEminenceTypes      = makePlatformSetter('eminenceTypes');
   const setPipelineStages     = makePlatformSetter('pipelineStages');
+  const setStakeholderGroups  = makePlatformSetter('stakeholderGroups');
   const setReadinessWeights   = makePlatformSetter('readinessWeights');
   const setDeckContentInstructions = makePlatformSetter('deckContentInstructions');
   const setDeckTemplate       = makePlatformDeckSetter();
@@ -425,7 +436,7 @@ export function AdminDataProvider({ children }) {
       ...adminData,
       firmConfig, setFirmConfig,
       questionBank,
-      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages,
+      setRelationshipTypes, setWinTags, setDealTypes, setLogoTypes, setOriginTypes, setEminenceTypes, setPipelineStages, setStakeholderGroups,
       setPromotionCriteria, setCareerHistory, setAnthropicKey, setNavOrder, setBottomBarTabs, setReadinessWeights,
       setDeckTemplate, setDeckContentInstructions, refetchPlatform,
     }}>

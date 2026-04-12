@@ -36,6 +36,7 @@ export const STRATEGIC_IMPORTANCE_LABELS = {
   'low': 'Low',
 };
 
+// Legacy fallback — consumers should prefer stakeholderGroups from useAdminData()
 export const DEFAULT_STAKEHOLDER_GROUPS = [
   'Practice leadership',
   'Geography leadership',
@@ -193,6 +194,16 @@ export function usePeopleData() {
     ));
   }
 
+  function updatePlannedDate(personId, plannedId, newDate) {
+    setPeople(p => p.map(x =>
+      x.id === personId
+        ? { ...x, plannedTouchpoints: (x.plannedTouchpoints || []).map(t =>
+            t.id === plannedId ? { ...t, date: newDate } : t
+          )}
+        : x
+    ));
+  }
+
   function removePlannedTouchpoint(personId, plannedId) {
     setPeople(p => p.map(x =>
       x.id === personId
@@ -233,6 +244,6 @@ export function usePeopleData() {
     people,
     addPerson, updatePerson, removePerson,
     addTouchpoint, removeTouchpoint,
-    addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint,
+    addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint, updatePlannedDate,
   };
 }

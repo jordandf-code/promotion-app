@@ -112,7 +112,14 @@ async function sendNotification({ userId, type, subject, html, payload, force })
     );
 
     if (result?.error) {
-      console.error(`Notification send error (${type} to user ${userId}):`, result.error);
+      console.error(`Notification send error (${type} to user ${userId}):`, {
+        error: result.error,
+        from: fromAddress,
+        to: user.email,
+      });
+      if (result.error?.statusCode === 403) {
+        console.error('Domain not verified in Resend — verify the sending domain at resend.com/domains');
+      }
       return { sent: false, reason: 'resend_error' };
     }
 
