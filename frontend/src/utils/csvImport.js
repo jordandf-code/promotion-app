@@ -16,12 +16,25 @@ export function parseCSV(file) {
   });
 }
 
+// Boolean string normalization — accepts true/false, yes/no, 1/0 (case-insensitive)
+const BOOL_TRUE  = new Set(['true', 'yes', '1']);
+const BOOL_FALSE = new Set(['false', 'no', '0']);
+
+export function parseBoolString(val) {
+  const lower = (val ?? '').toString().trim().toLowerCase();
+  if (BOOL_TRUE.has(lower))  return true;
+  if (BOOL_FALSE.has(lower)) return false;
+  return null; // not a recognized boolean
+}
+
 // Validate parsed rows against a column spec.
-// columnSpec: [{ key, label, required?, validate? }]
+// columnSpec: [{ key, label, required?, validate?, enum?, type? }]
 // Returns rows with _errors[] and _valid boolean attached.
+// Columns with type: 'boolean' are coerced to actual booleans.
 export function validateRows(rows, columnSpec) {
   return rows.map((row, i) => {
     const errors = [];
+    const coerced = { ...row };
 
     for (const col of columnSpec) {
       const val = (row[col.key] ?? '').toString().trim();
@@ -30,13 +43,30 @@ export function validateRows(rows, columnSpec) {
         errors.push(`${col.label} is required`);
       }
 
+      // Enum validation
+      if (val && col.enum) {
+        if (!col.enum.includes(val)) {
+          errors.push(`${col.label} must be one of: ${col.enum.join(', ')}`);
+        }
+      }
+
+      // Boolean coercion
+      if (col.type === 'boolean' && val) {
+        const parsed = parseBoolString(val);
+        if (parsed === null) {
+          errors.push(`${col.label} must be true/false, yes/no, or 1/0`);
+        } else {
+          coerced[col.key] = parsed;
+        }
+      }
+
       if (val && col.validate) {
         const err = col.validate(val, row);
         if (err) errors.push(err);
       }
     }
 
-    return { ...row, _rowIndex: i, _errors: errors, _valid: errors.length === 0 };
+    return { ...coerced, _rowIndex: i, _errors: errors, _valid: errors.length === 0 };
   });
 }
 

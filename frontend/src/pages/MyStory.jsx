@@ -203,7 +203,7 @@ export default function MyStory() {
         />
       )}
 
-      {subtab === 'diy' && <DIYPromptsTab />}
+      {subtab === 'diy' && <DIYPromptsTab saveStorySection={saveStorySection} setSubtab={setSubtab} />}
 
       {subtab === 'manual' && (
         <ManualInputTab
@@ -315,13 +315,14 @@ function AIGeneratedTab({ story, loading, errors, generateMode, deckLoading, dec
 
 // ── Subtab 2: DIY Prompts ────────────────────────────────────────────────────
 
-function DIYPromptsTab() {
+function DIYPromptsTab({ saveStorySection, setSubtab }) {
   const [mode, setMode]         = useState('gap_analysis');
   const [contextData, setContextData] = useState(null);
   const [promptData, setPromptData]   = useState(null);
   const [diyLoading, setDiyLoading]   = useState(false);
   const [diyError, setDiyError]       = useState(null);
   const [copied, setCopied]           = useState({});
+  const [importOpen, setImportOpen]   = useState(false);
 
   async function fetchContext() {
     setDiyLoading(true);
@@ -396,7 +397,27 @@ function DIYPromptsTab() {
             <pre className="diy-code-block">{`=== SYSTEM PROMPT ===\n${promptData}\n\n=== YOUR DATA ===\n${contextData}`}</pre>
           </div>
         )}
+
+        <div style={{ marginTop: '1rem' }}>
+          <button className="btn-primary" onClick={() => setImportOpen(true)}>
+            Import AI Result
+          </button>
+          <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+            Paste the output from your external AI tool to save it as your gap analysis or narrative.
+          </p>
+        </div>
       </div>
+
+      {importOpen && (
+        <ImportAIResultModal
+          onClose={() => setImportOpen(false)}
+          onSave={(importMode, parsedData) => {
+            saveStorySection(importMode, parsedData, new Date().toISOString(), { input_tokens: 0, output_tokens: 0 });
+            setImportOpen(false);
+            setSubtab('ai');
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -565,6 +586,178 @@ function ManualInputTab({ promotionCriteria, story, updateManualEntries, setActi
         />
       </div>
     </section>
+  );
+}
+
+// ── Import AI Result Modal ──────────────────────────────────────────────────
+
+const VALID_STRENGTHS = ['Strong', 'Partial', 'Missing'];
+
+function validateGapAnalysis(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'Invalid JSON. Paste the raw JSON array from the AI output.' };
+  }
+  if (!Array.isArray(parsed)) {
+    return { ok: false, error: 'Expected a JSON array of objects, but got ' + typeof parsed + '.' };
+  }
+  if (parsed.length === 0) {
+    return { ok: false, error: 'Array is empty. Must contain at least one criterion.' };
+  }
+  for (let i = 0; i < parsed.length; i++) {
+    const item = parsed[i];
+    const prefix = `Item ${i + 1}`;
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      return { ok: false, error: `${prefix}: expected an object.` };
+    }
+    if (typeof item.criterion !== 'string' || !item.criterion.trim()) {
+      return { ok: false, error: `${prefix}: missing or empty "criterion" (string).` };
+    }
+    if (!Array.isArray(item.evidence) || item.evidence.length === 0) {
+      return { ok: false, error: `${prefix}: "evidence" must be a non-empty array of strings.` };
+    }
+    if (item.evidence.some(e => typeof e !== 'string')) {
+      return { ok: false, error: `${prefix}: all "evidence" entries must be strings.` };
+    }
+    if (!VALID_STRENGTHS.includes(item.strength)) {
+      return { ok: false, error: `${prefix}: "strength" must be one of: ${VALID_STRENGTHS.join(', ')}. Got "${item.strength}".` };
+    }
+    if (item.recommendation !== null && item.recommendation !== undefined && typeof item.recommendation !== 'string') {
+      return { ok: false, error: `${prefix}: "recommendation" must be a string or null.` };
+    }
+  }
+  // Normalize: ensure recommendation is string or null
+  const normalized = parsed.map(item => ({
+    criterion: item.criterion.trim(),
+    evidence: item.evidence.map(e => e.trim()),
+    strength: item.strength,
+    recommendation: item.recommendation ?? null,
+  }));
+  return { ok: true, data: normalized };
+}
+
+function ImportAIResultModal({ onClose, onSave }) {
+  const [importMode, setImportMode] = useState('gap_analysis');
+  const [rawText, setRawText]       = useState('');
+  const [preview, setPreview]       = useState(null);
+  const [error, setError]           = useState(null);
+
+  function validate() {
+    setError(null);
+    setPreview(null);
+
+    if (!rawText.trim()) {
+      setError('Paste your AI output above before validating.');
+      return;
+    }
+
+    if (importMode === 'polished_narrative') {
+      setPreview({ mode: 'polished_narrative', data: rawText.trim() });
+      return;
+    }
+
+    // gap_analysis
+    const result = validateGapAnalysis(rawText);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setPreview({ mode: 'gap_analysis', data: result.data });
+  }
+
+  function handleModeChange(newMode) {
+    setImportMode(newMode);
+    setPreview(null);
+    setError(null);
+  }
+
+  return (
+    <div className="modal-backdrop modal-backdrop--centered">
+      <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Import AI Result</h3>
+          <button className="modal-close" onClick={onClose}>&times;</button>
+        </div>
+
+        <div className="modal-form">
+          <label className="form-label">Result type</label>
+          <select
+            className="form-input"
+            value={importMode}
+            onChange={e => handleModeChange(e.target.value)}
+            style={{ maxWidth: '100%' }}
+          >
+            <option value="gap_analysis">Gap Analysis</option>
+            <option value="polished_narrative">Polished Narrative</option>
+          </select>
+
+          <label className="form-label" style={{ marginTop: '1rem' }}>
+            {importMode === 'gap_analysis' ? 'Paste JSON array' : 'Paste narrative text'}
+          </label>
+          <textarea
+            className="form-input"
+            value={rawText}
+            onChange={e => { setRawText(e.target.value); setPreview(null); setError(null); }}
+            rows={10}
+            placeholder={importMode === 'gap_analysis'
+              ? '[\n  {\n    "criterion": "...",\n    "evidence": ["..."],\n    "strength": "Strong",\n    "recommendation": "..."\n  }\n]'
+              : 'Paste your promotion narrative here...'
+            }
+            style={{ fontFamily: importMode === 'gap_analysis' ? 'monospace' : 'inherit', maxWidth: '100%' }}
+          />
+
+          {error && <div className="story-error" style={{ marginTop: '0.75rem' }}>{error}</div>}
+
+          <div style={{ marginTop: '0.75rem' }}>
+            <button className="btn-secondary" onClick={validate}>
+              Validate &amp; Preview
+            </button>
+          </div>
+
+          {preview && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Preview</h4>
+              {preview.mode === 'polished_narrative' && (
+                <div className="card" style={{ maxHeight: '200px', overflow: 'auto' }}>
+                  {preview.data.split('\n').filter(Boolean).map((line, i) => (
+                    <p key={i} style={{ margin: '0 0 0.5rem' }}>{line}</p>
+                  ))}
+                </div>
+              )}
+              {preview.mode === 'gap_analysis' && (
+                <div className="card" style={{ maxHeight: '200px', overflow: 'auto' }}>
+                  {preview.data.map((g, i) => (
+                    <div key={i} style={{ marginBottom: '0.75rem' }}>
+                      <strong>{g.criterion}</strong>{' '}
+                      <span className={`story-strength story-strength--${g.strength.toLowerCase()}`}>
+                        {g.strength}
+                      </span>
+                      <ul style={{ margin: '0.25rem 0 0 1rem', padding: 0 }}>
+                        {g.evidence.map((e, j) => <li key={j}>{e}</li>)}
+                      </ul>
+                      {g.recommendation && <p className="muted" style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>Rec: {g.recommendation}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="modal-actions">
+            <button className="btn-secondary" onClick={onClose}>Cancel</button>
+            <button
+              className="btn-primary"
+              disabled={!preview}
+              onClick={() => onSave(preview.mode, preview.data)}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

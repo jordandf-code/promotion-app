@@ -1,6 +1,7 @@
 // Goals.jsx — Goal tracking with status cycling, action linking, and AI-suggested goals
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useGoalsData.js';
 import { useActionsData }  from '../hooks/useActionsData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
@@ -18,6 +19,7 @@ export default function Goals() {
   const { actions, addAction, toggleDone, linkToGoal, unlinkFromGoal } = useActionsData();
   const { addWin, hasWinForSource } = useWinsData();
 
+  const navigate = useNavigate();
   const [modal,        setModal]        = useState(null);
   const [winPrompt,    setWinPrompt]    = useState(null);
   const [suggestState, setSuggestState] = useState(null); // null | 'loading' | { suggestions } | { error }
@@ -115,6 +117,7 @@ export default function Goals() {
       <div className="page-header">
         <h1 className="page-title">Goals</h1>
         <div className="page-header-actions">
+          <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
           <button className="btn-secondary btn-ai" onClick={handleSuggestGoals}
             disabled={suggestState === 'loading'}>
             {suggestState === 'loading' ? 'Thinking…' : '✦ Suggest goals'}

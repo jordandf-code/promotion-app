@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT, MOCK_PANEL_QUESTIONS_PROMPT, MOCK_PANEL_FOLLOWUP_PROMPT, MOCK_PANEL_DEBRIEF_PROMPT, PACKAGE_POLISH_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT, MOCK_PANEL_QUESTIONS_PROMPT, MOCK_PANEL_FOLLOWUP_PROMPT, MOCK_PANEL_DEBRIEF_PROMPT, PACKAGE_POLISH_PROMPT, EXTRACT_ACTIONS_PROMPT } = require('../ai/prompts');
 const { assemblePackage } = require('../ai/packageAssembly');
 const { renderPackageDeck } = require('../ai/renderPackageDeck');
 const { fmtCurrency }   = require('../ai/formatUtils');
@@ -1174,6 +1174,49 @@ router.get('/usage', async (req, res) => {
     console.error('AI usage query error:', err.message);
     res.status(500).json({ ok: false, error: 'Failed to load usage data' });
   }
+});
+
+// ── POST /api/ai/extract-actions ────────────────────────────────────────────
+// Body: { text: string } — raw meeting notes, email, or any text to extract actions from
+
+router.post('/extract-actions', async (req, res) => {
+  const { text } = req.body ?? {};
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ ok: false, error: 'text is required', code: 'AI_ERROR' });
+  }
+
+  // Load API key from user's admin data (no buildContext needed)
+  let apiKey;
+  try {
+    const result = await db.query(
+      `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'admin'`,
+      [req.userId]
+    );
+    apiKey = result.rows[0]?.data?.anthropicKey;
+    if (!apiKey) {
+      return res.status(400).json({ ok: false, error: 'No API key configured — add one in Admin settings.', code: 'NO_KEY' });
+    }
+  } catch (err) {
+    console.error('extract-actions: failed to load admin data:', err.message);
+    return res.status(500).json({ ok: false, error: 'Failed to load user data', code: 'AI_ERROR' });
+  }
+
+  const result = await callAnthropic({
+    apiKey,
+    systemPrompt: EXTRACT_ACTIONS_PROMPT,
+    userContent:  text.trim(),
+    maxTokens:    2000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'extract-actions',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Ensure we got an array
+  const actions = Array.isArray(result.data) ? result.data : [];
+
+  res.json({ ok: true, actions, usage: result.usage });
 });
 
 module.exports = router;

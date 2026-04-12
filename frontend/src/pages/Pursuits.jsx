@@ -2,6 +2,7 @@
 // UI label: "Opportunities" (route: /opportunities)
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useScorecardData } from '../hooks/useScorecardData.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import { fmtDate } from '../data/sampleData.js';
@@ -32,6 +33,7 @@ export default function Pursuits() {
   const STAGES         = stageList.map(s => s.label);
   const STAGE_COLORS   = stageColorMap(stageList);
   const [stageFilter, setStageFilter] = useState('all');
+  const navigate = useNavigate();
   const [modal, setModal] = useState(null);
 
   // Active + lost pursuits (not won)
@@ -96,6 +98,7 @@ export default function Pursuits() {
         <h1 className="page-title">Opportunities</h1>
         <div className="page-header-actions">
           <span className="page-count">{allOpen.length} active</span>
+          <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
           <button className="btn-primary" onClick={openAdd}>+ Add opportunity</button>
         </div>
       </div>

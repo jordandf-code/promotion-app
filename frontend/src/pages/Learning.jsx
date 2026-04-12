@@ -1,6 +1,7 @@
 // Learning.jsx — Certifications and courses tracker with expiry/completion status
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLearningData, CERT_STATUS_LABELS, COURSE_STATUS_LABELS,
          effectiveStatus, isExpiringSoon, isExpired } from '../hooks/useLearningData.js';
 import { fmtDate } from '../data/sampleData.js';
@@ -15,6 +16,7 @@ export default function Learning() {
     addCourse, updateCourse, removeCourse,
   } = useLearningData();
 
+  const navigate = useNavigate();
   const [modal, setModal] = useState(null); // { type: 'cert'|'course', mode: 'add'|'edit', data }
 
   /* ── Summary stats ── */
@@ -61,6 +63,7 @@ export default function Learning() {
             {certifications.length} cert{certifications.length !== 1 ? 's' : ''},
             {' '}{courses.length} course{courses.length !== 1 ? 's' : ''}
           </span>
+          <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
         </div>
       </div>
 
