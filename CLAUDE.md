@@ -97,6 +97,15 @@ When the user says something is wrong ("are you sure?", "that doesn't seem right
 ### Scope discipline
 Only modify files directly required for the stated task. Do not opportunistically refactor, rename, or clean up adjacent code unless asked. If you notice a problem outside scope, mention it instead of fixing it.
 
+### Feature atomicity
+Features are atomic — build all surfaces in one pass. Do not split naturally cohesive features across sessions to save time. If a feature is too large to land as one unit, scope it smaller upfront — don't stop mid-wire.
+
+### Quality line
+"Rough" means feature-complete and minimal — no bells and whistles, no extra configurability. It does NOT mean broken. Silent data loss, race conditions, and logic bugs are never acceptable. Cosmetic quality comes from following established standards and patterns in the codebase, not from a separate polish pass.
+
+### Build order
+`docs/PLAN.md` dependency graph determines what gets built next. Do not reorder based on ease, impressiveness, or external deadlines. If unsure what's next, read PLAN.md.
+
 ## Current status
 
 Layers 0–3 complete (2I Calendar deferred). All 22 roadmap features shipped. Layer 4 scoped (4A Viewer Access, 4B View Others) but deferred. Issue triage (2026-04-09) produced prioritized bug/fix backlog — see `docs/PLAN.md` "Issue triage" section. Waves 1-4 complete: all P0-P3 backlog items resolved (20 items). Security Scan (#81) complete: S1-S4 (Helmet.js, CI/CodeQL, Playwright security tests, weekly scans). Competency Radar v2 (#82) complete: C1-C3 (BARS wizard, evidence linking, multi-rater + Johari Window). P4 deferred (#63, #19+#24). UI overhaul complete: design tokens (spacing/typography/shadow/color), grouped sidebar nav (7 groups, collapsible), button consolidation (3 variants), progressive disclosure (Dashboard, Competencies), Cmd+K command palette, collapsible sidebar rail, empty states, design system docs. Nav groups defined in `frontend/src/navGroups.js`. New tabs go to `testing` group (superuser-only). Migrations required: `migration_layer0e.sql`, `migration_1c_feedback.sql`, `migration_1g_ai_log.sql`, `migration_c1_question_bank.sql`.
