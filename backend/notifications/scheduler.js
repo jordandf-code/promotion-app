@@ -26,9 +26,11 @@ function getSchedulerStatus() {
 function initScheduler() {
   // Run every hour at :00 — digest check
   cron.schedule('0 * * * *', async () => {
+    console.log(`[Scheduler] Digest check starting at ${new Date().toISOString()}`);
     try {
       await runDigestCheck();
       lastRuns.digest = new Date().toISOString();
+      console.log(`[Scheduler] Digest check completed at ${lastRuns.digest}`);
     } catch (err) {
       console.error('Scheduler digest check error:', err.message);
     }
@@ -36,15 +38,17 @@ function initScheduler() {
 
   // Run daily at 08:00 UTC — proactive notification triggers
   cron.schedule('0 8 * * *', async () => {
+    console.log(`[Scheduler] Daily triggers starting at ${new Date().toISOString()}`);
     try {
       await runAllTriggers();
       lastRuns.triggers = new Date().toISOString();
+      console.log(`[Scheduler] Daily triggers completed at ${lastRuns.triggers}`);
     } catch (err) {
       console.error('Scheduler trigger check error:', err.message);
     }
   });
 
-  console.log('Notification scheduler initialized (hourly digest + daily triggers)');
+  console.log(`[Scheduler] Initialized at ${new Date().toISOString()} — hourly digest (0 * * * *) + daily triggers (0 8 * * *)`);
 }
 
 /**

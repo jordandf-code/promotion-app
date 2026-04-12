@@ -3587,6 +3587,17 @@ tr:last-child .sc-td { border-bottom: none; }
   margin: 0;
 }
 
+.form-input--error {
+  border-color: #b91c1c;
+}
+
+.opp-summary-year-label {
+  width: 100%;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
 /* Feedback thank-you */
 .feedback-thanks {
   text-align: center;

@@ -12,8 +12,8 @@ import {
   INFLUENCE_TIER_COLORS,
   STRATEGIC_IMPORTANCE,
   STRATEGIC_IMPORTANCE_LABELS,
-  DEFAULT_STAKEHOLDER_GROUPS,
 } from '../hooks/usePeopleData.js';
+import { useAdminData } from '../hooks/useAdminData.js';
 
 const IMPORTANCE_BORDER = {
   critical: '#dc2626',
@@ -32,19 +32,19 @@ const TIER_BG = {
 
 export default function InfluenceMap() {
   const { people } = usePeopleData();
+  const { stakeholderGroups: platformGroups } = useAdminData();
   const navigate = useNavigate();
 
   const [tierFilter, setTierFilter]   = useState('');
   const [groupFilter, setGroupFilter] = useState('');
 
-  // Derive the ordered list of groups that appear in the data (plus defaults)
+  // Derive the ordered list of groups that appear in the data (plus platform config)
   const allGroups = useMemo(() => {
     const inData = [...new Set(people.map(p => p.stakeholderGroup).filter(Boolean))];
-    // Merge with defaults so the order is predictable
-    const ordered = [...DEFAULT_STAKEHOLDER_GROUPS];
+    const ordered = (platformGroups ?? []).map(g => g.label);
     inData.forEach(g => { if (!ordered.includes(g)) ordered.push(g); });
     return ordered;
-  }, [people]);
+  }, [people, platformGroups]);
 
   // Coverage summary: count per influence tier
   const tierCounts = useMemo(() => {
@@ -71,7 +71,7 @@ export default function InfluenceMap() {
       if (!map[key]) map[key] = [];
       map[key].push(p);
     });
-    // Return in DEFAULT_STAKEHOLDER_GROUPS order, then any extras
+    // Return in platform-configured order, then any extras
     const result = [];
     allGroups.forEach(g => { if (map[g]) result.push([g, map[g]]); });
     if (map['Ungrouped']) result.push(['Ungrouped', map['Ungrouped']]);

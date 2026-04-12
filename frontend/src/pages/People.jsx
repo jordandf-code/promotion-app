@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS, INFLUENCE_TIERS, INFLUENCE_TIER_LABELS, STRATEGIC_IMPORTANCE, STRATEGIC_IMPORTANCE_LABELS, DEFAULT_STAKEHOLDER_GROUPS } from '../hooks/usePeopleData.js';
+import { usePeopleData, daysSinceContact, RELATIONSHIP_STATUSES, RELATIONSHIP_STATUS_LABELS, INFLUENCE_TIERS, INFLUENCE_TIER_LABELS, STRATEGIC_IMPORTANCE, STRATEGIC_IMPORTANCE_LABELS } from '../hooks/usePeopleData.js';
 import CoverageSummary from '../components/people/CoverageSummary.jsx';
 import MeetingPrepModal from '../components/people/MeetingPrepModal.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
@@ -17,9 +17,9 @@ export default function People() {
   const {
     people, addPerson, updatePerson, removePerson,
     addTouchpoint, removeTouchpoint,
-    addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint,
+    addPlannedTouchpoint, removePlannedTouchpoint, logPlannedTouchpoint, updatePlannedDate,
   } = usePeopleData();
-  const { relationshipTypes } = useAdminData();
+  const { relationshipTypes, stakeholderGroups: platformGroups } = useAdminData();
   const { actions, addAction, toggleDone } = useActionsData();
 
   const [typeFilter,      setTypeFilter]      = useState('all');
@@ -44,8 +44,9 @@ export default function People() {
 
   const staleCount = people.filter(p => isStale(p)).length;
 
-  // Merge default groups with any custom groups users have entered
-  const stakeholderGroups = [...new Set([...DEFAULT_STAKEHOLDER_GROUPS, ...people.map(p => p.stakeholderGroup).filter(Boolean)])];
+  // Merge platform groups with any custom groups users have entered
+  const platformGroupLabels = (platformGroups ?? []).map(g => g.label);
+  const stakeholderGroups = [...new Set([...platformGroupLabels, ...people.map(p => p.stakeholderGroup).filter(Boolean)])];
 
   function openAdd()        { setModal({ mode: 'add',  data: { ...EMPTY_FORM, type: relationshipTypes[0]?.label || '' } }); }
   function openEdit(person) { setModal({ mode: 'edit', data: { ...person } }); }
@@ -130,6 +131,7 @@ export default function People() {
             onAddPlannedTouchpoint={addPlannedTouchpoint}
             onRemovePlannedTouchpoint={removePlannedTouchpoint}
             onLogPlannedTouchpoint={logPlannedTouchpoint}
+            onUpdatePlannedDate={updatePlannedDate}
             onRequestFeedback={(person) => setFeedbackModal({ person })}
             onPrepMeeting={(person) => setPrepPerson(person)}
             actions={actions}
