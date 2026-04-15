@@ -42,6 +42,8 @@ git commit -m "description"
 git push origin dev          # then PR to main
 gh pr create --base main --head dev --title "title" --body "body"
 gh pr merge --merge          # merge PR to main for auto-deploy
+git pull origin main         # sync merge commits back into dev
+git push origin dev          # keep dev even with main
 
 # Verify deploy succeeded
 # Vercel: check dashboard or live site
