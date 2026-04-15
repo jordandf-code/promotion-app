@@ -174,6 +174,8 @@ export default function ImportExport() {
 
   // ── Export ───────────────────────────────────────────────────────────
 
+  const [exportingDomain, setExportingDomain] = useState(null);
+
   async function handleExportAll() {
     setExporting(true);
     setExportError('');
@@ -192,6 +194,25 @@ export default function ImportExport() {
       setExportError('Export failed — please try again.');
     }
     setExporting(false);
+  }
+
+  async function handleExportDomain(domain) {
+    setExportingDomain(domain);
+    try {
+      const res = await fetch(`${API_BASE}/api/export/${domain}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error('Export failed');
+
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] || `${domain}-export.csv`;
+      downloadBlob(blob, filename);
+    } catch {
+      setExportError(`Export failed for ${domain} — please try again.`);
+    }
+    setExportingDomain(null);
   }
 
   // ── Import confirm handlers ──────────────────────────────────────────
@@ -427,6 +448,9 @@ export default function ImportExport() {
               <button className="btn-secondary" onClick={() => setImportModal('opportunities')}>
                 Import CSV
               </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('scorecard')} disabled={exportingDomain === 'scorecard'}>
+                {exportingDomain === 'scorecard' ? 'Exporting…' : 'Export CSV'}
+              </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(OPP_COLUMNS, OPP_TEMPLATE);
                 downloadBlob(csv, 'opportunities-template.csv');
@@ -446,6 +470,9 @@ export default function ImportExport() {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={() => setImportModal('wins')}>
                 Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('wins')} disabled={exportingDomain === 'wins'}>
+                {exportingDomain === 'wins' ? 'Exporting…' : 'Export CSV'}
               </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(WIN_COLUMNS, WIN_TEMPLATE);
@@ -467,6 +494,9 @@ export default function ImportExport() {
               <button className="btn-secondary" onClick={() => setImportModal('people')}>
                 Import CSV
               </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('people')} disabled={exportingDomain === 'people'}>
+                {exportingDomain === 'people' ? 'Exporting…' : 'Export CSV'}
+              </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(PEOPLE_COLUMNS, PEOPLE_TEMPLATE);
                 downloadBlob(csv, 'people-template.csv');
@@ -486,6 +516,9 @@ export default function ImportExport() {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={() => setImportModal('goals')}>
                 Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('goals')} disabled={exportingDomain === 'goals'}>
+                {exportingDomain === 'goals' ? 'Exporting…' : 'Export CSV'}
               </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(GOAL_COLUMNS, GOAL_TEMPLATE);
@@ -507,6 +540,9 @@ export default function ImportExport() {
               <button className="btn-secondary" onClick={() => setImportModal('actions')}>
                 Import CSV
               </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('actions')} disabled={exportingDomain === 'actions'}>
+                {exportingDomain === 'actions' ? 'Exporting…' : 'Export CSV'}
+              </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(ACTION_COLUMNS, ACTION_TEMPLATE);
                 downloadBlob(csv, 'actions-template.csv');
@@ -526,6 +562,9 @@ export default function ImportExport() {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={() => setImportModal('learning_certs')}>
                 Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('learning')} disabled={exportingDomain === 'learning'}>
+                {exportingDomain === 'learning' ? 'Exporting…' : 'Export All Learning'}
               </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(LEARNING_CERT_COLUMNS, LEARNING_CERT_TEMPLATE);
@@ -566,6 +605,9 @@ export default function ImportExport() {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={() => setImportModal('eminence')}>
                 Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('eminence')} disabled={exportingDomain === 'eminence'}>
+                {exportingDomain === 'eminence' ? 'Exporting…' : 'Export CSV'}
               </button>
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(EMINENCE_COLUMNS, EMINENCE_TEMPLATE);
