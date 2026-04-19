@@ -72,24 +72,24 @@ export default function App() {
             <Route path="people"     element={<RoleGuard allowed={['superuser','user']}><People /></RoleGuard>} />
             <Route path="wins"       element={<RoleGuard allowed={['superuser','user']}><Wins /></RoleGuard>} />
             <Route path="actions"    element={<RoleGuard allowed={['superuser','user']}><ActionItems /></RoleGuard>} />
-            <Route path="story"      element={<RoleGuard allowed={['superuser','user']}><MyStory /></RoleGuard>} />
-            <Route path="sharing"    element={<RoleGuard allowed={['superuser','user']}><Sharing /></RoleGuard>} />
+            <Route path="story"      element={<RoleGuard allowed={['superuser']}><MyStory /></RoleGuard>} />
+            <Route path="sharing"    element={<RoleGuard allowed={['superuser']}><Sharing /></RoleGuard>} />
             <Route path="calendar"   element={<RoleGuard allowed={['superuser','user']}><Calendar /></RoleGuard>} />
             <Route path="opportunities" element={<RoleGuard allowed={['superuser','user']}><Pursuits /></RoleGuard>} />
             <Route path="learning"   element={<RoleGuard allowed={['superuser','user']}><Learning /></RoleGuard>} />
             <Route path="eminence"   element={<RoleGuard allowed={['superuser','user']}><Eminence /></RoleGuard>} />
-            <Route path="influence-map" element={<RoleGuard allowed={['superuser','user']}><InfluenceMap /></RoleGuard>} />
-            <Route path="brand"      element={<RoleGuard allowed={['superuser','user']}><BrandWorkspace /></RoleGuard>} />
-            <Route path="sponsees"   element={<RoleGuard allowed={['superuser','user']}><Sponsees /></RoleGuard>} />
-            <Route path="mock-panel" element={<RoleGuard allowed={['superuser','user']}><MockPanel /></RoleGuard>} />
-            <Route path="promotion-package" element={<RoleGuard allowed={['superuser','user']}><PromotionPackage /></RoleGuard>} />
-            <Route path="vault"      element={<RoleGuard allowed={['superuser','user']}><DocumentVault /></RoleGuard>} />
+            <Route path="influence-map" element={<RoleGuard allowed={['superuser']}><InfluenceMap /></RoleGuard>} />
+            <Route path="brand"      element={<RoleGuard allowed={['superuser']}><BrandWorkspace /></RoleGuard>} />
+            <Route path="sponsees"   element={<RoleGuard allowed={['superuser']}><Sponsees /></RoleGuard>} />
+            <Route path="mock-panel" element={<RoleGuard allowed={['superuser']}><MockPanel /></RoleGuard>} />
+            <Route path="promotion-package" element={<RoleGuard allowed={['superuser']}><PromotionPackage /></RoleGuard>} />
+            <Route path="vault"      element={<RoleGuard allowed={['superuser']}><DocumentVault /></RoleGuard>} />
             <Route path="reflections"   element={<RoleGuard allowed={['superuser','user']}><Reflections /></RoleGuard>} />
             <Route path="competencies" element={<RoleGuard allowed={['superuser','user']}><Competencies /></RoleGuard>} />
-            <Route path="benchmark" element={<RoleGuard allowed={['superuser','user']}><PeerBenchmark /></RoleGuard>} />
+            <Route path="benchmark" element={<RoleGuard allowed={['superuser']}><PeerBenchmark /></RoleGuard>} />
             <Route path="import-export" element={<RoleGuard allowed={['superuser','user']}><ImportExport /></RoleGuard>} />
             <Route path="admin"      element={<Admin />} />
-            <Route path="view-others" element={<ViewOthers />} />
+            <Route path="view-others" element={<RoleGuard allowed={['superuser']}><ViewOthers /></RoleGuard>} />
             <Route path="super-admin" element={<RoleGuard allowed={['superuser']}><SuperAdmin /></RoleGuard>} />
           </Route>
 
