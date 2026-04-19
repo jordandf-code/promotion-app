@@ -1,8 +1,6 @@
-# Promotion Tracker
+# Career Command Centre
 
-A multi-user web app for managing the path to a promotion at IBM Canada. Each user tracks their own scorecard, goals, wins, people, action items, and pursuits privately. Users can share a read-only summary link and invite others to leave structured feedback.
-
-Built for 2-3 IBMers targeting Partner, but the app is general enough for any promotion-tracking use case.
+A multi-user web app for managing your career in consulting. Each user tracks their own scorecard, goals, wins, people, action items, and pursuits privately. Users can share a read-only summary link and invite others to leave structured feedback.
 
 ## Tech stack
 
