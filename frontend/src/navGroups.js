@@ -26,9 +26,6 @@ const NAV_GROUPS = [
     label: 'Relationships',
     items: [
       { to: '/people', label: 'People' },
-      { to: '/sponsees', label: 'Sponsees' },
-      { to: '/sharing', label: 'Sharing' },
-      { to: '/influence-map', label: 'Influence Map' },
     ],
   },
   {
@@ -43,20 +40,9 @@ const NAV_GROUPS = [
     ],
   },
   {
-    id: 'package',
-    label: 'Package',
-    items: [
-      { to: '/story', label: 'Narrative + Gaps' },
-      { to: '/promotion-package', label: 'Package Generator' },
-      { to: '/vault', label: 'Documents' },
-      { to: '/mock-panel', label: 'Mock Panel' },
-    ],
-  },
-  {
     id: 'settings',
     label: 'Settings',
     items: [
-      { to: '/view-others', label: 'View others' },
       { to: '/admin', label: 'Admin' },
       { to: '/import-export', label: 'Import / Export' },
     ],
@@ -66,6 +52,14 @@ const NAV_GROUPS = [
     label: 'Testing',
     superuserOnly: true,
     items: [
+      { to: '/story', label: 'Narrative + Gaps' },
+      { to: '/promotion-package', label: 'Package Generator' },
+      { to: '/mock-panel', label: 'Mock Panel' },
+      { to: '/vault', label: 'Documents' },
+      { to: '/influence-map', label: 'Influence Map' },
+      { to: '/sponsees', label: 'Sponsees' },
+      { to: '/sharing', label: 'Sharing' },
+      { to: '/view-others', label: 'View others' },
       { to: '/benchmark', label: 'Benchmarking' },
       { to: '/brand', label: 'Brand' },
     ],
