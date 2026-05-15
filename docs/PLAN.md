@@ -238,6 +238,16 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #63 — JSON import on DIY tab
 - [ ] #19 + #24 — Viewer access / View Others rework (Layer 4)
 
+**Issue batch (2026-05-14)**
+- [x] #111 — Scorecard polish: step="0.01" on currency inputs, % progress on Overview tiles, sortable columns on Opps/Projects tables
+- [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
+- [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
+- [ ] #115 — Create project from opportunity (auto-populate fields)
+- [ ] #107 — Estimate AI cost before sending API calls
+- [ ] #106 — Drag/drop tab order broken in Admin > User Settings
+- [ ] #90 — Notification email error (ops: Resend domain verification pending)
+- [ ] #61 — Notification scheduler not running (ops: Render keep-alive pending)
+
 ---
 
 ## Wave 2 — Security + Competency Radar v2

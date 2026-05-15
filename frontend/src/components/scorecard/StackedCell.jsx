@@ -73,7 +73,7 @@ export default function StackedCell({ realized, forecast, target, unit = 'curren
         </span>
         <span className="sc-actual">
           {fmt(realized)}
-          {isUtil && actualPct !== null && (
+          {actualPct !== null && (
             <span className="sc-util-pct"> ({actualPct}%)</span>
           )}
         </span>

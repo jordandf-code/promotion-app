@@ -69,6 +69,7 @@ function TargetCell({ value, unit, onSave }) {
       <input
         className="targets-cell-input"
         type="number"
+        step={unit === 'currency' ? '0.01' : '1'}
         inputMode="decimal"
         autoFocus
         value={draft}
