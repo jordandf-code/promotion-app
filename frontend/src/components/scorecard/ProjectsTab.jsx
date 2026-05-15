@@ -19,18 +19,57 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
   const { fmtCurrency } = useSettings();
   const [yearFilter,   setYearFilter]   = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [modal, setModal] = useState(null);
+  const [modal,    setModal]    = useState(null);
+  const [sortKey,  setSortKey]  = useState(null);
+  const [sortDir,  setSortDir]  = useState('asc');
 
-  const projects = scorecard.projects
-    .filter(p => {
-      if (yearFilter === 'all') return true;
-      const filterYr = Number(yearFilter);
-      const start = p.year;
-      const end = p.endYear && p.endYear !== p.year ? p.endYear : p.year;
-      return filterYr >= start && filterYr <= end;
-    })
-    .filter(p => statusFilter === 'all' || p.status === statusFilter)
-    .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
+  function handleSort(col) {
+    if (sortKey === col) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortKey(null); setSortDir('asc'); }
+    } else {
+      setSortKey(col);
+      setSortDir('asc');
+    }
+  }
+
+  function SortTh({ col, className, children }) {
+    const active = sortKey === col;
+    return (
+      <th
+        className={`sortable-th${active ? ' sortable-th--active' : ''}${className ? ` ${className}` : ''}`}
+        onClick={() => handleSort(col)}
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+      >
+        {children}{active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+      </th>
+    );
+  }
+
+  const projects = (() => {
+    const filtered = scorecard.projects
+      .filter(p => {
+        if (yearFilter === 'all') return true;
+        const filterYr = Number(yearFilter);
+        const start = p.year;
+        const end = p.endYear && p.endYear !== p.year ? p.endYear : p.year;
+        return filterYr >= start && filterYr <= end;
+      })
+      .filter(p => statusFilter === 'all' || p.status === statusFilter);
+    if (!sortKey) return [...filtered].sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
+    return [...filtered].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const av = sortKey === 'revenue' ? qSum(a.revenue) : sortKey === 'grossProfit' ? qSum(a.grossProfit) : a[sortKey];
+      const bv = sortKey === 'revenue' ? qSum(b.revenue) : sortKey === 'grossProfit' ? qSum(b.grossProfit) : b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return dir;
+      if (bv == null) return -dir;
+      const an = Number(av);
+      const bn = Number(bv);
+      if (!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
+      return dir * String(av).localeCompare(String(bv));
+    });
+  })();
 
   const summaryProjects = yearFilter === 'all'
     ? scorecard.projects
@@ -115,9 +154,13 @@ export default function ProjectsTab({ scorecard, scorecardYears }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Project</th><th>Client</th><th>Year</th><th>Status</th>
+              <SortTh col="name">Project</SortTh>
+              <SortTh col="client">Client</SortTh>
+              <SortTh col="year">Year</SortTh>
+              <SortTh col="status">Status</SortTh>
               <th>Linked opportunity</th>
-              <th className="num-col">Revenue</th><th className="num-col">Gross profit</th>
+              <SortTh col="revenue" className="num-col">Revenue</SortTh>
+              <SortTh col="grossProfit" className="num-col">Gross profit</SortTh>
               <th className="action-col" />
             </tr>
           </thead>

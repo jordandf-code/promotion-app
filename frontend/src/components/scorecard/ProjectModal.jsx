@@ -123,7 +123,7 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
               {['q1','q2','q3','q4'].map((q, i) => (
                 <label key={q}>
                   {QUARTER_LABELS[i]}
-                  <input className="form-input" type="number" min="0" inputMode="decimal"
+                  <input className="form-input" type="number" min="0" step="0.01" inputMode="decimal"
                     value={form.revenue[q] ?? ''}
                     onChange={e => setQuarterField('revenue', q, e.target.value)}
                     placeholder="0" />
@@ -142,7 +142,7 @@ export default function ProjectModal({ mode, initial, scorecardYears, opportunit
               {['q1','q2','q3','q4'].map((q, i) => (
                 <label key={q}>
                   {QUARTER_LABELS[i]}
-                  <input className="form-input" type="number" min="0" inputMode="decimal"
+                  <input className="form-input" type="number" min="0" step="0.01" inputMode="decimal"
                     value={form.grossProfit[q] ?? ''}
                     onChange={e => setQuarterField('grossProfit', q, e.target.value)}
                     placeholder="0" />

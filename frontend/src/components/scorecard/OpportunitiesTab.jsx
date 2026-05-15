@@ -36,11 +36,50 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [modal,        setModal]        = useState(null);
   const [winPrompt,    setWinPrompt]    = useState(null);
+  const [sortKey,      setSortKey]      = useState(null);
+  const [sortDir,      setSortDir]      = useState('asc');
 
-  const opps = scorecard.opportunities
-    .filter(o => yearFilter   === 'all' || o.year   === Number(yearFilter))
-    .filter(o => statusFilter === 'all' || o.status === statusFilter)
-    .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
+  function handleSort(col) {
+    if (sortKey === col) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortKey(null); setSortDir('asc'); }
+    } else {
+      setSortKey(col);
+      setSortDir('asc');
+    }
+  }
+
+  function SortTh({ col, className, children }) {
+    const active = sortKey === col;
+    return (
+      <th
+        className={`sortable-th${active ? ' sortable-th--active' : ''}${className ? ` ${className}` : ''}`}
+        onClick={() => handleSort(col)}
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+      >
+        {children}{active ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+      </th>
+    );
+  }
+
+  const opps = (() => {
+    const filtered = scorecard.opportunities
+      .filter(o => yearFilter   === 'all' || o.year   === Number(yearFilter))
+      .filter(o => statusFilter === 'all' || o.status === statusFilter);
+    if (!sortKey) return [...filtered].sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
+    return [...filtered].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return dir;
+      if (bv == null) return -dir;
+      const an = Number(av);
+      const bn = Number(bv);
+      if (!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
+      return dir * String(av).localeCompare(String(bv));
+    });
+  })();
 
   const summaryOpps = yearFilter === 'all'
     ? scorecard.opportunities
@@ -170,10 +209,16 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Opportunity</th><th>Client</th><th>Year</th><th>Stage</th><th>Status</th>
-              <th>Win date</th><th>Type</th>
-              <th className="num-col">Total value</th>
-              <th className="num-col">Signings</th><th className="action-col" />
+              <SortTh col="name">Opportunity</SortTh>
+              <SortTh col="client">Client</SortTh>
+              <SortTh col="year">Year</SortTh>
+              <SortTh col="stage">Stage</SortTh>
+              <SortTh col="status">Status</SortTh>
+              <SortTh col="winDate">Win date</SortTh>
+              <th>Type</th>
+              <SortTh col="totalValue" className="num-col">Total value</SortTh>
+              <SortTh col="signingsValue" className="num-col">Signings</SortTh>
+              <th className="action-col" />
             </tr>
           </thead>
           <tbody>

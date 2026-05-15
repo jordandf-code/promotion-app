@@ -130,13 +130,13 @@ export default function OppModal({ mode, initial, scorecardYears, onSave, onClos
           <div className="form-section-label">Value</div>
           <div className="form-row">
             <label>Total contract value (TCV)<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
-              <input className="form-input" type="number" min="0" inputMode="decimal"
+              <input className="form-input" type="number" min="0" step="0.01" inputMode="decimal"
                 value={form.totalValue}
                 onChange={e => setField('totalValue', e.target.value)} required />
               {errors.totalValue && <span className="field-error">{errors.totalValue}</span>}
             </label>
             <label>Signings credit<span className="form-unit">{currencySymbol}</span><span className="form-required">*</span>
-              <input className="form-input" type="number" min="0" inputMode="decimal"
+              <input className="form-input" type="number" min="0" step="0.01" inputMode="decimal"
                 value={form.signingsValue}
                 onChange={e => setField('signingsValue', e.target.value)}
                 required placeholder="Your credited portion" />

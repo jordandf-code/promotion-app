@@ -466,6 +466,131 @@ function NotificationPrefsSection() {
   );
 }
 
+// ── Firm configuration (shared by GenAI tab) ────────────────────────────────
+
+function FirmConfigSection() {
+  const { firmConfig, setFirmConfig } = useAdminData();
+  const [draft, setDraft] = useState(firmConfig);
+  const [msg, setMsg] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setDraft(firmConfig), [firmConfig]);
+
+  function updateDraft(key, value) {
+    setDraft(prev => ({ ...prev, [key]: value }));
+  }
+  function updateMetricLabel(key, value) {
+    setDraft(prev => ({ ...prev, metricLabels: { ...prev.metricLabels, [key]: value } }));
+  }
+  function updateThreshold(key, value) {
+    const num = value === '' ? '' : Math.max(0, Math.min(100, Number(value)));
+    setDraft(prev => ({ ...prev, thresholds: { ...prev.thresholds, [key]: num } }));
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setMsg('');
+    setSaving(true);
+    try {
+      await setFirmConfig(draft);
+      setMsg('Firm configuration saved.');
+    } catch {
+      setMsg('Failed to save.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="section">
+      <div className="section-header">
+        <h2 className="section-title">Firm configuration</h2>
+      </div>
+      <div className="card admin-card">
+        <p className="admin-description">
+          Configure labels for your firm. These replace hardcoded references throughout the app and AI prompts.
+        </p>
+        {msg && <p className="muted" style={{ marginBottom: '0.75rem' }}>{msg}</p>}
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <label>
+            Company name
+            <input className="form-input" value={draft.companyName} onChange={e => updateDraft('companyName', e.target.value)} />
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <label>
+              Current role label
+              <input className="form-input" value={draft.currentRoleLabel} onChange={e => updateDraft('currentRoleLabel', e.target.value)} />
+            </label>
+            <label>
+              Target role label
+              <input className="form-input" value={draft.targetRoleLabel} onChange={e => updateDraft('targetRoleLabel', e.target.value)} />
+            </label>
+          </div>
+          <label>
+            Market / practice description
+            <input className="form-input" value={draft.marketDescription} onChange={e => updateDraft('marketDescription', e.target.value)} />
+          </label>
+          <label>
+            Criteria label
+            <input className="form-input" value={draft.criteriaLabel} onChange={e => updateDraft('criteriaLabel', e.target.value)}
+              placeholder="e.g. Promotion criteria, IBM criteria" />
+          </label>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+            <legend style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.25rem' }}>Scorecard metric labels</legend>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <label>
+                Signings
+                <input className="form-input" value={draft.metricLabels?.signings ?? ''} onChange={e => updateMetricLabel('signings', e.target.value)} />
+              </label>
+              <label>
+                Revenue
+                <input className="form-input" value={draft.metricLabels?.revenue ?? ''} onChange={e => updateMetricLabel('revenue', e.target.value)} />
+              </label>
+              <label>
+                Gross profit
+                <input className="form-input" value={draft.metricLabels?.grossProfit ?? ''} onChange={e => updateMetricLabel('grossProfit', e.target.value)} />
+              </label>
+              <label>
+                Utilization
+                <input className="form-input" value={draft.metricLabels?.utilization ?? ''} onChange={e => updateMetricLabel('utilization', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
+          <fieldset style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '0.75rem' }}>
+            <legend style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.25rem' }}>Compliance thresholds <span className="form-unit">%</span></legend>
+            <p className="admin-description" style={{ margin: '0 0 0.5rem' }}>
+              Minimum percentage of target required to be considered on track.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <label>
+                {draft.metricLabels?.signings || 'Signings'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.signings ?? 85} onChange={e => updateThreshold('signings', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.revenue || 'Revenue'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.revenue ?? 85} onChange={e => updateThreshold('revenue', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.grossProfit || 'Gross profit'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.grossProfit ?? 80} onChange={e => updateThreshold('grossProfit', e.target.value)} />
+              </label>
+              <label>
+                {draft.metricLabels?.utilization || 'Utilization'}
+                <input className="form-input" type="number" min="0" max="100" value={draft.thresholds?.utilization ?? 70} onChange={e => updateThreshold('utilization', e.target.value)} />
+              </label>
+            </div>
+          </fieldset>
+          <div>
+            <button className="btn-primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save firm configuration'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 // ── Tab 1: GenAI ────────────────────────────────────────────────────────────
 
 function GenAITab() {
@@ -488,6 +613,8 @@ function GenAITab() {
           <ApiKeySection value={anthropicKey} onSave={setAnthropicKey} />
         </div>
       </section>
+
+      <FirmConfigSection />
 
       <section className="section">
         <div className="section-header">
