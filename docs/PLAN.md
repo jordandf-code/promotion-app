@@ -241,8 +241,10 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 **Issue batch (2026-05-14)**
 - [x] #111 — Scorecard polish: step="0.01" on currency inputs, % progress on Overview tiles, sortable columns on Opps/Projects tables
 - [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
-- [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
-- [ ] #115 — Create project from opportunity (auto-populate fields)
+- [x] #118 — Close opportunities without "lost": new terminal `no_pursue` status, excluded from win-rate/pipeline/forecast/AI context
+- [x] #112 — Team scorecard tiles (personal + team split on signings/revenue tiles; manual team target/actual on Targets tab)
+- [x] #115 — Create project from opportunity (Generate project button, auto-populate fields)
+- [x] #101 (scorecard tabs) — Per-tab import/export extended to Targets and Projects (opportunities/wins already present)
 - [ ] #107 — Estimate AI cost before sending API calls
 - [ ] #106 — Drag/drop tab order broken in Admin > User Settings
 - [ ] #90 — Notification email error (ops: Resend domain verification pending)

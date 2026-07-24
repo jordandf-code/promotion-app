@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext.jsx';
 import { useAdminData, DEFAULT_DEAL_TYPES, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES, DEFAULT_PIPELINE_STAGES } from '../../hooks/useAdminData.js';
 
-const STATUSES = ['open', 'won', 'lost'];
-const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
+const STATUSES = ['open', 'won', 'lost', 'no_pursue'];
+const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost', no_pursue: 'No pursue' };
 
 export default function OppModal({ mode, initial, scorecardYears, onSave, onClose }) {
   const { currencySymbol, toInputValue, fromInputValue } = useSettings();

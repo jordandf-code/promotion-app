@@ -73,11 +73,18 @@ export const SEED_PROJECTS = [
     grossProfit: { q1: 0, q2: 0, q3: 0, q4: 120_000 } },
 ];
 
+// Personal target metrics: sales, revenue, grossProfit, utilization.
+// Team metrics (#112) are manual target + actual pairs the user enters:
+// teamSignings/teamSigningsActual and teamRevenue/teamRevenueActual (CAD).
 export const SEED_TARGETS = {
   2023: { sales: 1_800_000, revenue: 2_800_000, grossProfit:  750_000, utilization: 1820 },
   2024: { sales: 2_000_000, revenue: 3_000_000, grossProfit:  850_000, utilization: 1820 },
-  2025: { sales: 2_200_000, revenue: 3_200_000, grossProfit:  900_000, utilization: 1820 },
-  2026: { sales: 2_500_000, revenue: 3_500_000, grossProfit:  950_000, utilization: 1820 },
+  2025: { sales: 2_200_000, revenue: 3_200_000, grossProfit:  900_000, utilization: 1820,
+          teamSignings: 8_500_000, teamSigningsActual: 7_200_000,
+          teamRevenue: 12_500_000, teamRevenueActual: 11_100_000 },
+  2026: { sales: 2_500_000, revenue: 3_500_000, grossProfit:  950_000, utilization: 1820,
+          teamSignings: 9_000_000, teamSigningsActual: 3_400_000,
+          teamRevenue: 13_000_000, teamRevenueActual: 4_800_000 },
   2027: { sales: null,      revenue: null,      grossProfit:  null,    utilization: null  },
   2028: { sales: null,      revenue: null,      grossProfit:  null,    utilization: null  },
   2029: { sales: null,      revenue: null,      grossProfit:  null,    utilization: null  },

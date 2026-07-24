@@ -11,10 +11,14 @@ import OppModal from '../components/scorecard/OppModal.jsx';
 import { LogoTypePip, stageColorMap } from '../components/scorecard/OpportunitiesTab.jsx';
 
 const STATUS_OPTIONS = [
-  { value: 'open', label: 'Open' },
-  { value: 'won',  label: 'Won' },
-  { value: 'lost', label: 'Lost' },
+  { value: 'open',      label: 'Open' },
+  { value: 'won',       label: 'Won' },
+  { value: 'lost',      label: 'Lost' },
+  { value: 'no_pursue', label: 'No pursue' },
 ];
+
+// Terminal "closed, not counted" statuses shown greyed-out at the bottom of the list.
+const CLOSED_STATUSES = ['lost', 'no_pursue'];
 
 const EMPTY_FORM = {
   name: '', client: '', year: new Date().getFullYear(),
@@ -36,12 +40,12 @@ export default function Pursuits() {
   const navigate = useNavigate();
   const [modal, setModal] = useState(null);
 
-  // Active + lost pursuits (not won)
+  // Active + closed (lost / no pursue) pursuits — not won
   const pursuits = scorecard.opportunities
-    .filter(o => o.status === 'open' || o.status === 'lost')
+    .filter(o => o.status === 'open' || CLOSED_STATUSES.includes(o.status))
     .filter(o => stageFilter === 'all' || o.stage === stageFilter)
     .sort((a, b) => {
-      // Open first, lost at the bottom
+      // Open first, closed (lost / no pursue) at the bottom
       if (a.status !== b.status) return a.status === 'open' ? -1 : 1;
       const si = STAGES.indexOf(b.stage ?? '') - STAGES.indexOf(a.stage ?? '');
       return si !== 0 ? si : (Number(b.signingsValue) || 0) - (Number(a.signingsValue) || 0);
@@ -171,10 +175,10 @@ export default function Pursuits() {
                 </td>
               </tr>
             ) : pursuits.map(opp => (
-              <tr key={opp.id} className={opp.status === 'lost' ? 'tr--lost' : ''}>
+              <tr key={opp.id} className={CLOSED_STATUSES.includes(opp.status) ? 'tr--lost' : ''}>
                 <td className="td-primary">
                   <span className="td-primary-link" onClick={() => openEdit(opp)}>
-                    {opp.status === 'lost' ? <s>{opp.name}</s> : opp.name}
+                    {CLOSED_STATUSES.includes(opp.status) ? <s>{opp.name}</s> : opp.name}
                   </span>
                 </td>
                 <td>{opp.client}</td>

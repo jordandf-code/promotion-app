@@ -51,9 +51,11 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 ## Pipeline Stages & Statuses
 
 **Stages** (progression): Identified > Qualified > Proposed > Verbal > Closed
-**Status** (outcome): open | won | lost
+**Status** (outcome): open | won | lost | no_pursue
 
 "Closed" is a stage. "Won" is a status. A deal can be at the "Closed" stage but still "open" status.
+"No pursue" (`no_pursue`) is a terminal "decided not to chase" outcome — distinct from "lost" and
+excluded from win-rate, pipeline, forecast, and AI context.
 
 ## UI Components
 
