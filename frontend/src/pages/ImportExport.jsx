@@ -89,12 +89,13 @@ const GOAL_COLUMNS = [
   { key: 'notes',      label: 'Notes' },
   { key: 'targetDate', label: 'Target date',    validate: v => v && isNaN(Date.parse(v)) ? 'Invalid date' : null },
   { key: 'isGate',     label: 'Gate goal',      type: 'boolean' },
+  { key: 'isPerformanceGoal', label: 'SF performance goal', type: 'boolean' },
   { key: 'status',     label: 'Status',         enum: ['not_started', 'in_progress', 'done'] },
 ];
 
 const GOAL_TEMPLATE = {
   title: 'Hit Q3 revenue target', notes: 'Focus on public sector signings',
-  targetDate: '2026-09-30', isGate: 'no', status: 'in_progress',
+  targetDate: '2026-09-30', isGate: 'no', isPerformanceGoal: 'yes', status: 'in_progress',
 };
 
 const ACTION_COLUMNS = [
@@ -347,6 +348,7 @@ export default function ImportExport() {
       notes: r.notes || '',
       targetDate: r.targetDate || '',
       isGate: r.isGate === true,
+      isPerformanceGoal: r.isPerformanceGoal === true,
       status: r.status || 'not_started',
     }));
 

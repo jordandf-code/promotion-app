@@ -11,6 +11,7 @@ When Jordan uses these terms, this is what they mean in the app.
 | **Qualifying year** | Year before promotion (2026) — building the case, Dec 31 deadline |
 | **Promotion year** | Year of the ask (2027) |
 | **Gate / IBM milestone** | Required checkbox for promotion. Goals with `isGate: true` |
+| **SF performance goal** | A yearly personal performance goal (Jordan's own), distinct from IBM promotion milestones. Goals with `isPerformanceGoal: true`. Independent of `isGate` |
 | **Three gates** | Hit targets, complete training, top performer rating — all by Dec 31 of qualifying year |
 
 ## Financial Metrics (Scorecard)

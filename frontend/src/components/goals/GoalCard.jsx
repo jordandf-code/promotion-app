@@ -41,7 +41,12 @@ export default function GoalCard({ goal, linkedActions, availableActions, onEdit
       {/* ── Card header ── */}
       <div className="goal-card-top">
         <div className="goal-card-left">
-          {goal.isGate && <span className="milestone-badge">IBM milestone</span>}
+          {(goal.isGate || goal.isPerformanceGoal) && (
+            <span className="goal-badges">
+              {goal.isGate && <span className="milestone-badge">IBM milestone</span>}
+              {goal.isPerformanceGoal && <span className="performance-badge">SF performance</span>}
+            </span>
+          )}
           <h3 className="goal-card-title">{goal.title}</h3>
           {goal.notes && <p className="goal-card-notes">{goal.notes}</p>}
           {goal.isGate && LEARNING_RE.test(goal.title) && (

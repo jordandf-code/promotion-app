@@ -241,6 +241,7 @@ async function buildContext(userId) {
     title:   g.title,
     status:  (g.status ?? 'not_started').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
     is_gate: !!g.isGate,
+    is_performance_goal: !!g.isPerformanceGoal,
     notes:   g.notes ?? null,
   }));
 

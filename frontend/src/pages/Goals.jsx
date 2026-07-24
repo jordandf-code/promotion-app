@@ -12,7 +12,7 @@ import EmptyState          from '../components/EmptyState.jsx';
 import WinFormModal        from '../components/wins/WinFormModal.jsx';
 import SuggestGoalsModal   from '../components/goals/SuggestGoalsModal.jsx';
 
-const EMPTY_FORM = { title: '', targetDate: '', status: 'not_started', notes: '', isGate: false };
+const EMPTY_FORM = { title: '', targetDate: '', status: 'not_started', notes: '', isGate: false, isPerformanceGoal: false };
 
 export default function Goals() {
   const { goals, addGoal, updateGoal, removeGoal, cycleStatus } = useGoalsData();
@@ -23,9 +23,12 @@ export default function Goals() {
   const [modal,        setModal]        = useState(null);
   const [winPrompt,    setWinPrompt]    = useState(null);
   const [suggestState, setSuggestState] = useState(null); // null | 'loading' | { suggestions } | { error }
+  const [filter,       setFilter]       = useState('all'); // 'all' | 'performance'
 
-  const milestones = goals.filter(g => g.isGate);
-  const otherGoals = goals.filter(g => !g.isGate);
+  const hasPerformanceGoals = goals.some(g => g.isPerformanceGoal);
+  const visibleGoals = filter === 'performance' ? goals.filter(g => g.isPerformanceGoal) : goals;
+  const milestones = visibleGoals.filter(g => g.isGate);
+  const otherGoals = visibleGoals.filter(g => !g.isGate);
 
   function openAdd()      { setModal({ mode: 'add',  data: { ...EMPTY_FORM } }); }
   function openEdit(goal) { setModal({ mode: 'edit', data: { ...goal } }); }
@@ -125,6 +128,15 @@ export default function Goals() {
           <button className="btn-primary" onClick={openAdd}>+ Add goal</button>
         </div>
       </div>
+
+      {hasPerformanceGoals && (
+        <div className="tab-filters">
+          <select className="filter-select" value={filter} onChange={e => setFilter(e.target.value)}>
+            <option value="all">All goals</option>
+            <option value="performance">SF performance goals only</option>
+          </select>
+        </div>
+      )}
 
       <section className="section">
         <div className="section-header">
@@ -251,6 +263,10 @@ function GoalModal({ mode, initial, onSave, onClose }) {
           <label className="form-checkbox-row">
             <input type="checkbox" checked={!!form.isGate} onChange={e => setField('isGate', e.target.checked)} />
             <span>IBM milestone <span className="form-hint">— required by IBM for promotion qualifying</span></span>
+          </label>
+          <label className="form-checkbox-row">
+            <input type="checkbox" checked={!!form.isPerformanceGoal} onChange={e => setField('isPerformanceGoal', e.target.checked)} />
+            <span>SF performance goal <span className="form-hint">— a yearly personal performance goal, separate from IBM milestones</span></span>
           </label>
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>

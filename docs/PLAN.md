@@ -245,10 +245,12 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #112 — Team scorecard tiles (personal + team split on signings/revenue tiles; manual team target/actual on Targets tab)
 - [x] #115 — Create project from opportunity (Generate project button, auto-populate fields)
 - [x] #101 (scorecard tabs) — Per-tab import/export extended to Targets and Projects (opportunities/wins already present)
-- [ ] #107 — Estimate AI cost before sending API calls
-- [ ] #106 — Drag/drop tab order broken in Admin > User Settings
-- [ ] #90 — Notification email error (ops: Resend domain verification pending)
-- [ ] #61 — Notification scheduler not running (ops: Render keep-alive pending)
+- [x] #119 — Tag goals as "SF performance goal": second independent boolean `isPerformanceGoal` on goals (form checkbox, card badge, filter, CSV, AI context)
+- [x] #117 — Attach documents to wins: reuse vault infra (`vaultFiles.js` helper), win card attach/list/remove, docs survive win deletion
+- [x] #107 — Estimate AI cost before sending API calls (shared `pricing.js`, `/api/ai/estimate`, `callAI` wrapper + `AICostModal` on 18 triggers)
+- [x] #106 — Drag/drop tab order in Admin: shared `useDragReorder` hook wired to real HTML5 DnD, ↑/↓ buttons kept as fallback
+- [x] #90 — Closed as ops task (Resend domain verification — not code)
+- [x] #61 — Closed as ops task (Render keep-alive — not code)
 
 ---
 
