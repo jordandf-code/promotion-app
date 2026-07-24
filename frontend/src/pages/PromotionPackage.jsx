@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { usePackageData } from '../hooks/usePackageData.js';
 import { authHeaders, API_BASE } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 
 const SECTION_DEFS = [
@@ -47,12 +48,8 @@ export default function PromotionPackage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/package/assemble`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ sections_enabled: sectionsEnabled }),
-      });
-      const json = await res.json();
+      const json = await callAI('package/assemble', { sections_enabled: sectionsEnabled });
+      if (json.cancelled) return;
       if (!json.ok) {
         setError(mapAiError(json.code, json.error));
         return;
@@ -73,12 +70,8 @@ export default function PromotionPackage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/package/polish`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ package_id: currentPkgId, polish_level: polishLevel }),
-      });
-      const json = await res.json();
+      const json = await callAI('package/polish', { package_id: currentPkgId, polish_level: polishLevel });
+      if (json.cancelled) return;
       if (!json.ok) {
         setError(mapAiError(json.code, json.error));
         return;
@@ -97,11 +90,8 @@ export default function PromotionPackage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/package/export-deck`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ package_id: currentPkgId }),
-      });
+      const res = await callAI('package/export-deck', { package_id: currentPkgId }, { raw: true });
+      if (res.cancelled) return;
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setError(json.error || 'Export failed');

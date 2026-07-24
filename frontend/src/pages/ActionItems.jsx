@@ -6,6 +6,7 @@ import { useActionsData } from '../hooks/useActionsData.js';
 import { useGoalsData } from '../hooks/useGoalsData.js';
 import { fmtDate } from '../data/sampleData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 
 const TODAY = new Date();
@@ -281,12 +282,8 @@ function ExtractActionsModal({ onAdd, onClose }) {
     setState('loading');
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/extract-actions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ text: text.trim() }),
-      });
-      const data = await res.json();
+      const data = await callAI('extract-actions', { text: text.trim() });
+      if (data.cancelled) { setState('idle'); return; }
       if (!data.ok) {
         if (data.code === 'NO_KEY') {
           setError('No API key configured — add one in Admin settings.');

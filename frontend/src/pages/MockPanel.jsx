@@ -4,6 +4,7 @@
 import { useState, useCallback } from 'react';
 import { useMockPanelData } from '../hooks/useMockPanelData';
 import { authHeaders, API_BASE } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 
 const FOCUS_OPTIONS = [
   { key: 'commercial', label: 'Commercial' },
@@ -63,12 +64,8 @@ export default function MockPanel() {
     setStarting(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/mock-panel/start`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ difficulty, focus_areas: focusAreas, question_count: 6 }),
-      });
-      const json = await res.json();
+      const json = await callAI('mock-panel/start', { difficulty, focus_areas: focusAreas, question_count: 6 });
+      if (json.cancelled) return;
       if (!json.ok) {
         setError(json.error || 'Failed to start session');
         return;
@@ -93,12 +90,8 @@ export default function MockPanel() {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/mock-panel/answer`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ session_id: activeSessionId, turn: currentTurn, answer }),
-      });
-      const json = await res.json();
+      const json = await callAI('mock-panel/answer', { session_id: activeSessionId, turn: currentTurn, answer });
+      if (json.cancelled) return;
       if (!json.ok) {
         setError(json.error || 'Failed to submit answer');
         return;
@@ -127,12 +120,8 @@ export default function MockPanel() {
     setDebriefing(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/mock-panel/debrief`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ session_id: activeSessionId }),
-      });
-      const json = await res.json();
+      const json = await callAI('mock-panel/debrief', { session_id: activeSessionId });
+      if (json.cancelled) return;
       if (!json.ok) {
         setError(json.error || 'Failed to generate debrief');
         return;

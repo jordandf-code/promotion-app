@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { API_BASE, apiGet, apiPut, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 
 const DEFAULT_SETTINGS = { showWins: true, showNarrative: true, showScorecard: false, showReadiness: false, showLearning: false, showEminence: false };
 
@@ -249,12 +250,9 @@ function FeedbackTab({ feedback, requests, synthesis, onSynthesisUpdate }) {
     setSynthesizing(true);
     setSynthError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/synthesize-feedback`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Synthesis failed');
+      const data = await callAI('synthesize-feedback', {});
+      if (data.cancelled) return;
+      if (!data.ok) throw new Error(data.error || 'Synthesis failed');
       onSynthesisUpdate(data.data);
     } catch (err) {
       setSynthError(err.message);

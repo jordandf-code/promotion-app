@@ -243,8 +243,8 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
 - [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
 - [ ] #115 — Create project from opportunity (auto-populate fields)
-- [ ] #107 — Estimate AI cost before sending API calls
-- [ ] #106 — Drag/drop tab order broken in Admin > User Settings
+- [x] #107 — Estimate AI cost before sending API calls (shared `backend/ai/pricing.js`, `POST /api/ai/estimate`, `callAI` wrapper in `frontend/src/utils/aiClient.js` + `AICostModal` confirm; all 18 AI triggers gated)
+- [x] #106 — Drag/drop tab order in Admin > User Settings (shared `frontend/src/hooks/useDragReorder.js`, real DnD on group + item rows, ↑/↓ fallback kept)
 - [ ] #90 — Notification email error (ops: Resend domain verification pending)
 - [ ] #61 — Notification scheduler not running (ops: Render keep-alive pending)
 

@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { API_BASE, authHeaders } from '../../utils/api.js';
+import { callAI } from '../../utils/aiClient.js';
 import { mapAiError } from '../../utils/aiErrors.js';
 
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -43,12 +44,8 @@ export default function MeetingPrepModal({ person, onSave, onClose }) {
     setAiState('loading');
     setAiError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/meeting-prep`, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ contactId: person.id }),
-      });
-      const data = await res.json();
+      const data = await callAI('meeting-prep', { contactId: person.id });
+      if (data.cancelled) { setAiState('idle'); return; }
       if (!data.ok) {
         setAiError(mapAiError(data.code, data.error));
         setAiState('error');

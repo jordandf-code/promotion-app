@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 
 export default function LinkedInImportModal({ onImport, onClose }) {
@@ -19,12 +20,8 @@ export default function LinkedInImportModal({ onImport, onClose }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/parse-linkedin`, {
-        method:  'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body:    JSON.stringify({ text: text.trim() }),
-      });
-      const data = await res.json();
+      const data = await callAI('parse-linkedin', { text: text.trim() });
+      if (data.cancelled) return;
       if (!data.ok) {
         setError(mapAiError(data.code, data.error));
         setLoading(false);
