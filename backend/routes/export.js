@@ -38,7 +38,19 @@ function domainToCSVs(domain, data) {
         grossProfitQ1: p.grossProfit?.q1 ?? '', grossProfitQ2: p.grossProfit?.q2 ?? '',
         grossProfitQ3: p.grossProfit?.q3 ?? '', grossProfitQ4: p.grossProfit?.q4 ?? '',
       }));
+      const targets = Object.entries(data.targets || {}).map(([year, t]) => ({
+        year,
+        sales:              t?.sales ?? '',
+        revenue:            t?.revenue ?? '',
+        grossProfit:        t?.grossProfit ?? '',
+        utilization:        t?.utilization ?? '',
+        teamSignings:       t?.teamSignings ?? '',
+        teamSigningsActual: t?.teamSigningsActual ?? '',
+        teamRevenue:        t?.teamRevenue ?? '',
+        teamRevenueActual:  t?.teamRevenueActual ?? '',
+      }));
       const result = [];
+      if (targets.length)  result.push({ filename: 'targets.csv', rows: targets });
       if (opps.length)     result.push({ filename: 'opportunities.csv', rows: opps });
       if (projects.length) result.push({ filename: 'projects.csv', rows: projects });
       return result;
@@ -144,6 +156,7 @@ const README_TEXT = `Career Command Center — Data Export
 This ZIP contains your data exported as CSV files.
 
 Files included:
+- targets.csv — Per-year scorecard targets and manual team signings/revenue (from Scorecard)
 - opportunities.csv — Pipeline opportunities (from Scorecard)
 - projects.csv — Delivery projects (from Scorecard)
 - wins.csv — Accomplishments and wins

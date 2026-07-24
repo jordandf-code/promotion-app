@@ -25,6 +25,15 @@ const METRIC_UNIT = {
   utilization: 'hours',
 };
 
+// Team metrics (#112): manual target + actual pairs, all currency. Stored on the
+// same per-year targets object under distinct keys, edited with the same TargetCell.
+const TEAM_METRICS = [
+  { key: 'teamSignings',       label: 'Team signings — target' },
+  { key: 'teamSigningsActual', label: 'Team signings — actual' },
+  { key: 'teamRevenue',        label: 'Team revenue — target' },
+  { key: 'teamRevenueActual',  label: 'Team revenue — actual' },
+];
+
 function yearColumnClass(year, promotionYear) {
   if (year === promotionYear - 1) return 'sc-th--qual';
   if (year === promotionYear)     return 'sc-th--partner';
@@ -161,6 +170,47 @@ export default function TargetsTab({ scorecard, scorecardYears, promotionYear })
                       value={scorecard.getTarget(yr, metric)}
                       unit={METRIC_UNIT[metric]}
                       onSave={val => scorecard.setTarget(yr, metric, val)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 className="form-section-label">Team targets &amp; actuals</h3>
+      <p className="targets-hint">
+        Manual team-level signings and revenue — enter both target and actual.
+        These are entered directly, not rolled up from other users.
+      </p>
+
+      <div className="sc-table-wrap">
+        <table className="sc-table">
+          <thead>
+            <tr>
+              <th className="sc-th sc-th--metric">Metric</th>
+              {visibleYears.map(yr => (
+                <th key={yr} className={`sc-th sc-th--year ${yearColumnClass(yr, promotionYear)}`}>
+                  <span className="sc-th-year">{yr}</span>
+                  {yr === CURRENT_YEAR && <span className="sc-current-dot" />}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {TEAM_METRICS.map(m => (
+              <tr key={m.key}>
+                <td className="sc-td sc-td--metric">
+                  {m.label}
+                  <span className="targets-unit-hint"> ({currencySymbol})</span>
+                </td>
+                {visibleYears.map(yr => (
+                  <td key={yr} className={`sc-td ${yearCellClass(yr, promotionYear)}`}>
+                    <TargetCell
+                      value={scorecard.getTarget(yr, m.key)}
+                      unit="currency"
+                      onSave={val => scorecard.setTarget(yr, m.key, val)}
                     />
                   </td>
                 ))}

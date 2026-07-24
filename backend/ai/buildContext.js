@@ -204,6 +204,7 @@ async function buildContext(userId) {
   }).filter(y => hasData(y.metrics));
 
   // ── opportunities (open + won only, snake_case) ──
+  // Allowlist excludes terminal statuses 'lost' and 'no_pursue' from AI context.
   const opps = opportunities
     .filter(o => o.status === 'open' || o.status === 'won')
     .map(o => ({
@@ -260,6 +261,8 @@ async function buildContext(userId) {
   });
 
   // ── pre-computed summary stats ──
+  // win_rate uses won/(won+lost) only — 'no_pursue' opps are terminal and are
+  // deliberately excluded from both numerator and denominator (and from pipeline).
   const qyOpps = opportunities.filter(o => o.year === qualifyingYear);
   const wonOpps  = qyOpps.filter(o => o.status === 'won');
   const lostOpps = qyOpps.filter(o => o.status === 'lost');
