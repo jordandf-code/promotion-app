@@ -108,7 +108,7 @@ async function buildContext(userId) {
   const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'story']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'story', 'vault']]
     ),
     loadFirmConfig(),
     db.query(
@@ -223,6 +223,7 @@ async function buildContext(userId) {
     }));
 
   // ── wins (20 most recent, trimmed) ──
+  const vaultDocs = (byDomain.vault?.documents) ?? [];
   const wins = [...rawWins]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 20)
@@ -234,6 +235,7 @@ async function buildContext(userId) {
       logo_type:           w.logoType ?? null,
       relationship_origin: w.relationshipOrigin ?? null,
       strategic_note:      w.strategicNote ?? null,
+      attachment_count:    vaultDocs.filter(d => d.linkedType === 'win' && d.linkedId === w.id).length || null,
     }));
 
   // ── goals ──

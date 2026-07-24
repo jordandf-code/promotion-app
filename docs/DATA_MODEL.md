@@ -52,6 +52,8 @@ utilization:   { [year]: { months: { [jan-dec]: { actual, forecast } } } }
 
 Default tags: Revenue · Client relationship · Delivery · Team leadership · Internal eminence · External eminence.
 Migrated from `winsData_v1` (added sourceType/sourceId/sourceName fields).
+Attachments are NOT stored on the win — they live in the `vault` domain as documents with
+`linkedType: 'win'` and `linkedId: <win.id>` (see `vault` domain below).
 
 ## `actions` domain (`actionsData_v2`)
 
@@ -184,6 +186,28 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 ```
 
 - `type`: `speaking | publication | media | panel | award | internal-ibm | community | other`
+
+## `vault` domain
+
+```
+{
+  documents: [ {
+    id, uploadedAt, filename, mimeType, size,
+    data,          // base64 data-URL of the file (5 MB cap, matches express.json limit)
+    description,
+    linkedType,    // 'general' | 'win' | 'eminence'
+    linkedId,      // id of the linked record (e.g. a win id) or null
+    tags[]
+  } ]
+}
+```
+
+- Backs the Document Vault page and the "Attach document" affordance on win cards.
+- **Win ↔ vault linkage**: a document with `linkedType: 'win'` and `linkedId: <win.id>` is
+  attached to that win. Wins query the vault by these fields to list/download/remove attachments;
+  wins carry no file field of their own. Deleting a win does NOT delete its documents — they
+  remain in the vault (no silent data loss). Wins CSV export carries a `documentCount` column;
+  AI context adds a per-win `attachment_count`.
 
 ## `competencies` domain
 
