@@ -6,6 +6,7 @@ import { useGoalsData, STATUS_LABELS, STATUSES, nextStatus } from '../hooks/useG
 import { useActionsData }  from '../hooks/useActionsData.js';
 import { useWinsData }     from '../hooks/useWinsData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError }      from '../utils/aiErrors.js';
 import GoalCard            from '../components/goals/GoalCard.jsx';
 import EmptyState          from '../components/EmptyState.jsx';
@@ -77,12 +78,8 @@ export default function Goals() {
   async function handleSuggestGoals() {
     setSuggestState('loading');
     try {
-      const res = await fetch(`${API_BASE}/api/ai/suggest-goals`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body:    JSON.stringify({}),
-      });
-      const data = await res.json();
+      const data = await callAI('suggest-goals', {});
+      if (data.cancelled) { setSuggestState(null); return; }
       if (!data.ok) {
         if (data.code === 'NO_KEY' || data.code === 'NO_CRITERIA') {
           setSuggestState({ missingConfig: true });

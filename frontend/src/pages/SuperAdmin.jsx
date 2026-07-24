@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';
 import { useAdminData, COLOR_PALETTE } from '../hooks/useAdminData.js';
 import { DEFAULT_WEIGHTS } from '../hooks/useReadinessScore.js';
+import useDragReorder from '../hooks/useDragReorder.js';
 
 const TABS = [
   { id: 'users',      label: 'Users'       },
@@ -1078,30 +1079,6 @@ function PlatformTab() {
   );
 }
 
-// ── Shared drag-and-drop helpers ────────────────────────────────────────────
-
-function useDragReorder(items, onChange) {
-  const dragIdx = useRef(null);
-  const [dragOver, setDragOver] = useState(null);
-
-  const onDragStart = useCallback(idx => { dragIdx.current = idx; }, []);
-  const onDragOver  = useCallback((e, idx) => { e.preventDefault(); setDragOver(idx); }, []);
-  const onDragEnd   = useCallback(() => { dragIdx.current = null; setDragOver(null); }, []);
-
-  const onDrop = useCallback((e, idx) => {
-    e.preventDefault();
-    const from = dragIdx.current;
-    if (from === null || from === idx) { setDragOver(null); return; }
-    const next = [...items];
-    const [removed] = next.splice(from, 1);
-    next.splice(idx, 0, removed);
-    onChange(next);
-    dragIdx.current = null;
-    setDragOver(null);
-  }, [items, onChange]);
-
-  return { dragOver, onDragStart, onDragOver, onDrop, onDragEnd };
-}
 
 // ── Editable colour list (relationship types, win tags, pipeline stages) ────
 

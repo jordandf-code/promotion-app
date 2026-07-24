@@ -12,6 +12,7 @@ const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTH
 const { assemblePackage } = require('../ai/packageAssembly');
 const { renderPackageDeck } = require('../ai/renderPackageDeck');
 const { fmtCurrency }   = require('../ai/formatUtils');
+const { DEFAULT_MODEL, estimateCostUsd, estimateTokens } = require('../ai/pricing');
 const db = require('../db');
 
 const router = express.Router();
@@ -23,6 +24,9 @@ const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   keyGenerator: (req) => `user-${req.userId}`,
+  // Pre-send cost estimates make no Anthropic call and precede every gated
+  // generation — don't let them consume the AI budget.
+  skip: (req) => req.path === '/estimate',
   message: { ok: false, error: 'Too many AI requests — please try again in a few minutes', code: 'RATE_LIMITED' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -259,6 +263,74 @@ router.post('/preview-context', async (req, res) => {
     ok: true,
     context: safeCtx,
     systemPrompt: mode.prompt,
+  });
+});
+
+// ── POST /api/ai/estimate ───────────────────────────────────────────────────
+// Pre-send cost estimate for a given generation endpoint. Sizes the assembled
+// context for this user (estimated input tokens) plus the route's max_tokens
+// (expected output tokens), and computes an estimated USD cost via the shared
+// pricing constant. Body: { endpoint, narrative_mode?, text? }
+// Returns { estimatedInputTokens, estimatedOutputTokens, estimatedCostUsd, model, generic }.
+// `generic: true` means the endpoint is not a token-billed generation call (or is
+// unknown) — the frontend shows a generic confirmation instead of a dollar figure.
+
+// Expected output tokens per endpoint = the route's max_tokens. generate-story is
+// mode-dependent and handled separately via STORY_MODES.
+const ENDPOINT_MAX_TOKENS = {
+  'suggest-goals':        800,
+  'suggest-impact':       80,
+  'synthesize-feedback':  2000,
+  'enhance-win':          1500,
+  'reflection-synthesis': 2000,
+  'competency-analysis':  2500,
+  'meeting-prep':         1500,
+  'mock-panel/start':     1000,
+  'mock-panel/answer':    300,
+  'mock-panel/debrief':   2500,
+  'package/polish':       6000,
+  'auto-link-evidence':   2000,
+  'extract-actions':      2000,
+  'deck':                 4000,
+};
+
+router.post('/estimate', async (req, res) => {
+  const { endpoint, narrative_mode, text } = req.body ?? {};
+  const model = DEFAULT_MODEL;
+
+  // Expected output tokens (the route's max_tokens).
+  let outputTokens = 0;
+  if (endpoint === 'generate-story') {
+    const mode = STORY_MODES[narrative_mode || 'gap_analysis'];
+    outputTokens = mode ? mode.maxTokens : 6000;
+  } else if (ENDPOINT_MAX_TOKENS[endpoint] != null) {
+    outputTokens = ENDPOINT_MAX_TOKENS[endpoint];
+  }
+  const generic = outputTokens === 0;
+
+  // Estimated input tokens from the assembled context (best-effort — a missing
+  // key or criteria just yields 0; the real call surfaces the proper error).
+  let inputTokens = 0;
+  try {
+    const ctx = await buildContext(req.userId);
+    const { anthropicKey, ...safeCtx } = ctx;
+    inputTokens = estimateTokens(JSON.stringify(safeCtx));
+  } catch {
+    inputTokens = 0;
+  }
+  if (typeof text === 'string' && text.trim()) {
+    inputTokens += estimateTokens(text);
+  }
+
+  const estimatedCostUsd = Math.round(estimateCostUsd(model, inputTokens, outputTokens) * 10000) / 10000;
+
+  res.json({
+    ok: true,
+    estimatedInputTokens:  inputTokens,
+    estimatedOutputTokens: outputTokens,
+    estimatedCostUsd,
+    model,
+    generic,
   });
 });
 
@@ -1131,9 +1203,12 @@ router.get('/usage', async (req, res) => {
     let totalInput = 0, totalOutput = 0;
     const byEndpoint = {};
 
+    let totalCost = 0;
     for (const r of rows) {
       totalInput += r.input_tokens;
       totalOutput += r.output_tokens;
+      // Cost per row using the row's own model, via the shared pricing constant.
+      totalCost += estimateCostUsd(r.model || DEFAULT_MODEL, r.input_tokens, r.output_tokens);
       const key = r.narrative_mode ? `${r.endpoint}:${r.narrative_mode}` : r.endpoint;
       if (!byEndpoint[key]) byEndpoint[key] = { endpoint: key, calls: 0, input_tokens: 0, output_tokens: 0 };
       byEndpoint[key].calls++;
@@ -1141,7 +1216,7 @@ router.get('/usage', async (req, res) => {
       byEndpoint[key].output_tokens += r.output_tokens;
     }
 
-    const estimatedCostUsd = (totalInput / 1_000_000 * 3) + (totalOutput / 1_000_000 * 15);
+    const estimatedCostUsd = totalCost;
 
     res.json({
       ok: true,

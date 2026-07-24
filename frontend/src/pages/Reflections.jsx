@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useReflectionsData, getMonday } from '../hooks/useReflectionsData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 
 const COMPETENCY_LABELS = {
@@ -86,11 +87,8 @@ export default function Reflections() {
                 setSynthesizing(true);
                 setSynthError(null);
                 try {
-                  const res = await fetch(`${API_BASE}/api/ai/reflection-synthesis`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-                  });
-                  const d = await res.json();
+                  const d = await callAI('reflection-synthesis', {});
+                  if (d.cancelled) return;
                   if (!d.ok) { setSynthError(mapAiError(d.code, d.error)); return; }
                   updateSynthesis({ ...d.data, last_generated: new Date().toISOString() });
                   if (d.usage) setSynthUsage(d.usage);

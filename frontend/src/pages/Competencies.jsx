@@ -5,6 +5,7 @@ import { useCompetenciesData } from '../hooks/useCompetenciesData.js';
 import { useWinsData } from '../hooks/useWinsData.js';
 import { useAdminData } from '../context/AdminDataContext.jsx';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import RadarChart from '../components/radar/RadarChart.jsx';
 import StepperWizard from '../components/competencies/StepperWizard.jsx';
@@ -64,11 +65,8 @@ function AutoLinkButton() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/auto-link-evidence`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      });
-      const d = await res.json();
+      const d = await callAI('auto-link-evidence', {});
+      if (d.cancelled) return;
       if (!d.ok) { setError(mapAiError(d.code, d.error)); return; }
       setResult(d.data);
     } catch {
@@ -156,11 +154,8 @@ export default function Competencies() {
     setAnalyzing(true);
     setAiError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/competency-analysis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      });
-      const d = await res.json();
+      const d = await callAI('competency-analysis', {});
+      if (d.cancelled) return;
       if (!d.ok) { setAiError(mapAiError(d.code, d.error)); return; }
       updateAiAnalysis({ ...d.data, generated_at: new Date().toISOString() });
       if (d.usage) setAiUsage(d.usage);

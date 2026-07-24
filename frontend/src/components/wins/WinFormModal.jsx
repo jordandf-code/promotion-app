@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { API_BASE, authHeaders } from '../../utils/api.js';
+import { callAI } from '../../utils/aiClient.js';
 import { mapAiError } from '../../utils/aiErrors.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../../hooks/useAdminData.js';
 
@@ -42,17 +43,13 @@ export default function WinFormModal({ mode, initial, promptContext, onSave, onC
     setSuggestingImpact(true);
     setImpactError(null);
     try {
-      const res  = await fetch(`${API_BASE}/api/ai/suggest-impact`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body:    JSON.stringify({
-          title:       form.title,
-          description: form.description,
-          sourceId:    initial?.sourceId ?? null,
-          sourceType:  initial?.sourceType ?? null,
-        }),
+      const data = await callAI('suggest-impact', {
+        title:       form.title,
+        description: form.description,
+        sourceId:    initial?.sourceId ?? null,
+        sourceType:  initial?.sourceType ?? null,
       });
-      const data = await res.json();
+      if (data.cancelled) return;
       if (!data.ok) {
         setImpactError(mapAiError(data.code, data.error));
         return;

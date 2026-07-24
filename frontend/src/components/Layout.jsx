@@ -11,6 +11,7 @@ import BottomTabBar, { useBottomTabRoutes, STAR_ELIGIBLE } from './BottomTabBar.
 import ReportIssueModal from './ReportIssueModal.jsx';
 import PWAInstallBanner from './PWAInstallBanner.jsx';
 import CommandPalette from './CommandPalette.jsx';
+import AICostModal from './AICostModal.jsx';
 import NAV_GROUPS, { DEFAULT_GROUP_ORDER } from '../navGroups.js';
 
 // Routes that viewers can access (everything else is hidden)
@@ -268,6 +269,7 @@ export default function Layout() {
       {showIssueModal && <ReportIssueModal onClose={() => setShowIssueModal(false)} />}
 
       <CommandPalette />
+      <AICostModal />
     </div>
   );
 }

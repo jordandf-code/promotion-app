@@ -5,6 +5,7 @@ import { API_BASE, authHeaders } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useAdminData } from '../hooks/useAdminData.js';
 import NAV_GROUPS, { DEFAULT_GROUP_ORDER } from '../navGroups.js';
+import useDragReorder from '../hooks/useDragReorder.js';
 import { useSettings } from '../context/SettingsContext.jsx';
 import WipeSection from '../components/admin/WipeSection.jsx';
 import AIUsageLog from '../components/admin/AIUsageLog.jsx';
@@ -711,6 +712,14 @@ function SettingsTab() {
   // Label lookup
   const itemLabelMap = Object.fromEntries(NAV_GROUPS.flatMap(g => g.items.map(n => [n.to, n.label])));
 
+  // Drag-and-drop reorder (native HTML5). ↑/↓ buttons remain as an accessible
+  // fallback; both persist via the same setNavOrder path.
+  const groupDrag = useDragReorder(groupOrder, next => updateNavOrder({ groupOrder: next }));
+  const itemList  = selectedGroup && groupMap[selectedGroup] ? getItemOrder(selectedGroup) : [];
+  const itemDrag  = useDragReorder(itemList, next =>
+    updateNavOrder({ itemOrder: { ...(navOrder?.itemOrder ?? {}), [selectedGroup]: next } })
+  );
+
   return (
     <div className="tab-content">
       <section className="section">
@@ -729,9 +738,15 @@ function SettingsTab() {
               const group = groupMap[gid];
               if (!group) return null;
               return (
-                <div key={gid} className={`admin-list-item${selectedGroup === gid ? ' admin-list-item--dragover' : ''}`}>
+                <div key={gid}
+                  className={`admin-list-item${(groupDrag.dragOver === idx || selectedGroup === gid) ? ' admin-list-item--dragover' : ''}`}
+                  draggable
+                  onDragStart={() => groupDrag.onDragStart(idx)}
+                  onDragOver={e => groupDrag.onDragOver(e, idx)}
+                  onDrop={e => groupDrag.onDrop(e, idx)}
+                  onDragEnd={groupDrag.onDragEnd}>
                   <div className="admin-list-row">
-                    <span className="tab-order-handle">⠿</span>
+                    <span className="tab-order-handle" style={{ cursor: 'grab' }}>⠿</span>
                     <span
                       className="admin-list-label"
                       style={{ cursor: 'pointer', fontWeight: selectedGroup === gid ? 700 : 500 }}
@@ -761,9 +776,15 @@ function SettingsTab() {
               </h3>
               <div className="admin-list">
                 {getItemOrder(selectedGroup).map((route, idx) => (
-                  <div key={route} className="admin-list-item">
+                  <div key={route}
+                    className={`admin-list-item${itemDrag.dragOver === idx ? ' admin-list-item--dragover' : ''}`}
+                    draggable
+                    onDragStart={() => itemDrag.onDragStart(idx)}
+                    onDragOver={e => itemDrag.onDragOver(e, idx)}
+                    onDrop={e => itemDrag.onDrop(e, idx)}
+                    onDragEnd={itemDrag.onDragEnd}>
                     <div className="admin-list-row">
-                      <span className="tab-order-handle">⠿</span>
+                      <span className="tab-order-handle" style={{ cursor: 'grab' }}>⠿</span>
                       <span className="admin-list-label">{itemLabelMap[route] ?? route}</span>
                       <div className="admin-list-btns">
                         <button className="admin-list-btn" onClick={() => moveItem(selectedGroup, idx, -1)} disabled={idx === 0}>↑</button>

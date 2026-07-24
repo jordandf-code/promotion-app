@@ -7,6 +7,7 @@ import { useVaultData } from '../hooks/useVaultData.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../hooks/useAdminData.js';
 import { fmtDate } from '../data/sampleData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import {
   ACCEPTED_TYPES,
@@ -176,12 +177,8 @@ function WinCard({ win, winTags, logoTypeOptions, originOptions, documents = [],
     setEnhancing(true);
     setEnhanceErr(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/enhance-win`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ winId: win.id }),
-      });
-      const data = await res.json();
+      const data = await callAI('enhance-win', { winId: win.id });
+      if (data.cancelled) return;
       if (!data.ok) { setEnhanceErr(mapAiError(data.code, data.error)); return; }
       const enhanced = {
         statement: data.data.statement,
