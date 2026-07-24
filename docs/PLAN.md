@@ -241,6 +241,7 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 **Issue batch (2026-05-14)**
 - [x] #111 — Scorecard polish: step="0.01" on currency inputs, % progress on Overview tiles, sortable columns on Opps/Projects tables
 - [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
+- [x] #119 — Tag goals as "SF performance goal": second independent boolean `isPerformanceGoal` on goals (form checkbox, card badge, filter, CSV, AI context)
 - [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
 - [ ] #115 — Create project from opportunity (auto-populate fields)
 - [ ] #107 — Estimate AI cost before sending API calls

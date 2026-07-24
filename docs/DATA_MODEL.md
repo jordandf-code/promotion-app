@@ -75,11 +75,12 @@ Many-to-many with goals via `linkedGoalIds` array.
 ## `goals` domain (`goalsData_v1`)
 
 ```
-[ { id, title, targetDate, status, notes, isGate } ]
+[ { id, title, targetDate, status, notes, isGate, isPerformanceGoal } ]
 ```
 
 - `status`: `Not started | In progress | Done`
 - `isGate: true` marks as IBM milestone (shown in milestones section)
+- `isPerformanceGoal: true` marks as an SF performance goal (Jordan's yearly personal performance goal). Independent of `isGate` — a goal can be both, either, or neither. Surfaced via a card badge and a "SF performance goals only" filter.
 
 ## `admin` domain (`adminData_v2`)
 

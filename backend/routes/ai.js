@@ -184,10 +184,10 @@ router.post('/suggest-impact', async (req, res) => {
       );
       const rawGoal = (rawResult.rows[0]?.data ?? []).find(g => g.id === sourceId);
       if (rawGoal) {
-        parts.push(`\nLinked goal: ${rawGoal.title}${rawGoal.isGate ? ' (IBM milestone)' : ''}`);
+        parts.push(`\nLinked goal: ${rawGoal.title}${rawGoal.isGate ? ' (IBM milestone)' : ''}${rawGoal.isPerformanceGoal ? ' (SF performance goal)' : ''}`);
       }
     } else {
-      parts.push(`\nLinked goal: ${goal.title}${goal.is_gate ? ' (IBM milestone)' : ''}`);
+      parts.push(`\nLinked goal: ${goal.title}${goal.is_gate ? ' (IBM milestone)' : ''}${goal.is_performance_goal ? ' (SF performance goal)' : ''}`);
     }
   }
 
@@ -391,6 +391,7 @@ router.post('/enhance-win', async (req, res) => {
       parts.push(`\nLINKED GOAL:`);
       parts.push(`Title: ${rawGoal.title}`);
       if (rawGoal.isGate) parts.push(`Type: IBM milestone`);
+      if (rawGoal.isPerformanceGoal) parts.push(`Type: SF performance goal`);
       dataSources.push(win.sourceId);
     }
   }

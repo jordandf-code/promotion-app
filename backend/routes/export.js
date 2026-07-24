@@ -58,6 +58,7 @@ function domainToCSVs(domain, data) {
       return [{ filename: 'goals.csv', rows: (data || []).map(g => ({
         id: g.id, title: g.title, targetDate: g.targetDate || '',
         status: g.status || '', notes: g.notes || '', isGate: g.isGate ? 'yes' : 'no',
+        isPerformanceGoal: g.isPerformanceGoal ? 'yes' : 'no',
       })) }];
 
     case 'actions':
