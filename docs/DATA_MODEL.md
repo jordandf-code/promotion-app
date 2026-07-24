@@ -9,7 +9,8 @@ Originally localStorage, migrated to DB in Phase 11. Domain key = the string use
 ## `scorecard` domain (`scorecardData_v2`)
 
 ```
-targets:       { [year]: { sales, revenue, grossProfit, utilization } }
+targets:       { [year]: { sales, revenue, grossProfit, utilization,
+                            teamSignings, teamSigningsActual, teamRevenue, teamRevenueActual } }
 opportunities: [ {
   id, name, client, year, status, winDate, totalValue, signingsValue,
   stage, probability, expectedClose, dealType, logoType, relationshipOrigin, strategicNote
@@ -18,14 +19,21 @@ projects:      [ { id, name, client, year, status, opportunityId, revenue{q1-q4}
 utilization:   { [year]: { months: { [jan-dec]: { actual, forecast } } } }
 ```
 
-- `status` (opportunities): `open | won | lost`
+- `status` (opportunities): `open | won | lost | no_pursue`
 - `stage`: `Identified | Qualified | Proposed | Verbal | Closed`
 - `dealType`: `one-time | multi-year`
 - `logoType`: `net-new | expansion`
 - `relationshipOrigin`: `cold-outreach | referral | eminence | existing-client`
-- Won opps → realized signings. Open opps → forecast signings. Lost → excluded.
+- Won opps → realized signings. Open opps → forecast signings. `lost` and `no_pursue` → excluded.
+  `no_pursue` ("No pursue") is a terminal "closed, not chasing" status, distinct from `lost`:
+  it never enters win-rate (won/(won+lost)), pipeline, forecast, or AI context.
+- Team target/actual fields (`teamSignings`, `teamSigningsActual`, `teamRevenue`, `teamRevenueActual`)
+  are manual CAD values entered on the Targets tab — NOT rolled up from other users. They drive the
+  Team tiles on the Opportunities tab.
 - Projects: `status` is `forecast | realized`. Optional `opportunityId` link.
 - Deleting an opportunity clears the link on connected projects.
+- "Generate project" on an opportunity creates a linked `forecast` project pre-filled from the opp
+  (name, client, year, totalValue→revenue.q1, dealType, logoType, relationshipOrigin, strategicNote).
 - Targets are flat IBM-given numbers per year — not derived from deals.
 
 ## `wins` domain (`winsData_v2`)
@@ -44,6 +52,8 @@ utilization:   { [year]: { months: { [jan-dec]: { actual, forecast } } } }
 
 Default tags: Revenue · Client relationship · Delivery · Team leadership · Internal eminence · External eminence.
 Migrated from `winsData_v1` (added sourceType/sourceId/sourceName fields).
+Attachments are NOT stored on the win — they live in the `vault` domain as documents with
+`linkedType: 'win'` and `linkedId: <win.id>` (see `vault` domain below).
 
 ## `actions` domain (`actionsData_v2`)
 
@@ -75,11 +85,12 @@ Many-to-many with goals via `linkedGoalIds` array.
 ## `goals` domain (`goalsData_v1`)
 
 ```
-[ { id, title, targetDate, status, notes, isGate } ]
+[ { id, title, targetDate, status, notes, isGate, isPerformanceGoal } ]
 ```
 
 - `status`: `Not started | In progress | Done`
 - `isGate: true` marks as IBM milestone (shown in milestones section)
+- `isPerformanceGoal: true` marks as an SF performance goal (Jordan's yearly personal performance goal). Independent of `isGate` — a goal can be both, either, or neither. Surfaced via a card badge and a "SF performance goals only" filter.
 
 ## `admin` domain (`adminData_v2`)
 
@@ -175,6 +186,28 @@ Cached AI output from `POST /api/ai/synthesize-feedback`. Regenerated on demand.
 ```
 
 - `type`: `speaking | publication | media | panel | award | internal-ibm | community | other`
+
+## `vault` domain
+
+```
+{
+  documents: [ {
+    id, uploadedAt, filename, mimeType, size,
+    data,          // base64 data-URL of the file (5 MB cap, matches express.json limit)
+    description,
+    linkedType,    // 'general' | 'win' | 'eminence'
+    linkedId,      // id of the linked record (e.g. a win id) or null
+    tags[]
+  } ]
+}
+```
+
+- Backs the Document Vault page and the "Attach document" affordance on win cards.
+- **Win ↔ vault linkage**: a document with `linkedType: 'win'` and `linkedId: <win.id>` is
+  attached to that win. Wins query the vault by these fields to list/download/remove attachments;
+  wins carry no file field of their own. Deleting a win does NOT delete its documents — they
+  remain in the vault (no silent data loss). Wins CSV export carries a `documentCount` column;
+  AI context adds a per-win `attachment_count`.
 
 ## `competencies` domain
 

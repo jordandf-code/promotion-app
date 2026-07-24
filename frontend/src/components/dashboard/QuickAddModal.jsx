@@ -240,6 +240,7 @@ export default function QuickAddModal({ onAddWin, onAddAction, onAddGoal, onAddP
                     <option value="open">Open</option>
                     <option value="won">Won</option>
                     <option value="lost">Lost</option>
+                    <option value="no_pursue">No pursue</option>
                   </select>
                 </label>
               </div>

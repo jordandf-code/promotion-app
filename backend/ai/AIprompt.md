@@ -78,7 +78,8 @@ Pass it as the `user` message content, serialized as JSON.
       "tags": ["Revenue", "Client relationship", "External eminence"],
       "logo_type": "net-new | expansion | null",
       "relationship_origin": "cold-outreach | referral | eminence | existing-client | null",
-      "strategic_note": "string | null"
+      "strategic_note": "string | null",
+      "attachment_count": "number | null (count of vault documents linked to this win; omitted when zero)"
     }
   ],
 

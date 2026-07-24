@@ -241,12 +241,17 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 **Issue batch (2026-05-14)**
 - [x] #111 — Scorecard polish: step="0.01" on currency inputs, % progress on Overview tiles, sortable columns on Opps/Projects tables
 - [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
-- [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
-- [ ] #115 — Create project from opportunity (auto-populate fields)
-- [ ] #107 — Estimate AI cost before sending API calls
-- [ ] #106 — Drag/drop tab order broken in Admin > User Settings
-- [ ] #90 — Notification email error (ops: Resend domain verification pending)
-- [ ] #61 — Notification scheduler not running (ops: Render keep-alive pending)
+- [x] #118 — Close opportunities without "lost": new terminal `no_pursue` status, excluded from win-rate/pipeline/forecast/AI context
+- [x] #112 — Team scorecard tiles (personal + team split on signings/revenue tiles; manual team target/actual on Targets tab)
+- [x] #115 — Create project from opportunity (Generate project button, auto-populate fields)
+- [x] #101 (scorecard tabs) — Per-tab import/export extended to Targets and Projects (opportunities/wins already present)
+- [x] #119 — Tag goals as "SF performance goal": second independent boolean `isPerformanceGoal` on goals (form checkbox, card badge, filter, CSV, AI context)
+- [x] #117 — Attach documents to wins: reuse vault infra (`vaultFiles.js` helper), win card attach/list/remove, docs survive win deletion
+- [x] #107 — Estimate AI cost before sending API calls (shared `pricing.js`, `/api/ai/estimate`, `callAI` wrapper + `AICostModal` on 18 triggers)
+- [x] #106 — Drag/drop tab order in Admin: shared `useDragReorder` hook wired to real HTML5 DnD, ↑/↓ buttons kept as fallback
+- [x] #90 — Closed as ops task (Resend domain verification — not code)
+- [x] #61 — Closed as ops task (Render keep-alive — not code)
+- [x] Security (integration) — CSV formula-injection guard in `backend/routes/export.js` `rowsToCSV` (neutralize `= + - @`-led non-numeric cells; found while adding export columns)
 
 ---
 

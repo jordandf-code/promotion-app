@@ -1,5 +1,7 @@
 // hooks/useGoalsData.js
-// Goals: title, targetDate, status, notes, isGate.
+// Goals: title, targetDate, status, notes, isGate, isPerformanceGoal.
+// isGate = IBM promotion milestone; isPerformanceGoal = SF (Jordan) yearly performance goal.
+// The two flags are independent — a goal can be both, either, or neither.
 // The three 2026 gate goals are seeded on first use.
 // Persisted to PostgreSQL via /api/data/goals.
 
@@ -22,37 +24,37 @@ export function nextStatus(current) {
 
 const SEED_GOALS = [
   {
-    id: 'gate-1', isGate: true, status: 'in_progress',
+    id: 'gate-1', isGate: true, isPerformanceGoal: true, status: 'in_progress',
     title: 'Hit all 2026 performance targets',
     targetDate: '2026-12-31',
     notes: 'Sales, Revenue, GP, and Utilization all on track by year-end.',
   },
   {
-    id: 'gate-2', isGate: true, status: 'not_started',
+    id: 'gate-2', isGate: true, isPerformanceGoal: false, status: 'not_started',
     title: 'Complete all IBM training requirements',
     targetDate: '2026-12-31',
     notes: 'Need to confirm which courses are required for Partner candidacy.',
   },
   {
-    id: 'gate-3', isGate: true, status: 'not_started',
+    id: 'gate-3', isGate: true, isPerformanceGoal: false, status: 'not_started',
     title: 'Finish 2026 rated as a top performer',
     targetDate: '2026-12-31',
     notes: 'Performance rating determined in Q1 2027 review.',
   },
   {
-    id: 'goal-4', isGate: false, status: 'in_progress',
+    id: 'goal-4', isGate: false, isPerformanceGoal: true, status: 'in_progress',
     title: 'Build executive sponsor network in Ottawa',
     targetDate: '2026-09-30',
     notes: 'Targeting 3 senior sponsors at TBS, DND, and SSC.',
   },
   {
-    id: 'goal-5', isGate: false, status: 'done',
+    id: 'goal-5', isGate: false, isPerformanceGoal: false, status: 'done',
     title: 'Deliver a keynote or panel at an industry event',
     targetDate: '2026-03-15',
     notes: 'Presented at Canadian Government Executive forum in March.',
   },
   {
-    id: 'goal-6', isGate: false, status: 'in_progress',
+    id: 'goal-6', isGate: false, isPerformanceGoal: false, status: 'in_progress',
     title: 'Publish 2 IBM thought leadership pieces',
     targetDate: '2026-10-31',
     notes: 'One draft in progress on cloud migration for public sector.',
@@ -98,7 +100,7 @@ export function useGoalsData() {
   }, [goals, initialized]);
 
   function addGoal(fields) {
-    setGoals(g => [...g, { id: uid(), isGate: false, ...fields }]);
+    setGoals(g => [...g, { id: uid(), isGate: false, isPerformanceGoal: false, ...fields }]);
   }
 
   function updateGoal(id, updates) {

@@ -924,18 +924,34 @@ tr:last-child .sc-td { border-bottom: none; }
 .goal-card-left { flex: 1; }
 .goal-card-right { text-align: right; flex-shrink: 0; }
 
-.milestone-badge {
+.goal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.milestone-badge,
+.performance-badge {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+}
+
+.milestone-badge {
   color: var(--qual);
   background: var(--qual-bg);
   border: 1px solid var(--qual-border);
-  border-radius: 4px;
-  padding: 0.1rem 0.45rem;
-  margin-bottom: 0.4rem;
+}
+
+.performance-badge {
+  color: var(--brand);
+  background: var(--brand-light);
+  border: 1px solid var(--brand-light);
 }
 
 .goal-card-title {

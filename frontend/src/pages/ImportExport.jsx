@@ -89,12 +89,13 @@ const GOAL_COLUMNS = [
   { key: 'notes',      label: 'Notes' },
   { key: 'targetDate', label: 'Target date',    validate: v => v && isNaN(Date.parse(v)) ? 'Invalid date' : null },
   { key: 'isGate',     label: 'Gate goal',      type: 'boolean' },
+  { key: 'isPerformanceGoal', label: 'SF performance goal', type: 'boolean' },
   { key: 'status',     label: 'Status',         enum: ['not_started', 'in_progress', 'done'] },
 ];
 
 const GOAL_TEMPLATE = {
   title: 'Hit Q3 revenue target', notes: 'Focus on public sector signings',
-  targetDate: '2026-09-30', isGate: 'no', status: 'in_progress',
+  targetDate: '2026-09-30', isGate: 'no', isPerformanceGoal: 'yes', status: 'in_progress',
 };
 
 const ACTION_COLUMNS = [
@@ -156,6 +157,49 @@ const EMINENCE_TEMPLATE = {
   url: '', description: 'Presented on cloud modernization strategies', tags: 'Cloud|Public Sector',
 };
 
+const NUM_VALIDATE = v => v && isNaN(Number(v)) ? 'Must be a number' : null;
+
+const PROJECT_COLUMNS = [
+  { key: 'name',          label: 'Name',                 required: true },
+  { key: 'client',        label: 'Client' },
+  { key: 'year',          label: 'Year',                 validate: v => v && isNaN(Number(v)) ? 'Year must be a number' : null },
+  { key: 'endYear',       label: 'End year',             validate: NUM_VALIDATE },
+  { key: 'status',        label: 'Status',               enum: ['forecast', 'realized'] },
+  { key: 'opportunityId', label: 'Linked opportunity ID' },
+  { key: 'revenueQ1',     label: 'Revenue Q1',           validate: NUM_VALIDATE },
+  { key: 'revenueQ2',     label: 'Revenue Q2',           validate: NUM_VALIDATE },
+  { key: 'revenueQ3',     label: 'Revenue Q3',           validate: NUM_VALIDATE },
+  { key: 'revenueQ4',     label: 'Revenue Q4',           validate: NUM_VALIDATE },
+  { key: 'grossProfitQ1', label: 'Gross profit Q1',      validate: NUM_VALIDATE },
+  { key: 'grossProfitQ2', label: 'Gross profit Q2',      validate: NUM_VALIDATE },
+  { key: 'grossProfitQ3', label: 'Gross profit Q3',      validate: NUM_VALIDATE },
+  { key: 'grossProfitQ4', label: 'Gross profit Q4',      validate: NUM_VALIDATE },
+];
+
+const PROJECT_TEMPLATE = {
+  name: 'Acme Modernization — delivery', client: 'Acme Corp', year: '2026', endYear: '',
+  status: 'forecast', opportunityId: '',
+  revenueQ1: '250000', revenueQ2: '250000', revenueQ3: '0', revenueQ4: '0',
+  grossProfitQ1: '75000', grossProfitQ2: '75000', grossProfitQ3: '0', grossProfitQ4: '0',
+};
+
+const TARGETS_COLUMNS = [
+  { key: 'year',               label: 'Year',                  required: true, validate: v => v && isNaN(Number(v)) ? 'Year must be a number' : null },
+  { key: 'sales',              label: 'Signings target',       validate: NUM_VALIDATE },
+  { key: 'revenue',            label: 'Revenue target',        validate: NUM_VALIDATE },
+  { key: 'grossProfit',        label: 'Gross profit target',   validate: NUM_VALIDATE },
+  { key: 'utilization',        label: 'Utilization target (hrs)', validate: NUM_VALIDATE },
+  { key: 'teamSignings',       label: 'Team signings target',  validate: NUM_VALIDATE },
+  { key: 'teamSigningsActual', label: 'Team signings actual',  validate: NUM_VALIDATE },
+  { key: 'teamRevenue',        label: 'Team revenue target',   validate: NUM_VALIDATE },
+  { key: 'teamRevenueActual',  label: 'Team revenue actual',   validate: NUM_VALIDATE },
+];
+
+const TARGETS_TEMPLATE = {
+  year: '2026', sales: '2500000', revenue: '3500000', grossProfit: '950000', utilization: '1820',
+  teamSignings: '9000000', teamSigningsActual: '3400000', teamRevenue: '13000000', teamRevenueActual: '4800000',
+};
+
 // ── Component ──────────────────────────────────────────────────────────
 
 export default function ImportExport() {
@@ -163,7 +207,7 @@ export default function ImportExport() {
   const [exportError, setExportError] = useState('');
   const [importModal, setImportModal] = useState(null);
 
-  const { opportunities } = useScorecardData();
+  const { opportunities, projects } = useScorecardData();
   const { wins }          = useWinsData();
   const { people }        = usePeopleData();
   const { relationshipTypes, winTags } = useAdminData();
@@ -304,6 +348,7 @@ export default function ImportExport() {
       notes: r.notes || '',
       targetDate: r.targetDate || '',
       isGate: r.isGate === true,
+      isPerformanceGoal: r.isPerformanceGoal === true,
       status: r.status || 'not_started',
     }));
 
@@ -392,6 +437,54 @@ export default function ImportExport() {
     setTimeout(() => window.location.reload(), 1500);
   }
 
+  async function confirmProjects(rows) {
+    const current = await apiGet('scorecard');
+    const existing = current?.projects || projects || [];
+    const num = v => (v === '' || v == null || isNaN(Number(v))) ? 0 : Number(v);
+    const newProjects = rows.map(r => ({
+      id: uid(),
+      name: r.name,
+      client: r.client || '',
+      year: r.year ? Number(r.year) : new Date().getFullYear(),
+      endYear: r.endYear ? Number(r.endYear) : null,
+      status: r.status || 'forecast',
+      opportunityId: r.opportunityId || null,
+      revenue:     { q1: num(r.revenueQ1),     q2: num(r.revenueQ2),     q3: num(r.revenueQ3),     q4: num(r.revenueQ4) },
+      grossProfit: { q1: num(r.grossProfitQ1), q2: num(r.grossProfitQ2), q3: num(r.grossProfitQ3), q4: num(r.grossProfitQ4) },
+    }));
+
+    await directPut('scorecard', {
+      ...current,
+      projects: [...existing, ...newProjects],
+    });
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
+  // Targets are keyed by year — importing MERGES provided fields into each year
+  // (overwriting those fields), rather than appending rows.
+  async function confirmTargets(rows) {
+    const current = await apiGet('scorecard');
+    const merged = { ...(current?.targets || {}) };
+    const numOrNull = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
+    const FIELDS = ['sales', 'revenue', 'grossProfit', 'utilization',
+      'teamSignings', 'teamSigningsActual', 'teamRevenue', 'teamRevenueActual'];
+    for (const r of rows) {
+      const yr = Number(r.year);
+      if (!yr) continue;
+      const entry = { ...(merged[yr] || {}) };
+      for (const f of FIELDS) {
+        if (r[f] !== undefined && r[f] !== '') entry[f] = numOrNull(r[f]);
+      }
+      merged[yr] = entry;
+    }
+
+    await directPut('scorecard', {
+      ...current,
+      targets: merged,
+    });
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
   // ── Duplicate detection for people ──────────────────────────────────
 
   function detectPeopleDuplicate(row) {
@@ -454,6 +547,52 @@ export default function ImportExport() {
               <button className="btn-ghost" onClick={() => {
                 const csv = generateTemplate(OPP_COLUMNS, OPP_TEMPLATE);
                 downloadBlob(csv, 'opportunities-template.csv');
+              }}>
+                Template
+              </button>
+            </div>
+          </div>
+
+          {/* Projects */}
+          <div className="card" style={{ padding: '1.25rem', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Projects</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              Delivery projects with quarterly revenue and gross profit.
+              {(projects || []).length > 0 && <><br />{(projects || []).length} existing</>}
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button className="btn-secondary" onClick={() => setImportModal('projects')}>
+                Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('scorecard')} disabled={exportingDomain === 'scorecard'}>
+                {exportingDomain === 'scorecard' ? 'Exporting…' : 'Export CSV'}
+              </button>
+              <button className="btn-ghost" onClick={() => {
+                const csv = generateTemplate(PROJECT_COLUMNS, PROJECT_TEMPLATE);
+                downloadBlob(csv, 'projects-template.csv');
+              }}>
+                Template
+              </button>
+            </div>
+          </div>
+
+          {/* Targets */}
+          <div className="card" style={{ padding: '1.25rem', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Targets</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+              Per-year personal targets plus team signings/revenue (target &amp; actual).
+              Import merges values into matching years by year.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button className="btn-secondary" onClick={() => setImportModal('targets')}>
+                Import CSV
+              </button>
+              <button className="btn-secondary" onClick={() => handleExportDomain('scorecard')} disabled={exportingDomain === 'scorecard'}>
+                {exportingDomain === 'scorecard' ? 'Exporting…' : 'Export CSV'}
+              </button>
+              <button className="btn-ghost" onClick={() => {
+                const csv = generateTemplate(TARGETS_COLUMNS, TARGETS_TEMPLATE);
+                downloadBlob(csv, 'targets-template.csv');
               }}>
                 Template
               </button>
@@ -627,6 +766,26 @@ export default function ImportExport() {
           columnSpec={OPP_COLUMNS}
           templateExample={OPP_TEMPLATE}
           onConfirm={confirmOpportunities}
+          onClose={() => setImportModal(null)}
+        />
+      )}
+
+      {importModal === 'projects' && (
+        <ImportModal
+          title="Projects"
+          columnSpec={PROJECT_COLUMNS}
+          templateExample={PROJECT_TEMPLATE}
+          onConfirm={confirmProjects}
+          onClose={() => setImportModal(null)}
+        />
+      )}
+
+      {importModal === 'targets' && (
+        <ImportModal
+          title="Targets"
+          columnSpec={TARGETS_COLUMNS}
+          templateExample={TARGETS_TEMPLATE}
+          onConfirm={confirmTargets}
           onClose={() => setImportModal(null)}
         />
       )}

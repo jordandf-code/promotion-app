@@ -3,10 +3,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useWinsData } from '../hooks/useWinsData.js';
+import { useVaultData } from '../hooks/useVaultData.js';
 import { useAdminData, DEFAULT_LOGO_TYPES, DEFAULT_ORIGIN_TYPES } from '../hooks/useAdminData.js';
 import { fmtDate } from '../data/sampleData.js';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
+import {
+  ACCEPTED_TYPES,
+  formatFileSize,
+  getMimeLabel,
+  getMimeBadgeColor,
+  readFileForVault,
+  downloadDocument,
+} from '../utils/vaultFiles.js';
 import WinFormModal from '../components/wins/WinFormModal.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
@@ -17,6 +27,8 @@ const SOURCE_LABEL = {
 
 export default function Wins() {
   const { wins, addWin, updateWin, removeWin } = useWinsData();
+  const { data: vaultData, addDocument, removeDocument } = useVaultData();
+  const vaultDocuments = vaultData.documents ?? [];
   const { winTags, logoTypes, originTypes } = useAdminData();
   const LOGO_TYPE_OPTIONS = logoTypes ?? DEFAULT_LOGO_TYPES;
   const ORIGIN_OPTIONS    = originTypes ?? DEFAULT_ORIGIN_TYPES;
@@ -48,7 +60,22 @@ export default function Wins() {
   }
 
   function handleDelete(id) {
-    if (confirm('Remove this win?')) removeWin(id);
+    const linked = vaultDocuments.filter(d => d.linkedType === 'win' && d.linkedId === id);
+    const msg = linked.length
+      ? `Remove this win? Its ${linked.length} attached document${linked.length !== 1 ? 's' : ''} will remain in your Document Vault.`
+      : 'Remove this win?';
+    if (confirm(msg)) removeWin(id);
+  }
+
+  function handleAttachDocument(winId, payload) {
+    addDocument({
+      filename:   payload.filename,
+      mimeType:   payload.mimeType,
+      size:       payload.size,
+      data:       payload.data,
+      linkedType: 'win',
+      linkedId:   winId,
+    });
   }
 
   return (
@@ -84,6 +111,9 @@ export default function Wins() {
               winTags={winTags}
               logoTypeOptions={LOGO_TYPE_OPTIONS}
               originOptions={ORIGIN_OPTIONS}
+              documents={vaultDocuments.filter(d => d.linkedType === 'win' && d.linkedId === w.id)}
+              onAttachDocument={handleAttachDocument}
+              onRemoveDocument={removeDocument}
               onEdit={() => openEdit(w)}
               onDelete={() => handleDelete(w.id)}
               onUpdateWin={updateWin}
@@ -113,23 +143,42 @@ export default function Wins() {
   );
 }
 
-function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelete, onUpdateWin, highlight, innerRef }) {
+function WinCard({ win, winTags, logoTypeOptions, originOptions, documents = [], onAttachDocument, onRemoveDocument, onEdit, onDelete, onUpdateWin, highlight, innerRef }) {
   const [enhancing, setEnhancing]     = useState(false);
   const [enhanceErr, setEnhanceErr]   = useState(null);
   const [enhanceUsage, setEnhanceUsage] = useState(null);
   const [viewMode, setViewMode]       = useState(win.enhanced?.mode ?? 'statement');
   const [showEnhanced, setShowEnhanced] = useState(!!win.enhanced);
+  const fileInputRef                  = useRef(null);
+  const [attachError, setAttachError] = useState('');
+
+  function handleAttachClick() {
+    setAttachError('');
+    fileInputRef.current?.click();
+  }
+
+  function handleAttachChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAttachError('');
+    readFileForVault(file)
+      .then(payload => onAttachDocument(win.id, payload))
+      .catch(err => setAttachError(err.message));
+  }
+
+  function handleRemoveDoc(docId) {
+    if (confirm('Remove this document? It will be permanently deleted from your Document Vault.')) {
+      onRemoveDocument(docId);
+    }
+  }
 
   async function handleEnhance() {
     setEnhancing(true);
     setEnhanceErr(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/enhance-win`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ winId: win.id }),
-      });
-      const data = await res.json();
+      const data = await callAI('enhance-win', { winId: win.id });
+      if (data.cancelled) return;
       if (!data.ok) { setEnhanceErr(mapAiError(data.code, data.error)); return; }
       const enhanced = {
         statement: data.data.statement,
@@ -217,6 +266,51 @@ function WinCard({ win, winTags, logoTypeOptions, originOptions, onEdit, onDelet
           )}
         </div>
       )}
+
+      {/* ── Attached documents (stored in the Document Vault) ── */}
+      <div className="win-docs" style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <span className="win-impact-label">
+            Documents{documents.length ? ` (${documents.length})` : ''}
+          </span>
+          <button type="button" className="row-btn" onClick={handleAttachClick}>
+            + Attach document
+          </button>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          style={{ display: 'none' }}
+          onChange={handleAttachChange}
+        />
+        {attachError && <p className="form-field-error" style={{ margin: '0.4rem 0 0' }}>{attachError}</p>}
+        {documents.length > 0 && (
+          <ul style={{ listStyle: 'none', margin: '0.5rem 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {documents.map(doc => (
+              <li key={doc.id} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem 0.5rem' }}>
+                <span style={{
+                  flexShrink: 0, background: getMimeBadgeColor(doc.mimeType), color: '#fff',
+                  borderRadius: '4px', padding: '0.1rem 0.35rem', fontSize: '0.65rem',
+                  fontWeight: 700, letterSpacing: '0.05em',
+                }}>
+                  {getMimeLabel(doc.mimeType)}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', fontSize: '0.875rem' }}>
+                  {doc.filename}
+                </span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', flexShrink: 0 }}>
+                  {formatFileSize(doc.size)}
+                </span>
+                <span style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                  <button type="button" className="row-btn" onClick={() => downloadDocument(doc)}>Download</button>
+                  <button type="button" className="row-btn row-btn--danger" onClick={() => handleRemoveDoc(doc.id)}>Remove</button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {enhanceErr && <p className="form-field-error" style={{ margin: '0.5rem 0 0' }}>{enhanceErr}</p>}
 

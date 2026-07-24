@@ -108,7 +108,7 @@ async function buildContext(userId) {
   const [dataResult, firmConfig, feedbackResult] = await Promise.all([
     db.query(
       `SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)`,
-      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'story']]
+      [userId, ['admin', 'settings', 'scorecard', 'wins', 'goals', 'people', 'learning', 'eminence', 'feedback_synthesis', 'reflections', 'competencies', 'brand', 'story', 'vault']]
     ),
     loadFirmConfig(),
     db.query(
@@ -204,6 +204,7 @@ async function buildContext(userId) {
   }).filter(y => hasData(y.metrics));
 
   // ── opportunities (open + won only, snake_case) ──
+  // Allowlist excludes terminal statuses 'lost' and 'no_pursue' from AI context.
   const opps = opportunities
     .filter(o => o.status === 'open' || o.status === 'won')
     .map(o => ({
@@ -222,6 +223,7 @@ async function buildContext(userId) {
     }));
 
   // ── wins (20 most recent, trimmed) ──
+  const vaultDocs = (byDomain.vault?.documents) ?? [];
   const wins = [...rawWins]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 20)
@@ -233,6 +235,7 @@ async function buildContext(userId) {
       logo_type:           w.logoType ?? null,
       relationship_origin: w.relationshipOrigin ?? null,
       strategic_note:      w.strategicNote ?? null,
+      attachment_count:    vaultDocs.filter(d => d.linkedType === 'win' && d.linkedId === w.id).length || null,
     }));
 
   // ── goals ──
@@ -240,6 +243,7 @@ async function buildContext(userId) {
     title:   g.title,
     status:  (g.status ?? 'not_started').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
     is_gate: !!g.isGate,
+    is_performance_goal: !!g.isPerformanceGoal,
     notes:   g.notes ?? null,
   }));
 
@@ -260,6 +264,8 @@ async function buildContext(userId) {
   });
 
   // ── pre-computed summary stats ──
+  // win_rate uses won/(won+lost) only — 'no_pursue' opps are terminal and are
+  // deliberately excluded from both numerator and denominator (and from pipeline).
   const qyOpps = opportunities.filter(o => o.year === qualifyingYear);
   const wonOpps  = qyOpps.filter(o => o.status === 'won');
   const lostOpps = qyOpps.filter(o => o.status === 'lost');

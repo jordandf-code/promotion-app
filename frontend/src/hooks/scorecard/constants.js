@@ -11,7 +11,7 @@ export const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Se
 export const QUARTER_KEYS   = ['q1','q2','q3','q4'];
 export const QUARTER_LABELS = ['Q1','Q2','Q3','Q4'];
 
-export const OPP_STATUSES     = ['open','won','lost'];
+export const OPP_STATUSES     = ['open','won','lost','no_pursue'];
 export const PROJECT_STATUSES = ['forecast','realized'];
 
 export function qSum(quarters) {

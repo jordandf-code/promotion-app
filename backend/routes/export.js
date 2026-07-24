@@ -16,7 +16,9 @@ const EXPORT_DOMAINS = [
 ];
 
 // Flatten a domain's JSONB into one or more { filename, rows } entries.
-function domainToCSVs(domain, data) {
+// `vaultDocs` (optional) is the user's vault documents array, used to attach
+// a documentCount column to wins (files themselves live in the vault, never CSV).
+function domainToCSVs(domain, data, vaultDocs = []) {
   if (!data) return [];
 
   switch (domain) {
@@ -38,7 +40,19 @@ function domainToCSVs(domain, data) {
         grossProfitQ1: p.grossProfit?.q1 ?? '', grossProfitQ2: p.grossProfit?.q2 ?? '',
         grossProfitQ3: p.grossProfit?.q3 ?? '', grossProfitQ4: p.grossProfit?.q4 ?? '',
       }));
+      const targets = Object.entries(data.targets || {}).map(([year, t]) => ({
+        year,
+        sales:              t?.sales ?? '',
+        revenue:            t?.revenue ?? '',
+        grossProfit:        t?.grossProfit ?? '',
+        utilization:        t?.utilization ?? '',
+        teamSignings:       t?.teamSignings ?? '',
+        teamSigningsActual: t?.teamSigningsActual ?? '',
+        teamRevenue:        t?.teamRevenue ?? '',
+        teamRevenueActual:  t?.teamRevenueActual ?? '',
+      }));
       const result = [];
+      if (targets.length)  result.push({ filename: 'targets.csv', rows: targets });
       if (opps.length)     result.push({ filename: 'opportunities.csv', rows: opps });
       if (projects.length) result.push({ filename: 'projects.csv', rows: projects });
       return result;
@@ -52,12 +66,15 @@ function domainToCSVs(domain, data) {
         sourceName: w.sourceName || '',
         logoType: w.logoType || '', relationshipOrigin: w.relationshipOrigin || '',
         strategicNote: w.strategicNote || '',
+        // Attached files live in the Document Vault; export only their count.
+        documentCount: vaultDocs.filter(d => d.linkedType === 'win' && d.linkedId === w.id).length,
       })) }];
 
     case 'goals':
       return [{ filename: 'goals.csv', rows: (data || []).map(g => ({
         id: g.id, title: g.title, targetDate: g.targetDate || '',
         status: g.status || '', notes: g.notes || '', isGate: g.isGate ? 'yes' : 'no',
+        isPerformanceGoal: g.isPerformanceGoal ? 'yes' : 'no',
       })) }];
 
     case 'actions':
@@ -125,7 +142,13 @@ function rowsToCSV(rows) {
   if (!rows.length) return '';
   const headers = Object.keys(rows[0]);
   const escape = v => {
-    const s = String(v ?? '');
+    let s = String(v ?? '');
+    // Neutralize CSV formula injection: a non-numeric cell starting with = + - @
+    // (or tab/CR) is executed as a formula by Excel/Sheets. Prefix with a single
+    // quote to force text. Plain numbers (incl. negatives) are left untouched.
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) {
+      s = "'" + s;
+    }
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
       return '"' + s.replace(/"/g, '""') + '"';
     }
@@ -144,6 +167,7 @@ const README_TEXT = `Career Command Center — Data Export
 This ZIP contains your data exported as CSV files.
 
 Files included:
+- targets.csv — Per-year scorecard targets and manual team signings/revenue (from Scorecard)
 - opportunities.csv — Pipeline opportunities (from Scorecard)
 - projects.csv — Delivery projects (from Scorecard)
 - wins.csv — Accomplishments and wins
@@ -157,6 +181,8 @@ Files included:
 
 Notes:
 - All currency values are in CAD (Canadian dollars), regardless of your display setting.
+- wins.csv includes a documentCount column. The files themselves are stored in the
+  Document Vault (not exported as CSV); download them individually from the app.
 - Tags and multi-value fields use pipe (|) as separator.
 - Boolean fields use "yes"/"no".
 - Dates are in YYYY-MM-DD format where available.
@@ -170,19 +196,20 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await db.query(
       'SELECT domain, data FROM user_data WHERE user_id = $1 AND domain = ANY($2)',
-      [req.userId, EXPORT_DOMAINS]
+      [req.userId, [...EXPORT_DOMAINS, 'vault']]
     );
 
     const dataByDomain = {};
     for (const row of result.rows) {
       dataByDomain[row.domain] = row.data;
     }
+    const vaultDocs = dataByDomain.vault?.documents ?? [];
 
     const zip = new JSZip();
     zip.file('README.txt', README_TEXT);
 
     for (const domain of EXPORT_DOMAINS) {
-      const csvEntries = domainToCSVs(domain, dataByDomain[domain]);
+      const csvEntries = domainToCSVs(domain, dataByDomain[domain], vaultDocs);
       for (const { filename, rows } of csvEntries) {
         if (rows.length) {
           zip.file(filename, rowsToCSV(rows));
@@ -217,7 +244,18 @@ router.get('/:domain', authMiddleware, async (req, res) => {
     );
 
     const data = result.rows[0]?.data;
-    const csvEntries = domainToCSVs(domain, data);
+
+    // Wins reference documents stored in the vault; load them for the count column.
+    let vaultDocs = [];
+    if (domain === 'wins') {
+      const vaultResult = await db.query(
+        'SELECT data FROM user_data WHERE user_id = $1 AND domain = $2',
+        [req.userId, 'vault']
+      );
+      vaultDocs = vaultResult.rows[0]?.data?.documents ?? [];
+    }
+
+    const csvEntries = domainToCSVs(domain, data, vaultDocs);
 
     if (!csvEntries.length || !csvEntries[0].rows.length) {
       return res.status(200).set('Content-Type', 'text/csv').send('');

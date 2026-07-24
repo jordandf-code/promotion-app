@@ -7,7 +7,8 @@ import { MONTH_KEYS, qSum } from './constants.js';
 
 /**
  * Sales stats for a given year.
- * Won opportunities → realized. Open opportunities → forecast. Lost → excluded.
+ * Won opportunities → realized. Open opportunities → forecast.
+ * Lost and No pursue → terminal, excluded from both realized and forecast.
  */
 export function getSalesStats(opportunities, targets, year) {
   const yearOpps = opportunities.filter(o => o.year === year);

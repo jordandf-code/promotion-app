@@ -11,6 +11,7 @@ When Jordan uses these terms, this is what they mean in the app.
 | **Qualifying year** | Year before promotion (2026) — building the case, Dec 31 deadline |
 | **Promotion year** | Year of the ask (2027) |
 | **Gate / IBM milestone** | Required checkbox for promotion. Goals with `isGate: true` |
+| **SF performance goal** | A yearly personal performance goal (Jordan's own), distinct from IBM promotion milestones. Goals with `isPerformanceGoal: true`. Independent of `isGate` |
 | **Three gates** | Hit targets, complete training, top performer rating — all by Dec 31 of qualifying year |
 
 ## Financial Metrics (Scorecard)
@@ -43,6 +44,7 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 | **Super Admin** | SuperAdmin.jsx — categories, firm config, user management | `/super-admin` |
 | **Sharing** | Sharing.jsx — public link + feedback (sub-tabs: Links / Feedback) | `/sharing` |
 | **Import/Export** | ImportExport.jsx — CSV import and ZIP export | `/import-export` |
+| **Document Vault / Documents** | DocumentVault.jsx — file uploads (base64 in `vault` domain) linkable to wins/eminence; wins also attach docs directly from their card | `/vault` |
 
 | **Mock Panel** | MockPanel.jsx — AI-powered promotion panel practice | `/mock-panel` |
 | **Package Generator** | PromotionPackage.jsx — assemble + polish + export promotion case | `/promotion-package` |
@@ -51,9 +53,11 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 ## Pipeline Stages & Statuses
 
 **Stages** (progression): Identified > Qualified > Proposed > Verbal > Closed
-**Status** (outcome): open | won | lost
+**Status** (outcome): open | won | lost | no_pursue
 
 "Closed" is a stage. "Won" is a status. A deal can be at the "Closed" stage but still "open" status.
+"No pursue" (`no_pursue`) is a terminal "decided not to chase" outcome — distinct from "lost" and
+excluded from win-rate, pipeline, forecast, and AI context.
 
 ## UI Components
 

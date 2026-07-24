@@ -10,14 +10,15 @@ import { useAdminData, DEFAULT_PIPELINE_STAGES } from '../../hooks/useAdminData.
 import OppModal from './OppModal.jsx';
 
 const STATUS_OPTIONS = [
-  { value: 'open', label: 'Open' },
-  { value: 'won',  label: 'Won' },
-  { value: 'lost', label: 'Lost' },
+  { value: 'open',      label: 'Open' },
+  { value: 'won',       label: 'Won' },
+  { value: 'lost',      label: 'Lost' },
+  { value: 'no_pursue', label: 'No pursue' },
 ];
 import WinFormModal from '../wins/WinFormModal.jsx';
 
-const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost' };
-const STATUSES = ['open', 'won', 'lost'];
+const STATUS_LABELS = { open: 'Open', won: 'Won', lost: 'Lost', no_pursue: 'No pursue' };
+const STATUSES = ['open', 'won', 'lost', 'no_pursue'];
 
 const EMPTY_FORM = {
   name: '', client: '', year: new Date().getFullYear(),
@@ -38,6 +39,7 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
   const [winPrompt,    setWinPrompt]    = useState(null);
   const [sortKey,      setSortKey]      = useState(null);
   const [sortDir,      setSortDir]      = useState('asc');
+  const [projectNotice, setProjectNotice] = useState('');
 
   function handleSort(col) {
     if (sortKey === col) {
@@ -86,6 +88,14 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
     : scorecard.opportunities.filter(o => o.year === Number(yearFilter));
   const totalWon  = summaryOpps.filter(o => o.status === 'won') .reduce((s, o) => s + (Number(o.signingsValue) || 0), 0);
   const totalOpen = summaryOpps.filter(o => o.status === 'open').reduce((s, o) => s + (Number(o.signingsValue) || 0), 0);
+
+  // ── Team tiles (#112): manual team target + actual, parallel to personal ──
+  const teamYears = yearFilter === 'all' ? scorecardYears : [Number(yearFilter)];
+  const sumTeam = key => teamYears.reduce((s, yr) => s + (Number(scorecard.getTarget(yr, key)) || 0), 0);
+  const teamSigningsTarget = sumTeam('teamSignings');
+  const teamSigningsActual = sumTeam('teamSigningsActual');
+  const teamRevenueTarget  = sumTeam('teamRevenue');
+  const teamRevenueActual  = sumTeam('teamRevenueActual');
 
   function openAdd() {
     setModal({ mode: 'add', data: { ...EMPTY_FORM, year: scorecardYears[Math.floor(scorecardYears.length / 2)] } });
@@ -174,20 +184,64 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
     if (confirm('Remove this opportunity?')) scorecard.removeOpportunity(id);
   }
 
+  // ── Generate a delivery project from an opportunity (#115) ──
+  function handleGenerateProject(opp) {
+    if (scorecard.projects.some(p => p.opportunityId === opp.id)) {
+      setProjectNotice(`A project is already linked to "${opp.name}".`);
+      return;
+    }
+    scorecard.addProject({
+      name:               opp.name,
+      client:             opp.client,
+      year:               Number(opp.year) || new Date().getFullYear(),
+      status:             'forecast',
+      opportunityId:      opp.id,
+      revenue:            { q1: Number(opp.totalValue) || 0, q2: 0, q3: 0, q4: 0 },
+      grossProfit:        { q1: '', q2: '', q3: '', q4: '' },
+      dealType:           opp.dealType ?? '',
+      logoType:           opp.logoType ?? '',
+      relationshipOrigin: opp.relationshipOrigin ?? '',
+      strategicNote:      opp.strategicNote ?? '',
+    });
+    setProjectNotice(`Project created from "${opp.name}". Open the Projects tab to split revenue by quarter.`);
+  }
+
   return (
     <div className="tab-content">
+      {projectNotice && (
+        <div className="import-notice" role="status" style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem',
+          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+          padding: '0.6rem 0.9rem', marginBottom: '0.75rem', fontSize: 'var(--text-sm)',
+        }}>
+          <span>{projectNotice}</span>
+          <button className="row-btn" onClick={() => setProjectNotice('')} title="Dismiss">✕</button>
+        </div>
+      )}
       <div className="opp-summary">
         <div className="opp-summary-stat">
           <div className="opp-summary-value won-color">{fmtCurrency(totalWon)}</div>
-          <div className="opp-summary-label">Realized signings</div>
+          <div className="opp-summary-label">Personal realized signings</div>
         </div>
         <div className="opp-summary-stat">
           <div className="opp-summary-value forecast-color">{fmtCurrency(totalOpen)}</div>
-          <div className="opp-summary-label">Forecast signings</div>
+          <div className="opp-summary-label">Personal forecast signings</div>
         </div>
         <div className="opp-summary-stat">
           <div className="opp-summary-value">{fmtCurrency(totalWon + totalOpen)}</div>
-          <div className="opp-summary-label">Total pipeline</div>
+          <div className="opp-summary-label">Personal total pipeline</div>
+        </div>
+        <div className="opp-summary-stat">
+          <div className="opp-summary-value">{fmtCurrency(teamSigningsActual)}</div>
+          <div className="opp-summary-label">
+            Team signings{teamSigningsTarget > 0 && ` · ${Math.round(teamSigningsActual / teamSigningsTarget * 100)}% of ${fmtCurrency(teamSigningsTarget)}`}
+          </div>
+        </div>
+        <div className="opp-summary-stat">
+          <div className="opp-summary-value">{fmtCurrency(teamRevenueActual)}</div>
+          <div className="opp-summary-label">
+            Team revenue{teamRevenueTarget > 0 && ` · ${Math.round(teamRevenueActual / teamRevenueTarget * 100)}% of ${fmtCurrency(teamRevenueTarget)}`}
+          </div>
         </div>
       </div>
 
@@ -248,7 +302,7 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                     >
                       {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
-                    {opp.status !== 'lost' && wins.some(w => w.sourceId === opp.id) && (
+                    {opp.status !== 'lost' && opp.status !== 'no_pursue' && wins.some(w => w.sourceId === opp.id) && (
                       <span className="opp-win-linked" title="Win logged">W</span>
                     )}
                   </td>
@@ -257,6 +311,12 @@ export default function OpportunitiesTab({ scorecard, scorecardYears }) {
                   <td className="num-col" data-label="Total value">{fmtCurrency(Number(opp.totalValue) || 0)}</td>
                   <td className="num-col font-bold" data-label="Signings">{fmtCurrency(Number(opp.signingsValue) || 0)}</td>
                   <td className="action-col" onClick={e => e.stopPropagation()}>
+                    <button
+                      className="row-btn"
+                      onClick={() => handleGenerateProject(opp)}
+                      disabled={scorecard.projects.some(p => p.opportunityId === opp.id)}
+                      title={scorecard.projects.some(p => p.opportunityId === opp.id) ? 'Project already linked' : 'Generate a linked delivery project'}
+                    >⊕ Project</button>
                     <button className="row-btn" onClick={() => openEdit(opp)} title="Edit">✎</button>
                     <button className="row-btn row-btn--danger" onClick={() => handleDelete(opp.id)}>✕</button>
                   </td>

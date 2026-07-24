@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { API_BASE, authHeaders } from '../utils/api.js';
+import { callAI } from '../utils/aiClient.js';
 import { mapAiError } from '../utils/aiErrors.js';
 import { useAdminData } from '../hooks/useAdminData.js';
 import { useStoryData } from '../hooks/useStoryData.js';
@@ -38,12 +39,8 @@ export default function MyStory() {
     setLoading(prev => ({ ...prev, [mode]: true }));
     setErrors(prev  => ({ ...prev, [mode]: null }));
     try {
-      const res = await fetch(`${API_BASE}/api/ai/generate-story`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body:    JSON.stringify({ narrative_mode: mode }),
-      });
-      const data = await res.json();
+      const data = await callAI('generate-story', { narrative_mode: mode });
+      if (data.cancelled) return;
       if (!data.ok) {
         const err = new Error(data.error);
         err.code = data.code;
@@ -97,10 +94,8 @@ export default function MyStory() {
     setDeckError(null);
     setDeckUsage(null);
     try {
-      const res = await fetch(`${API_BASE}/api/ai/deck`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      });
+      const res = await callAI('deck', {}, { raw: true });
+      if (res.cancelled) return;
       if (!res.ok) {
         const ct = res.headers.get('Content-Type') || '';
         if (ct.includes('application/json')) {
