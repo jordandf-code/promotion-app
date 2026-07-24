@@ -251,6 +251,7 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #106 — Drag/drop tab order in Admin: shared `useDragReorder` hook wired to real HTML5 DnD, ↑/↓ buttons kept as fallback
 - [x] #90 — Closed as ops task (Resend domain verification — not code)
 - [x] #61 — Closed as ops task (Render keep-alive — not code)
+- [x] Security (integration) — CSV formula-injection guard in `backend/routes/export.js` `rowsToCSV` (neutralize `= + - @`-led non-numeric cells; found while adding export columns)
 
 ---
 

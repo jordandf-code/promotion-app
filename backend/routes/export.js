@@ -142,7 +142,13 @@ function rowsToCSV(rows) {
   if (!rows.length) return '';
   const headers = Object.keys(rows[0]);
   const escape = v => {
-    const s = String(v ?? '');
+    let s = String(v ?? '');
+    // Neutralize CSV formula injection: a non-numeric cell starting with = + - @
+    // (or tab/CR) is executed as a formula by Excel/Sheets. Prefix with a single
+    // quote to force text. Plain numbers (incl. negatives) are left untouched.
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) {
+      s = "'" + s;
+    }
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
       return '"' + s.replace(/"/g, '""') + '"';
     }
