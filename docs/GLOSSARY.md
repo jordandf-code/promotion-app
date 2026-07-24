@@ -43,6 +43,7 @@ All currency stored in CAD. Display can toggle to USD at 1.5x rate.
 | **Super Admin** | SuperAdmin.jsx — categories, firm config, user management | `/super-admin` |
 | **Sharing** | Sharing.jsx — public link + feedback (sub-tabs: Links / Feedback) | `/sharing` |
 | **Import/Export** | ImportExport.jsx — CSV import and ZIP export | `/import-export` |
+| **Document Vault / Documents** | DocumentVault.jsx — file uploads (base64 in `vault` domain) linkable to wins/eminence; wins also attach docs directly from their card | `/vault` |
 
 | **Mock Panel** | MockPanel.jsx — AI-powered promotion panel practice | `/mock-panel` |
 | **Package Generator** | PromotionPackage.jsx — assemble + polish + export promotion case | `/promotion-package` |

@@ -2,36 +2,15 @@
 
 import { useState, useRef } from 'react';
 import { useVaultData } from '../hooks/useVaultData.js';
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-const ACCEPTED_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif';
-
-function formatFileSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getMimeLabel(mimeType) {
-  if (!mimeType) return 'FILE';
-  if (mimeType === 'application/pdf') return 'PDF';
-  if (mimeType.includes('word')) return 'DOC';
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'XLS';
-  if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'PPT';
-  if (mimeType.startsWith('image/')) return 'IMG';
-  return 'FILE';
-}
-
-function getMimeBadgeColor(mimeType) {
-  if (!mimeType) return '#6b7280';
-  if (mimeType === 'application/pdf') return '#dc2626';
-  if (mimeType.includes('word')) return '#2563eb';
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '#16a34a';
-  if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '#ea580c';
-  if (mimeType.startsWith('image/')) return '#7c3aed';
-  return '#6b7280';
-}
+import {
+  MAX_FILE_SIZE,
+  ACCEPTED_TYPES,
+  formatFileSize,
+  getMimeLabel,
+  getMimeBadgeColor,
+  readFileForVault,
+  downloadDocument,
+} from '../utils/vaultFiles.js';
 
 const LINKED_TYPE_LABELS = {
   win: 'Win',
@@ -85,27 +64,17 @@ export default function DocumentVault() {
     e.target.value = '';
     if (!file) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-      setUploadError(`File is too large (${formatFileSize(file.size)}). Maximum size is 5 MB.`);
-      return;
-    }
-
     setUploadError('');
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPendingFile({
-        filename: file.name,
-        mimeType: file.type,
-        size: file.size,
-        data: ev.target.result, // Base64 data URL
-      });
-      setFormDescription('');
-      setFormLinkedType('general');
-      setFormLinkedId('');
-      setFormTags('');
-      setShowUploadForm(true);
-    };
-    reader.readAsDataURL(file);
+    readFileForVault(file)
+      .then(payload => {
+        setPendingFile(payload);
+        setFormDescription('');
+        setFormLinkedType('general');
+        setFormLinkedId('');
+        setFormTags('');
+        setShowUploadForm(true);
+      })
+      .catch(err => setUploadError(err.message));
   }
 
   function handleUploadSave() {
@@ -135,27 +104,7 @@ export default function DocumentVault() {
   }
 
   function handleDownload(doc) {
-    try {
-      const base64Data = doc.data.split(',')[1];
-      const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: doc.mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = doc.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {
-      // fallback: open data URL directly
-      const a = document.createElement('a');
-      a.href = doc.data;
-      a.download = doc.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
+    downloadDocument(doc);
   }
 
   function handleDeleteRequest(id) {

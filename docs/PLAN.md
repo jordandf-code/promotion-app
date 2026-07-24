@@ -241,6 +241,7 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 **Issue batch (2026-05-14)**
 - [x] #111 — Scorecard polish: step="0.01" on currency inputs, % progress on Overview tiles, sortable columns on Opps/Projects tables
 - [x] #104 — FirmConfigSection moved from SuperAdmin > Platform to Admin > GenAI tab
+- [x] #117 — Attach documents to wins: reuses the Document Vault, "Attach document" affordance on win cards, bidirectional win↔vault linkage, shared `utils/vaultFiles.js` helper, documentCount in wins CSV, attachment_count in AI context
 - [ ] #112 — Team scorecard tiles (personal vs team split on signings/revenue tiles)
 - [ ] #115 — Create project from opportunity (auto-populate fields)
 - [ ] #107 — Estimate AI cost before sending API calls
