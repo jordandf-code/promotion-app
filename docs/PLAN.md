@@ -253,6 +253,11 @@ Full review of 25 open GitHub issues through technical, business, and visionary 
 - [x] #61 — Closed as ops task (Render keep-alive — not code)
 - [x] Security (integration) — CSV formula-injection guard in `backend/routes/export.js` `rowsToCSV` (neutralize `= + - @`-led non-numeric cells; found while adding export columns)
 
+**Follow-up batch (2026-07-25)**
+- [x] CI dependency audit — scoped PR gate to production deps via `scripts/audit-gate.mjs` (`npm audit --omit=dev`, documented allowlist). Backend has 0 prod highs; frontend patched vite/postcss/undici, react-router held on v7 with a documented SPA exception (SSR/RSC CVEs N/A; v8 migration tracked separately). Weekly full-tree scan unchanged.
+- [x] LinkedIn import (2E completion) — `parse-linkedin` was a dead trigger: no backend route AND the `LinkedInImportModal` was orphaned. Added `POST /api/ai/parse-linkedin` (+ `PARSE_LINKEDIN_PROMPT`, `/estimate` entry so it is no longer generic) and wired the modal into the People page ("Import from LinkedIn" button → parse → preview → adds contacts via `addPerson`).
+- [ ] react-router v8 migration (deferred) — `react-router-dom`→`react-router` v8 across 32 files; API-compatible (declarative routing retained) but a major bump; do as its own verified task.
+
 ---
 
 ## Wave 2 — Security + Competency Radar v2

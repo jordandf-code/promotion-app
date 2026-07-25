@@ -9,6 +9,7 @@ import { useAdminData } from '../hooks/useAdminData.js';
 import { useActionsData } from '../hooks/useActionsData.js';
 import PersonCard from '../components/people/PersonCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
+import LinkedInImportModal from '../components/LinkedInImportModal.jsx';
 import { API_BASE, authHeaders } from '../utils/api.js';
 
 const EMPTY_FORM = { name: '', title: '', org: '', type: '', relationshipStatus: 'in-progress', email: '', phone: '', need: '', influenceTier: '', strategicImportance: '', stakeholderGroup: '' };
@@ -29,6 +30,7 @@ export default function People() {
   const [modal,      setModal]      = useState(null);
   const [feedbackModal, setFeedbackModal] = useState(null); // { person }
   const [prepPerson, setPrepPerson] = useState(null);
+  const [linkedinOpen, setLinkedinOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const filterStale = searchParams.get('filter') === 'stale';
 
@@ -63,6 +65,22 @@ export default function People() {
     if (confirm('Remove this person?')) removePerson(id);
   }
 
+  function handleLinkedinImport(contacts) {
+    const defaultType = relationshipTypes[0]?.label || '';
+    for (const c of contacts) {
+      addPerson({
+        ...EMPTY_FORM,
+        type: defaultType,
+        name:  c.name  || '',
+        title: c.title || '',
+        org:   c.org   || '',
+        email: c.email || '',
+        phone: c.phone || '',
+      });
+    }
+    setLinkedinOpen(false);
+  }
+
   function handlePrepSave(prep) {
     const person = prepPerson;
     updatePerson(person.id, {
@@ -84,6 +102,7 @@ export default function People() {
         <h1 className="page-title">People</h1>
         <div className="page-header-actions">
           <button className="btn-ghost" onClick={() => navigate('/import-export')}>Import / Export</button>
+          <button className="btn-ghost" onClick={() => setLinkedinOpen(true)}>Import from LinkedIn</button>
           <button className="btn-primary" onClick={openAdd}>+ Add person</button>
         </div>
       </div>
@@ -177,6 +196,13 @@ export default function People() {
           person={prepPerson}
           onSave={handlePrepSave}
           onClose={() => setPrepPerson(null)}
+        />
+      )}
+
+      {linkedinOpen && (
+        <LinkedInImportModal
+          onImport={handleLinkedinImport}
+          onClose={() => setLinkedinOpen(false)}
         />
       )}
     </div>

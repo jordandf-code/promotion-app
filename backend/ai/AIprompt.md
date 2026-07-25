@@ -416,3 +416,12 @@ Three endpoints power the interactive mock promotion panel:
 - **Prompt**: `AUTO_LINK_EVIDENCE_PROMPT` — classifies wins to 1-3 competencies with confidence scores
 - **Max tokens**: 2000 | **Parse JSON**: true
 - **Output**: `{ links: [{ win_id, competency_ids[], confidence }] }`
+
+## People Endpoints
+
+### `POST /api/ai/parse-linkedin`
+- **Body**: `{ text }` — pasted LinkedIn profile / connections / CSV / free-form contact text (no server-side context)
+- **Prompt**: `PARSE_LINKEDIN_PROMPT` — extracts distinct people; never fabricates email/phone/title/org (null when unknown); strips LinkedIn UI noise
+- **Max tokens**: 2000 | **Parse JSON**: true
+- **Output**: `{ ok, data: { contacts: [{ name, title, org, email, phone }] }, usage }` — only named entries kept
+- Consumed by `LinkedInImportModal` (wired into the People page); has an `ENDPOINT_MAX_TOKENS` entry so the pre-send cost estimate is exact, not generic

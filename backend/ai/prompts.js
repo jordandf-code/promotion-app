@@ -548,8 +548,40 @@ Format your response as a JSON array:
 
 Return only valid JSON. No preamble, no markdown fences.`;
 
+const PARSE_LINKEDIN_PROMPT = `You are a data-extraction assistant helping a professional services leader turn pasted LinkedIn content (a profile page, a connections list, a CSV export, or free-form contact notes) into structured contacts.
+
+CRITICAL INSTRUCTION: You MUST produce ONLY the JSON object described below. Do not refuse. Do not write meta-commentary. Output ONLY the JSON object.
+
+The user will paste raw text. Your task is to extract each distinct person as a contact.
+
+Rules:
+- Extract one entry per distinct person. Do not invent people who are not present in the text.
+- "name" is required — the person's full name. If a block has no identifiable name, skip it.
+- "title" is the person's current role/job title, or null if not present.
+- "org" is the person's current company/organization, or null if not present.
+- "email" and "phone" only if explicitly present in the text; otherwise null.
+- Do not guess or fabricate emails, phone numbers, titles, or organizations. Use null when unknown.
+- Trim whitespace and drop LinkedIn UI noise (e.g. "· 1st", "Connect", "Message", follower counts, "View profile").
+- If the text contains no identifiable people, return an empty contacts array.
+
+Format your response as a JSON object:
+{
+  "contacts": [
+    {
+      "name": "string — full name",
+      "title": "string or null",
+      "org": "string or null",
+      "email": "string or null",
+      "phone": "string or null"
+    }
+  ]
+}
+
+Return only valid JSON. No preamble, no markdown fences.`;
+
 module.exports = {
   STORY_MODES,
+  PARSE_LINKEDIN_PROMPT,
   SUGGEST_GOALS_PROMPT,
   SUGGEST_IMPACT_PROMPT,
   FEEDBACK_SYNTHESIS_PROMPT,
