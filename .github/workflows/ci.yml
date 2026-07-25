@@ -18,7 +18,8 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: cd backend && npm ci
-      - run: cd backend && npm audit --audit-level=high
+      # Production-scoped audit gate (dev/build tooling never ships). See scripts/audit-gate.mjs.
+      - run: node scripts/audit-gate.mjs backend
 
   audit-frontend:
     name: Audit frontend dependencies
@@ -31,7 +32,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
-      - run: cd frontend && npm audit --audit-level=high
+      # Production-scoped audit gate (dev/build tooling never ships). See scripts/audit-gate.mjs.
+      - run: node scripts/audit-gate.mjs frontend
 
   test-backend:
     name: Backend tests

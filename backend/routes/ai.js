@@ -8,7 +8,7 @@ const rateLimit      = require('express-rate-limit');
 const authMiddleware = require('../middleware/auth');
 const { buildContext }   = require('../ai/buildContext');
 const { callAnthropic }  = require('../ai/callAnthropic');
-const { STORY_MODES, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT, MOCK_PANEL_QUESTIONS_PROMPT, MOCK_PANEL_FOLLOWUP_PROMPT, MOCK_PANEL_DEBRIEF_PROMPT, PACKAGE_POLISH_PROMPT, EXTRACT_ACTIONS_PROMPT } = require('../ai/prompts');
+const { STORY_MODES, PARSE_LINKEDIN_PROMPT, SUGGEST_GOALS_PROMPT, SUGGEST_IMPACT_PROMPT, FEEDBACK_SYNTHESIS_PROMPT, ENHANCE_WIN_PROMPT, REFLECTION_SYNTHESIS_PROMPT, COMPETENCY_ANALYSIS_PROMPT, MEETING_PREP_PROMPT, MOCK_PANEL_QUESTIONS_PROMPT, MOCK_PANEL_FOLLOWUP_PROMPT, MOCK_PANEL_DEBRIEF_PROMPT, PACKAGE_POLISH_PROMPT, EXTRACT_ACTIONS_PROMPT } = require('../ai/prompts');
 const { assemblePackage } = require('../ai/packageAssembly');
 const { renderPackageDeck } = require('../ai/renderPackageDeck');
 const { fmtCurrency }   = require('../ai/formatUtils');
@@ -291,6 +291,7 @@ const ENDPOINT_MAX_TOKENS = {
   'package/polish':       6000,
   'auto-link-evidence':   2000,
   'extract-actions':      2000,
+  'parse-linkedin':       2000,
   'deck':                 4000,
 };
 
@@ -1293,6 +1294,61 @@ router.post('/extract-actions', async (req, res) => {
   const actions = Array.isArray(result.data) ? result.data : [];
 
   res.json({ ok: true, actions, usage: result.usage });
+});
+
+// ── POST /api/ai/parse-linkedin ─────────────────────────────────────────────
+// Body: { text: string } — pasted LinkedIn profile/connections/CSV/free-form text.
+// Returns { ok, data: { contacts: [{ name, title, org, email, phone }] }, usage }.
+
+router.post('/parse-linkedin', async (req, res) => {
+  const { text } = req.body ?? {};
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ ok: false, error: 'text is required', code: 'AI_ERROR' });
+  }
+
+  // Load API key from user's admin data (no buildContext needed)
+  let apiKey;
+  try {
+    const result = await db.query(
+      `SELECT data FROM user_data WHERE user_id = $1 AND domain = 'admin'`,
+      [req.userId]
+    );
+    apiKey = result.rows[0]?.data?.anthropicKey;
+    if (!apiKey) {
+      return res.status(400).json({ ok: false, error: 'No API key configured — add one in Admin settings.', code: 'NO_KEY' });
+    }
+  } catch (err) {
+    console.error('parse-linkedin: failed to load admin data:', err.message);
+    return res.status(500).json({ ok: false, error: 'Failed to load user data', code: 'AI_ERROR' });
+  }
+
+  const result = await callAnthropic({
+    apiKey,
+    systemPrompt: PARSE_LINKEDIN_PROMPT,
+    userContent:  text.trim(),
+    maxTokens:    2000,
+    parseJson:    true,
+    userId:       req.userId,
+    endpoint:     'parse-linkedin',
+  });
+
+  if (!result.ok) return res.status(500).json(result);
+
+  // Normalize: accept either { contacts: [...] } or a bare array; keep only named entries.
+  const rawContacts = Array.isArray(result.data)
+    ? result.data
+    : Array.isArray(result.data?.contacts) ? result.data.contacts : [];
+  const contacts = rawContacts
+    .filter(c => c && typeof c.name === 'string' && c.name.trim())
+    .map(c => ({
+      name:  String(c.name).trim(),
+      title: c.title ? String(c.title).trim() : '',
+      org:   c.org ? String(c.org).trim() : '',
+      email: c.email ? String(c.email).trim() : '',
+      phone: c.phone ? String(c.phone).trim() : '',
+    }));
+
+  res.json({ ok: true, data: { contacts }, usage: result.usage });
 });
 
 module.exports = router;
